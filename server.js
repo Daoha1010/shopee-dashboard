@@ -53,10 +53,30 @@ function initFiles() {
 }
 initFiles();
 
+// ── Harvest command (in-memory, survives only until restart) ─────────
+let harvestCmd = null; // { triggeredAt: timestamp }
+
 // ── Routes ───────────────────────────────────────────────────────────
 
 // Health check — public (no key needed)
 app.get('/api/ping', (_, res) => res.json({ ok: true, ts: Date.now() }));
+
+// Trigger harvest on all connected extensions — public (chỉ trigger, không lộ data)
+app.post('/api/harvest/trigger', (req, res) => {
+  harvestCmd = { command: 'start', triggeredAt: Date.now() };
+  console.log('🤖 Harvest trigger sent at', new Date().toLocaleTimeString());
+  res.json({ ok: true, triggeredAt: harvestCmd.triggeredAt });
+});
+
+// Extensions poll this — public so extension doesn't need key to check
+app.get('/api/harvest/command', (req, res) => {
+  const TTL = 5 * 60 * 1000; // 5 phút
+  if (harvestCmd && (Date.now() - harvestCmd.triggeredAt) < TTL) {
+    res.json(harvestCmd);
+  } else {
+    res.json({ command: null });
+  }
+});
 
 const GENERIC_NAME = /kênh người bán|shopee seller|seller centre|portal/i;
 const isGenericName = n => !n || GENERIC_NAME.test(n);

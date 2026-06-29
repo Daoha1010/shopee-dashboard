@@ -159,6 +159,7 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
   <button class="btn" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openShopNames()">⚙ Đặt tên shop</button>
   <button class="btn" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openClearModal()">🗑 Xóa dữ liệu</button>
   <button class="btn btn-exp" onclick="exportAll()">⬇ Excel tất cả</button>
+  <button class="btn" id="triggerHarvestBtn" style="background:#7c3aed;color:#fff;font-weight:700;" onclick="triggerHarvest()">🤖 Thu thập tất cả</button>
 </div>
 
 <!-- Shop Name Modal -->
@@ -1444,6 +1445,35 @@ async function confirmClear() {
   } catch(e) {
     alert('❌ Lỗi: ' + e.message);
   }
+}
+
+/* ── TRIGGER HARVEST ── */
+async function triggerHarvest() {
+  const btn = document.getElementById('triggerHarvestBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang gửi lệnh...';
+  try {
+    const res = await fetch('/api/harvest/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const j = await res.json();
+    if (j.ok) {
+      btn.textContent = '✅ Đã gửi! Chờ extension (~2 phút)';
+      btn.style.background = '#16a34a';
+    } else {
+      btn.textContent = '❌ Lỗi';
+      btn.style.background = '#dc2626';
+    }
+  } catch(e) {
+    btn.textContent = '❌ ' + e.message.slice(0, 30);
+    btn.style.background = '#dc2626';
+  }
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = '🤖 Thu thập tất cả';
+    btn.style.background = '#7c3aed';
+  }, 8000);
 }
 
 /* ── INIT ── */
