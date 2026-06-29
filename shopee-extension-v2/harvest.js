@@ -50,12 +50,12 @@ function buildShopPages(dateRange) {
       label: '📊 GMV Max'
     },
     {
-      url:        `/portal/sale/order`,
-      match:      /\/sale\/order/,
-      wait:       6000,
-      scroll:     true,
-      scrollTime: 20000,   // cuộn 20 giây → trigger lazy-load nhiều đơn hơn
-      label:      '📦 Đơn hàng'
+      url:       `/portal/sale/order`,
+      match:     /\/sale\/order/,
+      wait:      6000,
+      multiPage: 8,     // click next page tối đa 8 lần → ~320 đơn
+      pageWait:  3500,  // chờ mỗi trang load
+      label:     '📦 Đơn hàng'
     },
     {
       url:   `/portal/datacenter/product/performance`,
@@ -123,50 +123,58 @@ async function clearState()      { await chrome.storage.local.remove('harvest');
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// ─── Scroll để trigger lazy-load đơn hàng ─────────────────────────────────────
-async function scrollPage(page, curShop, shopIdx, totalShops) {
-  const dur   = page.scrollTime || 15000;
-  const STEPS = 16;
-  const delay = Math.floor(dur / STEPS);
+// ─── Click next page để thu thêm đơn hàng ────────────────────────────────────
+async function clickNextPages(page, curShop, shopIdx, totalShops) {
+  const maxPages = page.multiPage || 5;
+  const pageWait = page.pageWait  || 3500;
 
-  // Tìm container có overflow scroll (Shopee thường dùng div bên trong)
-  const findScrollEl = () => {
-    const selectors = [
-      '[class*="order-list-wrap"]', '[class*="orderListWrap"]',
-      '[class*="order-list"]',      '[class*="orderList"]',
-      '[class*="sale-order"]',      '[class*="content-wrap"]',
-      '[class*="main-content"]',    'main'
+  // Tìm nút "next page" với nhiều selector fallback
+  const findNextBtn = () => {
+    // Các selector phổ biến của Shopee seller center
+    const sels = [
+      'li.shopee-page-controller__page--next:not(.shopee-page-controller__page--disabled) button',
+      'li[class*="next"]:not([class*="disabled"]) button',
+      'button[class*="next"]:not(:disabled)',
+      '[class*="page-next"]:not([disabled])',
+      '[class*="pageNext"]:not([disabled])',
+      '.ant-pagination-next:not(.ant-pagination-disabled) button',
+      '.ant-pagination-next:not(.ant-pagination-disabled)',
+      '[aria-label="Next Page"]:not([disabled])',
+      '[title="Next Page"]',
     ];
-    for (const sel of selectors) {
-      const el = document.querySelector(sel);
-      if (el && el.scrollHeight > el.clientHeight + 200) return el;
+    for (const sel of sels) {
+      try {
+        const el = document.querySelector(sel);
+        if (el && !el.disabled && el.offsetParent !== null) return el;
+      } catch(e) {}
+    }
+    // Fallback: tìm button/li chứa ký tự > hoặc svg mũi tên phải
+    for (const el of document.querySelectorAll('li, button')) {
+      if (el.disabled || el.getAttribute('aria-disabled') === 'true') continue;
+      if (el.classList.toString().toLowerCase().includes('disabled')) continue;
+      const txt = el.textContent.trim();
+      if (txt === '>' || txt === '›' || txt === '»') return el;
+      // SVG arrow right
+      if (el.querySelector('svg') && /next|right|forward/i.test(el.className)) return el;
     }
     return null;
   };
 
-  for (let i = 1; i <= STEPS; i++) {
-    const pct    = i / STEPS;
-    const bodyH  = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
-    window.scrollTo({ top: Math.floor(bodyH * pct), behavior: 'smooth' });
-
-    // Thử cuộn cả container bên trong nếu có
-    const inner = findScrollEl();
-    if (inner) inner.scrollTop = Math.floor(inner.scrollHeight * pct);
-
-    const remaining = Math.round((STEPS - i) * delay / 1000);
+  for (let p = 1; p <= maxPages; p++) {
     showOverlay(
       `🤖 <b>Thu thập tự động</b><br>` +
       `Shop <b>${shopIdx + 1}/${totalShops}</b>: ${curShop.name}<br>` +
-      `${page.label} — Cuộn <b>${i}/${STEPS}</b> (còn ${remaining}s)<br>` +
-      `<span style="font-size:11px;color:#94a3b8">Đang tải thêm đơn hàng...</span>` +
+      `${page.label} — Trang <b>${p + 1}</b>/<b>${maxPages + 1}</b><br>` +
+      `<span style="font-size:11px;color:#94a3b8">Đang tải đơn hàng...</span>` +
       progressBar(shopIdx, totalShops)
     );
-    await sleep(delay);
-  }
 
-  // Cuộn về đầu trang sau khi xong
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  await sleep(800);
+    const btn = findNextBtn();
+    if (!btn) break;   // Không tìm thấy → hết trang hoặc đã trang cuối
+
+    btn.click();
+    await sleep(pageWait);
+  }
 }
 
 // ─── Shop tile detection ──────────────────────────────────────────────────────
@@ -303,9 +311,9 @@ async function runHarvestStep() {
     );
     await sleep(page.wait);
 
-    // Scroll để lazy-load thêm dữ liệu (đơn hàng)
-    if (page.scroll) {
-      await scrollPage(page, curShop, shopIdx, shops.length);
+    // Click next page để load thêm đơn hàng
+    if (page.multiPage) {
+      await clickNextPages(page, curShop, shopIdx, shops.length);
     }
 
     // CPC: click tab 2 (Tự Động Chọn Sản phẩm cấp độ Shop)
