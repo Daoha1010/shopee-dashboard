@@ -327,6 +327,15 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
             </div>
           </div>
         </div>
+        <span class="f-label">📦 Trạng thái:</span>
+        <select class="f-sel" id="ft-orders" onchange="setFilter('orders','orderStatus',this.value)" style="max-width:200px">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="Đã giao">✅ Đã giao</option>
+          <option value="Đã giao cho ĐVVC">🚚 Đã giao cho ĐVVC</option>
+          <option value="Chờ xác nhận">⏳ Chờ xác nhận</option>
+          <option value="Chờ lấy hàng">📦 Chờ lấy hàng</option>
+          <option value="Đã hủy">❌ Đã hủy</option>
+        </select>
         <span class="f-label">📅 Từ:</span>
         <input type="date" class="f-date" id="fd-from-orders" onchange="setFilter('orders','from',this.value)">
         <span class="f-sep">→</span>
@@ -577,9 +586,10 @@ const gt = k => { const l=k.toLowerCase();
   if(/roas|roi/.test(l)) return 'f2';
   return 'n'; };
 const statusBadge = v => { const s=String(v).toLowerCase();
-  if(/paid|success|ship|deliver|complet|active/.test(s)) return `<span class="bk bk-g">${v}</span>`;
-  if(/cancel|fail|reject/.test(s)) return `<span class="bk bk-r">${v}</span>`;
-  if(/pending|wait|process/.test(s)) return `<span class="bk bk-o">${v}</span>`;
+  if(/paid|success|complet|active|đã giao$/.test(s)) return `<span class="bk bk-g">${v}</span>`;
+  if(/ship|deliver|đã giao cho|đang giao|lấy hàng/.test(s)) return `<span class="bk bk-b">${v}</span>`;
+  if(/cancel|fail|reject|hủy|hoàn tiền/.test(s)) return `<span class="bk bk-r">${v}</span>`;
+  if(/pending|wait|process|chờ|xác nhận/.test(s)) return `<span class="bk bk-o">${v}</span>`;
   return `<span class="bk bk-gr">${v}</span>`; };
 
 function flatten(obj,pre='',depth=0){
@@ -613,7 +623,12 @@ const COL_LABELS = {
   rpt_voucher_amount:'Voucher Amount (VND)', rpt_voucher_sales:'Doanh số Voucher (VND)',
   rpt_broad_order_amount:'SP đã bán (rộng)', rpt_direct_order_amount:'SP đã bán (trực tiếp)',
   rpt_broad_cir:'ACOS (rộng)', rpt_direct_cir:'ACOS (trực tiếp)',
-  rpt_location_in_ads:'Vị trí hiển thị', rpt_sov:'SOV'
+  rpt_location_in_ads:'Vị trí hiển thị', rpt_sov:'SOV',
+  // Orders tab
+  order_sn:'Mã đơn', order_date:'Ngày đặt', status:'Trạng thái',
+  product_names:'Sản phẩm', qty:'SL', revenue:'Doanh thu (VND)',
+  payment_method:'Thanh toán', shipping:'Vận chuyển',
+  tracking:'Mã vận đơn', buyer:'Người mua', cancel_reason:'Lý do hủy'
 };
 // ── Score an array: higher = more likely to be real business data ──
 const BIZ_RE = /view|click|cost|spend|revenue|amount|order|impression|conversion|roas|ctr|acos|sale|traffic|visit|uv|pv|gmv|fee|price|stock|sold|item_id|itemid|campaign|advert|keyword|budget/i;
@@ -832,6 +847,58 @@ function parsePasEntryList(cap) {
     return row;
   });
 }
+// ── Parser: get_order_list_card_list → normalized order rows ──
+function parseOrderCardList(captures) {
+  const orderMap = {};   // order_sn → row (de-duplicate)
+  for (const cap of captures) {
+    const cardList = cap?.json?.data?.card_list;
+    if (!Array.isArray(cardList) || !cardList.length) continue;
+    for (const item of cardList) {
+      const oc = item?.order_card;
+      if (!oc) continue;
+      const order_sn = oc.card_header?.order_sn || '';
+      if (!order_sn) continue;
+      // Date from order_sn first 6 chars: YYMMDD → 20YY-MM-DD
+      const order_date = order_sn.length >= 6
+        ? `20${order_sn.slice(0,2)}-${order_sn.slice(2,4)}-${order_sn.slice(4,6)}`
+        : cap.collectionDay || '';
+      // Product list
+      const itemInfoList = oc.item_info_group?.item_info_list || [];
+      const products = [], qtys = [];
+      for (const group of itemInfoList) {
+        for (const it of (group.item_list || [])) {
+          if (it.name) products.push(it.name);
+          qtys.push(Number(it.amount || 0));
+        }
+      }
+      const totalQty = qtys.reduce((s,v)=>s+v, 0);
+      // Price: VND stored ×100000
+      const revenue = Math.round(Number(oc.payment_info?.total_price || 0) / 100000);
+      const row = {
+        order_date,
+        order_sn,
+        status:         oc.status_info?.status || '—',
+        cancel_reason:  oc.status_info?.status_tooltip || '',
+        product_names:  products.join(' | '),
+        qty:            totalQty,
+        revenue,
+        payment_method: oc.payment_info?.payment_method || '—',
+        shipping:       oc.fulfilment_info?.masked_channel_name || '—',
+        tracking:       (oc.fulfilment_info?.tracking_number_list || [])[0] || '',
+        buyer:          oc.card_header?.buyer_info?.username || '—',
+        __shopId:       cap.shopId || '',
+        __shopName:     cap.shopName || '',
+        __captureTs:    cap.ts || 0,
+      };
+      // De-duplicate: keep latest capture per order_sn
+      if (!orderMap[order_sn] || (cap.ts||0) > (orderMap[order_sn].__captureTs||0)) {
+        orderMap[order_sn] = row;
+      }
+    }
+  }
+  return Object.values(orderMap);
+}
+
 function collectArrays(obj,depth=0,out=[]){
   if(depth>7||!obj||typeof obj!=='object') return out;
   if(Array.isArray(obj)){
@@ -848,6 +915,11 @@ function findArr(obj){
   return candidates[0];
 }
 function mergeCaptures(captures, type){
+  // ── Orders: parse get_order_list_card_list ──
+  if(type === 'orders'){
+    const rows = parseOrderCardList(captures);
+    if(rows.length) return rows;
+  }
   // ── Ads: SUMIF by campaign ID across shops and date ranges ──
   if(type === 'ads'){
     // Step 1 – collect every row from every capture
@@ -1078,7 +1150,8 @@ function updateShopSel(shops){
 /* ── TABLE ── */
 // Preferred column order for each tab type
 const PREF_COLS = {
-  ads: ['__campaignType','title','__dateRange','__shopCount','__campaignState','__totalProducts','rpt_impression','rpt_click','rpt_ctr','rpt_cost','rpt_broad_gmv','rpt_broad_roi','rpt_broad_order','rpt_direct_order','rpt_atc','rpt_checkout','rpt_cpc','rpt_avg_rank','rpt_direct_gmv','rpt_direct_roi']
+  ads: ['__campaignType','title','__dateRange','__shopCount','__campaignState','__totalProducts','rpt_impression','rpt_click','rpt_ctr','rpt_cost','rpt_broad_gmv','rpt_broad_roi','rpt_broad_order','rpt_direct_order','rpt_atc','rpt_checkout','rpt_cpc','rpt_avg_rank','rpt_direct_gmv','rpt_direct_roi'],
+  orders: ['order_date','order_sn','status','product_names','qty','revenue','payment_method','shipping','tracking','buyer','cancel_reason']
 };
 function sortCols(type, allCols){
   const pref = PREF_COLS[type]||[];
@@ -1171,8 +1244,20 @@ function buildCards(type,rows){
     if(or!=null)html+=`<div class="card"><div class="card-label">Đơn từ QC</div><div class="card-val" style="color:var(--am)">${or.toLocaleString()}</div></div>`;
   }
   if(type==='orders'){
-    const am=sumNum(flat,['total_amount','escrow_amount','order_amount','amount','total_price']);
-    if(am!=null)html+=`<div class="card"><div class="card-label">Tổng GMV</div><div class="card-val" style="color:var(--g)">${fv(am,'vnd')}</div></div>`;
+    const total = rows.length;
+    const cancelled  = rows.filter(r=>(r.status||'').includes('hủy')).length;
+    const delivered  = rows.filter(r=>/đã giao$|đã giao\b/i.test(r.status||'')).length;
+    const shipping   = rows.filter(r=>/giao cho|đang giao|lấy hàng/i.test(r.status||'')).length;
+    const pending    = rows.filter(r=>/chờ/i.test(r.status||'')).length;
+    const revenue    = rows.filter(r=>!(r.status||'').includes('hủy'))
+                           .reduce((s,r)=>s+(Number(r.revenue)||0),0);
+    const cancelRate = total>0?(cancelled/total*100).toFixed(1):0;
+    html+=`<div class="card"><div class="card-label">Tổng đơn (đã tải)</div><div class="card-val" style="color:var(--b)">${total.toLocaleString()}</div></div>`;
+    html+=`<div class="card"><div class="card-label">Doanh thu (trừ hủy)</div><div class="card-val" style="color:var(--g)">${fv(revenue,'vnd')}</div></div>`;
+    if(delivered)html+=`<div class="card"><div class="card-label">✅ Đã giao</div><div class="card-val" style="color:#22c55e">${delivered.toLocaleString()}</div></div>`;
+    if(shipping) html+=`<div class="card"><div class="card-label">🚚 Đang giao/chờ</div><div class="card-val" style="color:var(--b)">${shipping.toLocaleString()}</div></div>`;
+    if(pending)  html+=`<div class="card"><div class="card-label">⏳ Chờ xác nhận</div><div class="card-val" style="color:var(--am)">${pending.toLocaleString()}</div></div>`;
+    html+=`<div class="card"><div class="card-label">❌ Đã hủy</div><div class="card-val" style="color:var(--or)">${cancelled.toLocaleString()}</div><div class="card-sub">Tỉ lệ hủy: ${cancelRate}%</div></div>`;
   }
   if(type==='performance'){
     const pv=sumNum(flat,['view_count','pv','page_view','impression']);
@@ -1205,11 +1290,18 @@ function buildChart(type,rows){
     charts[type]=new Chart(document.getElementById('ch-'+type).getContext('2d'),{type:'bar',data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v.toLocaleString('vi-VN')}}}}});
   }
   if(type==='orders'){
-    const sk=fk(flat[0],['order_status','status','state']);
-    if(!sk) return; cp.style.display='';
+    if(!rows.length) return; cp.style.display='';
     const cnt={};
-    flat.forEach(r=>{const s=String(r[sk]||'unknown');cnt[s]=(cnt[s]||0)+1;});
-    charts[type]=new Chart(document.getElementById('ch-'+type).getContext('2d'),{type:'doughnut',data:{labels:Object.keys(cnt),datasets:[{data:Object.values(cnt),backgroundColor:COLORS,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}}});
+    rows.forEach(r=>{const s=String(r.status||r.order_status||'unknown');cnt[s]=(cnt[s]||0)+1;});
+    const STATUS_COLORS={'Đã giao':'#22c55e','Đã giao cho ĐVVC':'#3b82f6','Đang giao':'#3b82f6',
+      'Chờ xác nhận':'#f59e0b','Chờ lấy hàng':'#8b5cf6',
+      'Đã hủy':'#EE4D2D','Trả hàng/Hoàn tiền':'#f97316','Đang giao hàng':'#06b6d4'};
+    const bgColors=Object.keys(cnt).map(s=>STATUS_COLORS[s]||'#9ca3af');
+    charts[type]=new Chart(document.getElementById('ch-orders').getContext('2d'),{
+      type:'doughnut',
+      data:{labels:Object.keys(cnt),datasets:[{data:Object.values(cnt),backgroundColor:bgColors,borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.parsed} đơn`}}}}
+    });
   }
   if(type==='performance'){
     const nk=fk(flat[0],['item_name','name','product_name','title']);
@@ -1405,7 +1497,7 @@ function exportAll(){
 /* ── TAB FILTERS ── */
 const tabFilters = {};
 const allRows    = {};
-TYPES.forEach(t => tabFilters[t] = {from:'', to:'', campaignType:'all'});
+TYPES.forEach(t => tabFilters[t] = {from:'', to:'', campaignType:'all', orderStatus:'all'});
 
 function setFilter(type, key, val) {
   tabFilters[type][key] = val;
@@ -1416,7 +1508,7 @@ function setFilter(type, key, val) {
 }
 
 function clearFilter(type) {
-  tabFilters[type] = {from:'', to:'', campaignType:'all'};
+  tabFilters[type] = {from:'', to:'', campaignType:'all', orderStatus:'all'};
   // Clear shop chip selection
   selectedShops[type].clear();
   updateMsLabel(type);
@@ -1439,11 +1531,20 @@ function applyTabFilter(type, rows) {
   let r = [...rows];
   // Multi-select shop filter
   if (sel && sel.size > 0) r = r.filter(x => sel.has(x.__shopId));
-  // Campaign type filter
+  // Campaign type filter (ads)
   if(f.campaignType && f.campaignType !== 'all') r = r.filter(x => (x.__campaignType||'') === f.campaignType);
-  // Date filters — compare against actual data date range (from Shopee date picker), not capture time
-  if(f.from){ const ft=new Date(f.from+'T00:00:00').getTime()/1000; r=r.filter(x=>!x.__dataToTs  ||x.__dataToTs  >=ft); }
-  if(f.to)  { const tt=new Date(f.to+'T23:59:59').getTime()/1000;  r=r.filter(x=>!x.__dataFromTs||x.__dataFromTs<=tt); }
+  // Order status filter (orders)
+  if(f.orderStatus && f.orderStatus !== 'all') r = r.filter(x => (x.status||'') === f.orderStatus);
+  // Date filters
+  if(type==='orders'){
+    // Orders: compare against order_date string (YYYY-MM-DD)
+    if(f.from) r=r.filter(x=>!x.order_date||x.order_date>=f.from);
+    if(f.to)   r=r.filter(x=>!x.order_date||x.order_date<=f.to);
+  } else {
+    // Ads/others: compare against actual data date range timestamps
+    if(f.from){ const ft=new Date(f.from+'T00:00:00').getTime()/1000; r=r.filter(x=>!x.__dataToTs  ||x.__dataToTs  >=ft); }
+    if(f.to)  { const tt=new Date(f.to+'T23:59:59').getTime()/1000;  r=r.filter(x=>!x.__dataFromTs||x.__dataFromTs<=tt); }
+  }
   return r;
 }
 
