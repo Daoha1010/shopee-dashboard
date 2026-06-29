@@ -1741,41 +1741,77 @@ function tlParseDate(v) {
   return null;
 }
 
+// Parser đặc biệt cho /api/pas/v1/report/get_time_graph/
+// Cấu trúc: data.report_by_time[].{key: "unixTs", metrics: {cost, impression, click, direct_gmv, direct_order}}
+function tlExtractTimeGraph(json) {
+  const arr = json?.data?.report_by_time;
+  if (!Array.isArray(arr) || arr.length < 2) return null;
+  const first = arr[0];
+  if (!first || typeof first !== 'object') return null;
+  // Nhận dạng: có field "key" là unix timestamp và có sub-object "metrics"
+  const ts0 = Number(first.key);
+  if (!ts0 || ts0 < 1e9 || typeof first.metrics !== 'object') return null;
+
+  const rows = arr.map(item => {
+    const ts = Number(item.key);
+    if (!ts || ts < 1e9) return null;
+    // Chuyển unix timestamp (GMT+7) → YYYY-MM-DD
+    const localTs = ts + 7 * 3600; // +7 giờ để ra giờ VN
+    const date = new Date(localTs * 1000).toISOString().slice(0, 10);
+    const m = item.metrics || {};
+    return {
+      date,
+      spend:       tlMoneyConvert('cost',       Number(m.cost        || 0)),
+      impressions: Number(m.impression          || 0),
+      clicks:      Number(m.click               || 0),
+      orders:      Number(m.direct_order || m.broad_order || 0),
+      revenue:     tlMoneyConvert('gmv', Number(m.direct_gmv || m.broad_gmv || 0)),
+    };
+  }).filter(r => r?.date);
+  return rows.length >= 2 ? rows : null;
+}
+
 // Tìm daily breakdown array trong JSON response của Shopee
-// Deep recursive scan: tìm bất kỳ array nào có date field + metric field,
-// bất kể nằm sâu đến đâu trong JSON structure.
+// Thử time_graph parser trước, rồi mới deep scan.
 function tlExtractDailyArray(json) {
+  // 1. Thử parser đặc biệt cho get_time_graph (data.report_by_time)
+  const tg = tlExtractTimeGraph(json);
+  if (tg) return tg;
+
   const ALL_METRIC = [...SPEND_FIELD_NAMES, ...IMP_FIELD_NAMES, ...CLICK_FIELD_NAMES];
 
   function tryParseArray(arr) {
     if (!Array.isArray(arr) || arr.length < 2) return null;
     const first = arr[0];
     if (!first || typeof first !== 'object' || Array.isArray(first)) return null;
+
     // Phải có date field trực tiếp trên object (không nested)
     const dk = DATE_FIELD_NAMES.find(k => k in first && tlParseDate(first[k]));
     if (!dk) return null;
-    // Phải có ít nhất 1 metric field trực tiếp
-    const hasMetric = ALL_METRIC.some(k => k in first);
+
+    // Metrics có thể nằm trực tiếp HOẶC trong sub-object "metrics"
+    const sample = first.metrics && typeof first.metrics === 'object' ? first.metrics : first;
+    const hasMetric = ALL_METRIC.some(k => k in sample);
     if (!hasMetric) return null;
-    // Parse tất cả rows
+
     const rows = arr.map(row => {
       const date = tlParseDate(row[dk]);
       if (!date) return null;
-      const sk = tlFindKey(row, SPEND_FIELD_NAMES);
-      const ik = tlFindKey(row, IMP_FIELD_NAMES);
-      const ck = tlFindKey(row, CLICK_FIELD_NAMES);
-      const ok = tlFindKey(row, ORDER_FIELD_NAMES);
-      const rk = tlFindKey(row, REV_FIELD_NAMES);
+      const src = row.metrics && typeof row.metrics === 'object' ? row.metrics : row;
+      const sk = tlFindKey(src, SPEND_FIELD_NAMES);
+      const ik = tlFindKey(src, IMP_FIELD_NAMES);
+      const ck = tlFindKey(src, CLICK_FIELD_NAMES);
+      const ok = tlFindKey(src, ORDER_FIELD_NAMES);
+      const rk = tlFindKey(src, REV_FIELD_NAMES);
       return {
         date,
-        spend:       tlMoneyConvert(sk||'cost', Number(sk ? row[sk] : 0)),
-        impressions: Number(ik ? row[ik] : 0),
-        clicks:      Number(ck ? row[ck] : 0),
-        orders:      Number(ok ? row[ok] : 0),
-        revenue:     tlMoneyConvert(rk||'gmv', Number(rk ? row[rk] : 0)),
+        spend:       tlMoneyConvert(sk||'cost', Number(sk ? src[sk] : 0)),
+        impressions: Number(ik ? src[ik] : 0),
+        clicks:      Number(ck ? src[ck] : 0),
+        orders:      Number(ok ? src[ok] : 0),
+        revenue:     tlMoneyConvert(rk||'gmv', Number(rk ? src[rk] : 0)),
       };
     }).filter(r => r?.date);
-    // Chỉ chấp nhận nếu >= 2 rows có date hợp lệ
     return rows.length >= 2 ? rows : null;
   }
 
@@ -1785,14 +1821,12 @@ function tlExtractDailyArray(json) {
     if (Array.isArray(obj)) {
       const r = tryParseArray(obj);
       if (r) return r;
-      // Mảng của mảng: đệ quy vào từng phần tử
       for (const item of obj) {
         const r2 = deepScan(item, depth + 1);
         if (r2) return r2;
       }
       return null;
     }
-    // Object: thử từng giá trị
     for (const val of Object.values(obj)) {
       if (val && typeof val === 'object') {
         const r = deepScan(val, depth + 1);
