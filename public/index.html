@@ -149,7 +149,7 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
 </style>
 </head>
 <body>
-<div class="offline-bar" id="offlineBar">⚠️ Server chưa chạy. Hãy mở <strong>start.bat</strong> trước rồi làm mới trang này.</div>
+<div class="offline-bar" id="offlineBar">⚠️ Không kết nối được server. Hãy thử làm mới trang.</div>
 
 <div class="top">
   <h1>🛒 Shopee Dashboard</h1>
@@ -431,7 +431,7 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
 </div>
 
 <script>
-const API = 'http://localhost:3001/api';
+const API = '/api';
 const TYPES = ['ads','orders','performance','traffic'];
 const COLORS = ['#EE4D2D','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#a855f7','#06b6d4'];
 let allData = {}, charts = {}, tblState = {}, currentShop = 'all';
