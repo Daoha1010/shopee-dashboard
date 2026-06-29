@@ -154,6 +154,10 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
 <div class="top">
   <h1>🛒 Shopee Dashboard</h1>
   <select class="shop-sel" id="shopSel"><option value="all">Tất cả shop</option></select>
+  <input type="date" id="dateFrom" style="padding:5px 8px;border:1px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;" title="Từ ngày" onchange="applyDateFilter()">
+  <span style="color:rgba(255,255,255,.7);font-size:12px;">→</span>
+  <input type="date" id="dateTo" style="padding:5px 8px;border:1px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;" title="Đến ngày" onchange="applyDateFilter()">
+  <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;" onclick="clearDateFilter()">✕ Bỏ lọc ngày</button>
   <span id="syncInfo" class="sync-info"></span>
   <span id="serverDot" class="server-dot off" title="Trạng thái server"></span>
   <button class="btn" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openShopNames()">⚙ Đặt tên shop</button>
@@ -1178,7 +1182,7 @@ function renderAll(data){
   updateShopSel(data.shops||{});
   renderRaw(data);
   TYPES.forEach(t=>{
-    const captures=(data[t]||[]);
+    const captures=filterByDate(data[t]||[]);
     document.getElementById('b-'+t).textContent=captures.length;
     const rows=mergeCaptures(captures, t);
     allRows[t]=rows;
@@ -1304,7 +1308,7 @@ function onFilterChange(type) {
 /* ── LOAD FROM API ── */
 async function loadData(){
   try{
-    const res=await fetch(`${API}/data?shopId=${currentShop}`,{signal:AbortSignal.timeout(3000)});
+    const res=await fetch(`${API}/data?shopId=${currentShop}`,{signal:AbortSignal.timeout(12000)});
     const data=await res.json();
     document.getElementById('serverDot').className='server-dot';
     document.getElementById('offlineBar').style.display='none';
@@ -1445,6 +1449,32 @@ async function confirmClear() {
   } catch(e) {
     alert('❌ Lỗi: ' + e.message);
   }
+}
+
+/* ── DATE FILTER ── */
+let dateFromTs = 0, dateToTs = Infinity;
+
+function applyDateFilter() {
+  const fromVal = document.getElementById('dateFrom').value;
+  const toVal   = document.getElementById('dateTo').value;
+  dateFromTs = fromVal ? new Date(fromVal).getTime() / 1000 : 0;
+  dateToTs   = toVal   ? (new Date(toVal).getTime() / 1000 + 86400) : Infinity; // +1 ngày để include ngày đó
+  renderAll(allData);
+}
+
+function clearDateFilter() {
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value   = '';
+  dateFromTs = 0; dateToTs = Infinity;
+  renderAll(allData);
+}
+
+function filterByDate(arr) {
+  if (dateFromTs === 0 && dateToTs === Infinity) return arr;
+  return arr.filter(c => {
+    const ts = Number(c.ts || 0);
+    return ts >= dateFromTs && ts <= dateToTs;
+  });
 }
 
 /* ── TRIGGER HARVEST ── */
