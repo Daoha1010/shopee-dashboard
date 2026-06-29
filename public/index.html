@@ -1705,7 +1705,7 @@ let _tlSortCol = 'date';
 let _tlSortAsc = false;
 
 // Tìm field date trong object
-const DATE_FIELD_NAMES  = ['date','date_from','stat_date','date_time','day','datetime','start_date','stat_day'];
+const DATE_FIELD_NAMES  = ['date','date_from','stat_date','date_time','day','datetime','start_date','stat_day','time','ts','report_date','date_key','timestamp'];
 const SPEND_FIELD_NAMES = ['cost','charge','spend','total_cost','budget_used'];
 const IMP_FIELD_NAMES   = ['impression','impression_count','view','views','view_count'];
 const CLICK_FIELD_NAMES = ['click','click_count','clicks'];
@@ -1742,23 +1742,22 @@ function tlParseDate(v) {
 }
 
 // Tìm daily breakdown array trong JSON response của Shopee
+// Deep recursive scan: tìm bất kỳ array nào có date field + metric field,
+// bất kể nằm sâu đến đâu trong JSON structure.
 function tlExtractDailyArray(json) {
-  const candidates = [
-    json?.data?.stat_list, json?.data?.daily_stats, json?.data?.date_list,
-    json?.data?.trend_list, json?.data?.chart_data, json?.data?.breakdown,
-    json?.data?.overview, json?.data?.period_list,
-    // data itself could be the array
-    Array.isArray(json?.data) ? json.data : null,
-  ];
-  for (const arr of candidates) {
-    if (!Array.isArray(arr) || arr.length === 0) continue;
+  const ALL_METRIC = [...SPEND_FIELD_NAMES, ...IMP_FIELD_NAMES, ...CLICK_FIELD_NAMES];
+
+  function tryParseArray(arr) {
+    if (!Array.isArray(arr) || arr.length < 2) return null;
     const first = arr[0];
-    if (!first || typeof first !== 'object') continue;
-    const dk = tlFindKey(first, DATE_FIELD_NAMES);
-    if (!dk) continue;
-    const hasMetric = SPEND_FIELD_NAMES.concat(IMP_FIELD_NAMES, CLICK_FIELD_NAMES)
-      .some(k => k in first);
-    if (!hasMetric) continue;
+    if (!first || typeof first !== 'object' || Array.isArray(first)) return null;
+    // Phải có date field trực tiếp trên object (không nested)
+    const dk = DATE_FIELD_NAMES.find(k => k in first && tlParseDate(first[k]));
+    if (!dk) return null;
+    // Phải có ít nhất 1 metric field trực tiếp
+    const hasMetric = ALL_METRIC.some(k => k in first);
+    if (!hasMetric) return null;
+    // Parse tất cả rows
     const rows = arr.map(row => {
       const date = tlParseDate(row[dk]);
       if (!date) return null;
@@ -1775,10 +1774,35 @@ function tlExtractDailyArray(json) {
         orders:      Number(ok ? row[ok] : 0),
         revenue:     tlMoneyConvert(rk||'gmv', Number(rk ? row[rk] : 0)),
       };
-    }).filter(Boolean);
-    if (rows.length > 0) return rows;
+    }).filter(r => r?.date);
+    // Chỉ chấp nhận nếu >= 2 rows có date hợp lệ
+    return rows.length >= 2 ? rows : null;
   }
-  return null;
+
+  // BFS qua toàn bộ JSON, ưu tiên các array gần root trước
+  function deepScan(obj, depth) {
+    if (!obj || typeof obj !== 'object' || depth > 8) return null;
+    if (Array.isArray(obj)) {
+      const r = tryParseArray(obj);
+      if (r) return r;
+      // Mảng của mảng: đệ quy vào từng phần tử
+      for (const item of obj) {
+        const r2 = deepScan(item, depth + 1);
+        if (r2) return r2;
+      }
+      return null;
+    }
+    // Object: thử từng giá trị
+    for (const val of Object.values(obj)) {
+      if (val && typeof val === 'object') {
+        const r = deepScan(val, depth + 1);
+        if (r) return r;
+      }
+    }
+    return null;
+  }
+
+  return deepScan(json, 0);
 }
 
 // Tổng hợp metrics từ entry_list (parsePasEntryList style)
