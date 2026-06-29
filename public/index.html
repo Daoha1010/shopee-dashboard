@@ -1886,17 +1886,25 @@ function buildTlRows(shopFilter) {
     byDate[date].revenue     += vals.revenue     || 0;
   }
 
+  // Pass 1: xử lý captures có daily breakdown array (get_time_graph, v.v.)
+  // Ghi nhận (shopId|collectionDay) đã có daily data để tránh double-count ở pass 2
+  const hasDailyData = new Set();
   for (const cap of caps) {
     if (!cap.json) continue;
-
-    // Cách 1: Tìm daily breakdown array trong JSON
     const dailyArr = tlExtractDailyArray(cap.json);
     if (dailyArr?.length) {
       for (const d of dailyArr) addToDate(d.date, d);
-      continue;
+      hasDailyData.add((cap.shopId||'') + '|' + (cap.collectionDay||''));
     }
+  }
 
-    // Cách 2: Fallback → dùng collectionDay + aggregate metrics
+  // Pass 2: fallback aggregate cho shop+day chưa có daily data
+  for (const cap of caps) {
+    if (!cap.json) continue;
+    // Bỏ qua nếu shop+day này đã được cover bởi daily array ở pass 1
+    const key = (cap.shopId||'') + '|' + (cap.collectionDay||'');
+    if (hasDailyData.has(key)) continue;
+
     const day = cap.collectionDay ||
       new Date((cap.ts || Date.now())).toISOString().slice(0, 10);
 
