@@ -129,6 +129,10 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
 .cl-footer{padding:12px 20px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:8px;}
 .btn-danger{background:#dc2626;color:#fff;}
 .btn-danger:hover{background:#b91c1c;}
+/* TIMELINE */
+.tl-preset{padding:5px 12px;border:1px solid var(--bd);border-radius:16px;font-size:12px;font-weight:600;background:#fff;color:var(--mu);cursor:pointer;transition:all .15s;}
+.tl-preset:hover{border-color:var(--or);color:var(--or);}
+.tl-preset.active{background:var(--or);color:#fff;border-color:var(--or);}
 /* RAW */
 .raw-wrap{overflow-x:auto;max-height:78vh;overflow-y:auto;}
 .raw-tbl{width:100%;border-collapse:collapse;font-size:12px;}
@@ -232,6 +236,7 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
   <button class="tab" data-tab="orders">📦 Đơn hàng <span class="badge" id="b-orders">0</span></button>
   <button class="tab" data-tab="performance">📈 Hiệu quả SP <span class="badge" id="b-performance">0</span></button>
   <button class="tab" data-tab="traffic">🔍 Nguồn truy cập <span class="badge" id="b-traffic">0</span></button>
+  <button class="tab" data-tab="timeline">📊 Timeline QC</button>
   <button class="tab" data-tab="raw">🔧 Raw Data</button>
 </div>
 
@@ -381,6 +386,83 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
           <tbody id="raw-tbody"></tbody>
         </table>
         <div class="raw-empty" id="raw-empty" style="display:none">Chưa có dữ liệu. Hãy truy cập trang Shopee với extension đang bật.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TIMELINE QC PANE ════════════════════════════════════════════ -->
+  <div class="pane" id="pane-timeline">
+    <!-- Date range bar -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:700;color:var(--tx);">📅 Chọn khoảng thời gian</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="tl-preset active" data-days="7">7 ngày</button>
+          <button class="tl-preset" data-days="30">30 ngày</button>
+          <button class="tl-preset" data-days="90">90 ngày</button>
+          <button class="tl-preset" data-days="0">Tất cả</button>
+        </div>
+        <span style="font-size:12px;color:var(--mu);">hoặc chọn ngày:</span>
+        <input type="date" id="tl-from" class="f-date" onchange="onTlDateChange()" style="width:130px">
+        <span style="font-size:12px;color:var(--mu);">→</span>
+        <input type="date" id="tl-to" class="f-date" onchange="onTlDateChange()" style="width:130px">
+        <span style="font-size:12px;color:var(--mu);">🏪 Shop:</span>
+        <select id="tl-shop" class="f-sel" style="max-width:200px" onchange="renderTimeline()">
+          <option value="all">Tất cả shop</option>
+        </select>
+        <button class="btn" style="background:var(--or);color:#fff;font-weight:700;" onclick="renderTimeline()">🔄 Cập nhật</button>
+        <span id="tl-info" style="font-size:11px;color:var(--mu);margin-left:auto;"></span>
+      </div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="cards" id="tl-cards" style="margin-bottom:14px;"></div>
+
+    <!-- Chart -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="ph">
+        <span class="ph-title">📈 Chi phí & Doanh thu theo ngày</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="tl-show-spend" checked onchange="updateTlChart()"> <span style="color:#3b82f6;">■</span> Chi phí
+          </label>
+          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="tl-show-revenue" checked onchange="updateTlChart()"> <span style="color:#EE4D2D;">■</span> Doanh thu QC
+          </label>
+          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="tl-show-clicks" onchange="updateTlChart()"> <span style="color:#22c55e;">■</span> Click
+          </label>
+          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="tl-show-orders" onchange="updateTlChart()"> <span style="color:#f59e0b;">■</span> Đơn QC
+          </label>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:300px;"><canvas id="tl-chart"></canvas></div>
+    </div>
+
+    <!-- Daily table -->
+    <div class="panel">
+      <div class="ph" style="flex-wrap:wrap;gap:8px;">
+        <span class="ph-title">📋 Dữ liệu theo ngày</span>
+        <span id="tl-cnt" style="font-size:11px;color:var(--mu);"></span>
+        <button class="btn btn-exp" style="margin-left:auto;" onclick="exportTimeline()">⬇ Excel</button>
+      </div>
+      <div class="tw">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortTlTable('date')" id="tlh-date">Ngày ▼</th>
+              <th onclick="sortTlTable('spend')" id="tlh-spend">Số tiền</th>
+              <th onclick="sortTlTable('impressions')" id="tlh-impressions">Lượt xem</th>
+              <th onclick="sortTlTable('clicks')" id="tlh-clicks">Click</th>
+              <th onclick="sortTlTable('orders')" id="tlh-orders">Đơn hàng QC</th>
+              <th onclick="sortTlTable('revenue')" id="tlh-revenue">Doanh thu từ QC</th>
+              <th onclick="sortTlTable('roas')" id="tlh-roas">ROAS</th>
+              <th>Shop</th>
+            </tr>
+          </thead>
+          <tbody id="tl-tbody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -1180,7 +1262,12 @@ function renderAll(data){
   if(!data) return;
   adsDateRange = null; // reset before re-parsing
   updateShopSel(data.shops||{});
+  updateTlShopSel(data.shops||{});
   renderRaw(data);
+  // Render timeline nếu đang ở tab timeline
+  if (document.getElementById('pane-timeline')?.classList.contains('active')) {
+    renderTimeline();
+  }
   TYPES.forEach(t=>{
     const captures=filterByDate(data[t]||[]);
     document.getElementById('b-'+t).textContent=captures.length;
@@ -1328,6 +1415,7 @@ document.querySelectorAll('.tab').forEach(btn=>{
     document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'timeline') renderTimeline();
   });
 });
 
@@ -1504,6 +1592,391 @@ async function triggerHarvest() {
     btn.textContent = '🤖 Thu thập tất cả';
     btn.style.background = '#7c3aed';
   }, 8000);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TIMELINE QC — biểu đồ & bảng dữ liệu theo ngày
+   ═══════════════════════════════════════════════════════════════ */
+
+let _tlRows = [];
+let _tlChart = null;
+let _tlSortCol = 'date';
+let _tlSortAsc = false;
+
+// Tìm field date trong object
+const DATE_FIELD_NAMES  = ['date','date_from','stat_date','date_time','day','datetime','start_date','stat_day'];
+const SPEND_FIELD_NAMES = ['cost','charge','spend','total_cost','budget_used'];
+const IMP_FIELD_NAMES   = ['impression','impression_count','view','views','view_count'];
+const CLICK_FIELD_NAMES = ['click','click_count','clicks'];
+const ORDER_FIELD_NAMES = ['order_cnt','order_count','order_num','conversion','order','orders','broad_order'];
+const REV_FIELD_NAMES   = ['gmv','order_gmv','revenue','order_revenue','sales','broad_gmv'];
+
+function tlFindKey(obj, candidates) {
+  return candidates.find(k => k in obj) || null;
+}
+
+// Shopee API lưu VND = VND × 100,000 cho trường tiền tệ
+function tlMoneyConvert(key, val) {
+  if (typeof val !== 'number') return val;
+  // Nếu field là monetary AND giá trị rất lớn (> 50 triệu), chia 100,000
+  const isMoney = /cost|charge|spend|gmv|revenue|sales|amount|fee|budget/i.test(key);
+  if (isMoney && val > 50000000) return Math.round(val / 100000);
+  return val;
+}
+
+// Parse giá trị ngày sang YYYY-MM-DD
+function tlParseDate(v) {
+  if (typeof v === 'number') {
+    if (v > 1e9) return new Date(v * 1000).toISOString().slice(0, 10);
+    if (v > 20000101 && v <= 21001231) {
+      const s = String(v);
+      return s.length === 8 ? `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}` : null;
+    }
+  }
+  if (typeof v === 'string') {
+    const m = v.match(/(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})/);
+    return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+  }
+  return null;
+}
+
+// Tìm daily breakdown array trong JSON response của Shopee
+function tlExtractDailyArray(json) {
+  const candidates = [
+    json?.data?.stat_list, json?.data?.daily_stats, json?.data?.date_list,
+    json?.data?.trend_list, json?.data?.chart_data, json?.data?.breakdown,
+    json?.data?.overview, json?.data?.period_list,
+    // data itself could be the array
+    Array.isArray(json?.data) ? json.data : null,
+  ];
+  for (const arr of candidates) {
+    if (!Array.isArray(arr) || arr.length === 0) continue;
+    const first = arr[0];
+    if (!first || typeof first !== 'object') continue;
+    const dk = tlFindKey(first, DATE_FIELD_NAMES);
+    if (!dk) continue;
+    const hasMetric = SPEND_FIELD_NAMES.concat(IMP_FIELD_NAMES, CLICK_FIELD_NAMES)
+      .some(k => k in first);
+    if (!hasMetric) continue;
+    const rows = arr.map(row => {
+      const date = tlParseDate(row[dk]);
+      if (!date) return null;
+      const sk = tlFindKey(row, SPEND_FIELD_NAMES);
+      const ik = tlFindKey(row, IMP_FIELD_NAMES);
+      const ck = tlFindKey(row, CLICK_FIELD_NAMES);
+      const ok = tlFindKey(row, ORDER_FIELD_NAMES);
+      const rk = tlFindKey(row, REV_FIELD_NAMES);
+      return {
+        date,
+        spend:       tlMoneyConvert(sk||'cost', Number(sk ? row[sk] : 0)),
+        impressions: Number(ik ? row[ik] : 0),
+        clicks:      Number(ck ? row[ck] : 0),
+        orders:      Number(ok ? row[ok] : 0),
+        revenue:     tlMoneyConvert(rk||'gmv', Number(rk ? row[rk] : 0)),
+      };
+    }).filter(Boolean);
+    if (rows.length > 0) return rows;
+  }
+  return null;
+}
+
+// Tổng hợp metrics từ entry_list (parsePasEntryList style)
+function tlSumEntryList(entries) {
+  let s={spend:0,impressions:0,clicks:0,orders:0,revenue:0};
+  if (!Array.isArray(entries)) return s;
+  for (const e of entries) {
+    const r = e.report || {};
+    s.spend       += tlMoneyConvert('cost',  Number(r.cost || 0));
+    s.impressions += Number(r.impression || r.impression_count || 0);
+    s.clicks      += Number(r.click || r.click_count || 0);
+    s.orders      += Number(r.broad_order || r.order || 0);
+    s.revenue     += tlMoneyConvert('gmv', Number(r.broad_gmv || r.gmv || 0));
+  }
+  return s;
+}
+
+// Tổng hợp metrics từ campaign detail report (data[]{key,metrics})
+function tlSumDetailReport(dataArr) {
+  let s={spend:0,impressions:0,clicks:0,orders:0,revenue:0};
+  if (!Array.isArray(dataArr)) return s;
+  for (const item of dataArr) {
+    const m = item.metrics || {};
+    s.spend       += tlMoneyConvert('cost', Number(m.cost || 0));
+    s.impressions += Number(m.impression || m.impression_count || 0);
+    s.clicks      += Number(m.click || m.click_count || 0);
+    s.orders      += Number(m.broad_order || m.order || 0);
+    s.revenue     += tlMoneyConvert('gmv', Number(m.broad_gmv || m.gmv || 0));
+  }
+  return s;
+}
+
+// Build timeline rows từ allData.ads captures
+function buildTlRows(shopFilter) {
+  const caps = (allData.ads || []).filter(c =>
+    shopFilter === 'all' || c.shopId === shopFilter
+  );
+
+  const byDate = {}; // date → {spend, impressions, clicks, orders, revenue}
+  function addToDate(date, vals) {
+    if (!date || date.length < 10) return;
+    if (!byDate[date]) byDate[date] = { spend:0, impressions:0, clicks:0, orders:0, revenue:0 };
+    byDate[date].spend       += vals.spend       || 0;
+    byDate[date].impressions += vals.impressions || 0;
+    byDate[date].clicks      += vals.clicks      || 0;
+    byDate[date].orders      += vals.orders      || 0;
+    byDate[date].revenue     += vals.revenue     || 0;
+  }
+
+  for (const cap of caps) {
+    if (!cap.json) continue;
+
+    // Cách 1: Tìm daily breakdown array trong JSON
+    const dailyArr = tlExtractDailyArray(cap.json);
+    if (dailyArr?.length) {
+      for (const d of dailyArr) addToDate(d.date, d);
+      continue;
+    }
+
+    // Cách 2: Fallback → dùng collectionDay + aggregate metrics
+    const day = cap.collectionDay ||
+      new Date((cap.ts || Date.now())).toISOString().slice(0, 10);
+
+    // entry_list style
+    const entries = cap.json?.data?.entry_list;
+    if (entries?.length) {
+      addToDate(day, tlSumEntryList(entries));
+      continue;
+    }
+
+    // campaign detail report style
+    const dataArr = cap.json?.data;
+    if (Array.isArray(dataArr) && dataArr.length && dataArr[0]?.metrics) {
+      addToDate(day, tlSumDetailReport(dataArr));
+      continue;
+    }
+  }
+
+  return Object.entries(byDate)
+    .filter(([d]) => d && d.length === 10)
+    .map(([date, v]) => ({
+      date,
+      spend:       Math.round(v.spend),
+      impressions: Math.round(v.impressions),
+      clicks:      Math.round(v.clicks),
+      orders:      Math.round(v.orders),
+      revenue:     Math.round(v.revenue),
+      roas:        v.spend > 0 ? +(v.revenue / v.spend).toFixed(2) : 0
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Lọc theo date range picker
+function filterTlRows(rows) {
+  const from = document.getElementById('tl-from')?.value;
+  const to   = document.getElementById('tl-to')?.value;
+  if (!from && !to) return rows;
+  return rows.filter(r => (!from || r.date >= from) && (!to || r.date <= to));
+}
+
+// Render Chart.js timeline
+function updateTlChart() {
+  const filtered = filterTlRows(_tlRows);
+  const canvas = document.getElementById('tl-chart');
+  if (!canvas) return;
+  if (!filtered.length) { if (_tlChart) { _tlChart.destroy(); _tlChart = null; } return; }
+
+  const labels = filtered.map(r => {
+    const d = new Date(r.date + 'T00:00:00');
+    return d.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' });
+  });
+  const showSpend   = document.getElementById('tl-show-spend')?.checked;
+  const showRevenue = document.getElementById('tl-show-revenue')?.checked;
+  const showClicks  = document.getElementById('tl-show-clicks')?.checked;
+  const showOrders  = document.getElementById('tl-show-orders')?.checked;
+
+  const datasets = [];
+  if (showSpend)   datasets.push({ label:'Số tiền (Chi phí)', data:filtered.map(r=>r.spend),   borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', yAxisID:'y',  tension:.35, fill:true,  pointRadius:3, borderWidth:2 });
+  if (showRevenue) datasets.push({ label:'Doanh thu từ QC',   data:filtered.map(r=>r.revenue), borderColor:'#EE4D2D', backgroundColor:'rgba(238,77,45,.08)',  yAxisID:'y2', tension:.35, fill:true,  pointRadius:3, borderWidth:2 });
+  if (showClicks)  datasets.push({ label:'Click',             data:filtered.map(r=>r.clicks),  borderColor:'#22c55e', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
+  if (showOrders)  datasets.push({ label:'Đơn hàng QC',       data:filtered.map(r=>r.orders),  borderColor:'#f59e0b', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
+
+  if (_tlChart) _tlChart.destroy();
+  _tlChart = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { position:'top', labels:{ font:{size:11}, boxWidth:14 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const v = ctx.raw || 0;
+              const isMoney = /Chi phí|Doanh thu/.test(ctx.dataset.label);
+              return ` ${ctx.dataset.label}: ${v.toLocaleString('vi-VN')}${isMoney ? 'đ' : ''}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x:  { ticks:{ font:{size:10}, maxRotation:45 }, grid:{ display:false } },
+        y:  { position:'left',  ticks:{ font:{size:10}, callback:v=>v>=1e6?Math.round(v/1e6)+'M':v>=1e3?Math.round(v/1e3)+'K':v }, grid:{ color:'rgba(0,0,0,.04)' }, title:{ display:true, text:'Số tiền | Lượt xem', font:{size:10}, color:'#6b7280' } },
+        y2: { position:'right', ticks:{ font:{size:10}, callback:v=>v>=1e6?Math.round(v/1e6)+'M':v>=1e3?Math.round(v/1e3)+'K':v }, grid:{ display:false },            title:{ display:true, text:'Doanh thu QC',     font:{size:10}, color:'#6b7280' } }
+      }
+    }
+  });
+}
+
+// Render bảng dữ liệu ngày
+function renderTlTable() {
+  const filtered = filterTlRows(_tlRows).slice();
+  filtered.sort((a, b) => {
+    const va = a[_tlSortCol], vb = b[_tlSortCol];
+    if (typeof va === 'string') return _tlSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return _tlSortAsc ? va - vb : vb - va;
+  });
+
+  // KPI tổng
+  const total = filtered.reduce((acc, r) => ({
+    spend:       acc.spend       + r.spend,
+    impressions: acc.impressions + r.impressions,
+    clicks:      acc.clicks      + r.clicks,
+    orders:      acc.orders      + r.orders,
+    revenue:     acc.revenue     + r.revenue,
+  }), { spend:0, impressions:0, clicks:0, orders:0, revenue:0 });
+  const totalRoas = total.spend > 0 ? (total.revenue / total.spend).toFixed(2) : '—';
+
+  const KPI_DEFS = [
+    { label:'Tổng chi phí',   val: total.spend.toLocaleString('vi-VN')+'đ',       sub: filtered.length+' ngày',    color:'#3b82f6' },
+    { label:'Doanh thu QC',   val: total.revenue.toLocaleString('vi-VN')+'đ',     sub: 'từ quảng cáo',              color:'#EE4D2D' },
+    { label:'ROAS',           val: totalRoas,                                       sub: 'doanh thu / chi phí',      color: total.spend>0&&(total.revenue/total.spend)>=1 ? '#16a34a' : '#dc2626' },
+    { label:'Lượt xem',       val: total.impressions.toLocaleString('vi-VN'),      sub: 'impressions',               color:'#f59e0b' },
+    { label:'Click',          val: total.clicks.toLocaleString('vi-VN'),           sub: 'lượt click',                color:'#8b5cf6' },
+    { label:'Đơn hàng QC',    val: total.orders.toLocaleString('vi-VN'),           sub: 'đơn từ quảng cáo',          color:'#14b8a6' },
+  ];
+  document.getElementById('tl-cards').innerHTML = KPI_DEFS.map(c =>
+    `<div class="card"><div class="card-label">${c.label}</div><div class="card-val" style="color:${c.color};font-size:18px;">${c.val}</div><div class="card-sub">${c.sub}</div></div>`
+  ).join('');
+
+  document.getElementById('tl-cnt').textContent = `${filtered.length} ngày dữ liệu`;
+  const tbody = document.getElementById('tl-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--mu);">
+      <div style="font-size:32px;margin-bottom:8px;">📭</div>
+      <div style="font-weight:600;margin-bottom:4px;">Chưa có dữ liệu timeline</div>
+      <div style="font-size:11px;">Chạy harvest để thu thập dữ liệu quảng cáo theo ngày</div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map((r, i) => {
+    const roasColor = r.roas >= 1 ? '#16a34a' : r.roas > 0 ? '#f59e0b' : '#6b7280';
+    return `<tr>
+      <td style="font-weight:600;">${i+1}. ${r.date}</td>
+      <td style="color:#3b82f6;font-weight:600;">${r.spend.toLocaleString('vi-VN')}đ</td>
+      <td>${r.impressions.toLocaleString('vi-VN')}</td>
+      <td>${r.clicks.toLocaleString('vi-VN')}</td>
+      <td>${r.orders.toLocaleString('vi-VN')}</td>
+      <td style="color:#EE4D2D;font-weight:600;">${r.revenue.toLocaleString('vi-VN')}đ</td>
+      <td><span style="font-weight:700;color:${roasColor};">${r.roas}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Sort header indicator
+  const COL_HEADERS = { date:'Ngày', spend:'Số tiền', impressions:'Lượt xem', clicks:'Click', orders:'Đơn hàng QC', revenue:'Doanh thu từ QC', roas:'ROAS' };
+  Object.entries(COL_HEADERS).forEach(([col, label]) => {
+    const el = document.getElementById('tlh-' + col);
+    if (!el) return;
+    el.textContent = label + (col === _tlSortCol ? (_tlSortAsc ? ' ▲' : ' ▼') : '');
+  });
+}
+
+function sortTlTable(col) {
+  if (_tlSortCol === col) _tlSortAsc = !_tlSortAsc;
+  else { _tlSortCol = col; _tlSortAsc = col === 'date'; }
+  renderTlTable();
+}
+
+// Set date preset
+function setTlPreset(days) {
+  document.querySelectorAll('.tl-preset').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.tl-preset[data-days="${days}"]`);
+  if (btn) btn.classList.add('active');
+  if (days === 0) {
+    document.getElementById('tl-from').value = '';
+    document.getElementById('tl-to').value   = '';
+  } else {
+    const to   = new Date().toISOString().slice(0, 10);
+    const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    document.getElementById('tl-from').value = from;
+    document.getElementById('tl-to').value   = to;
+  }
+  renderTimeline();
+}
+
+function onTlDateChange() {
+  document.querySelectorAll('.tl-preset').forEach(b => b.classList.remove('active'));
+  renderTimeline();
+}
+
+// Render toàn bộ timeline tab
+function renderTimeline() {
+  const shopFilter = document.getElementById('tl-shop')?.value || 'all';
+  _tlRows = buildTlRows(shopFilter);
+  const filtered = filterTlRows(_tlRows);
+  const el = document.getElementById('tl-info');
+  if (el) el.textContent = `${filtered.length} ngày có dữ liệu`;
+  updateTlChart();
+  renderTlTable();
+}
+
+// Export Excel
+function exportTimeline() {
+  const filtered = filterTlRows(_tlRows);
+  if (!filtered.length) { alert('Không có dữ liệu để xuất.'); return; }
+  if (typeof XLSX === 'undefined') { alert('Thư viện XLSX chưa tải xong, thử lại.'); return; }
+  const ws = XLSX.utils.json_to_sheet(filtered.map(r => ({
+    'Ngày':                  r.date,
+    'Số tiền (VND)':         r.spend,
+    'Lượt xem':              r.impressions,
+    'Click':                 r.clicks,
+    'Đơn hàng QC':           r.orders,
+    'Doanh thu từ QC (VND)': r.revenue,
+    'ROAS':                  r.roas,
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Timeline QC');
+  XLSX.writeFile(wb, `shopee_timeline_qc_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// Cập nhật shop select trong timeline tab
+function updateTlShopSel(shops) {
+  const sel = document.getElementById('tl-shop');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = `<option value="all">Tất cả shop (${Object.keys(shops).length})</option>`;
+  Object.values(shops).sort((a,b) => b.lastSeen - a.lastSeen).forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.shopId;
+    o.textContent = shopDisplayName ? shopDisplayName(s) : (s.name || s.shopId);
+    if (s.shopId === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+// Init preset buttons
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.tl-preset').forEach(btn => {
+    btn.addEventListener('click', () => setTlPreset(Number(btn.dataset.days)));
+  });
+  // Default preset: 30 ngày
+  setTlPreset(30);
+});
+// Also init if DOM already loaded
+if (document.readyState !== 'loading') {
+  document.querySelectorAll('.tl-preset').forEach(btn => {
+    btn.addEventListener('click', () => setTlPreset(Number(btn.dataset.days)));
+  });
 }
 
 /* ── INIT ── */

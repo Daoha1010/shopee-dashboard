@@ -99,8 +99,14 @@ app.post('/api/capture', requireKey, (req, res) => {
                  lastSeen: ts, firstSeen: ex.firstSeen||ts };
   write(FILES.shops, shops);
 
-  // Smart upsert: cùng shopId + URL base + dateKey → REPLACE
+  // Smart upsert: cùng shopId + URL base + collectionDay → REPLACE
+  // collectionDay = ngày harvest chạy (YYYY-MM-DD, GMT+7)
   const captures = read(FILES[pageType], []);
+
+  // collectionDay: nhóm theo ngày thu thập, dùng để build time-series
+  const tzOffset = 7 * 60; // GMT+7 in minutes
+  const localDate = new Date(ts + tzOffset * 60 * 1000);
+  const collectionDay = localDate.toISOString().slice(0, 10); // "2026-06-29"
 
   const dateKey = (() => {
     if (!reqBody) return null;
@@ -110,18 +116,19 @@ app.post('/api/capture', requireKey, (req, res) => {
   })();
 
   const urlBase = (url||'').split('?')[0];
+  // Dedup: cùng shop + URL base + collectionDay = cùng 1 harvest run → upsert
   const existIdx = captures.findIndex(c =>
     c.shopId === sid &&
     (c.url||'').split('?')[0] === urlBase &&
-    (dateKey ? c.dateKey === dateKey : Math.abs((c.ts||0) - ts) < 5000)
+    c.collectionDay === collectionDay
   );
 
-  const newCapture = { shopId: sid, shopName: bestName, url, json, ts, reqBody: reqBody||null, dateKey };
+  const newCapture = { shopId: sid, shopName: bestName, url, json, ts, reqBody: reqBody||null, dateKey, collectionDay };
   if (existIdx >= 0) {
     captures[existIdx] = newCapture;
   } else {
     captures.push(newCapture);
-    if (captures.length > 3000) captures.splice(0, captures.length - 3000);
+    if (captures.length > 5000) captures.splice(0, captures.length - 5000);
   }
   write(FILES[pageType], captures);
   res.json({ ok: true, saved: true, replaced: existIdx >= 0 });
