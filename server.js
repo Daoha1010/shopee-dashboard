@@ -83,7 +83,7 @@ const isGenericName = n => !n || GENERIC_NAME.test(n);
 
 // Nhận dữ liệu từ Chrome Extension
 app.post('/api/capture', requireKey, (req, res) => {
-  const { pageType, shopId, shopName, url, json, ts, reqBody } = req.body;
+  const { pageType, shopId, shopName, url, method, json, ts, reqBody } = req.body;
 
   if (!PAGE_TYPES.includes(pageType)) return res.json({ ok: false, error: 'invalid pageType' });
 
@@ -123,7 +123,7 @@ app.post('/api/capture', requireKey, (req, res) => {
     c.collectionDay === collectionDay
   );
 
-  const newCapture = { shopId: sid, shopName: bestName, url, json, ts, reqBody: reqBody||null, dateKey, collectionDay };
+  const newCapture = { shopId: sid, shopName: bestName, url, method: method||'GET', json, ts, reqBody: reqBody||null, dateKey, collectionDay };
   if (existIdx >= 0) {
     captures[existIdx] = newCapture;
   } else {

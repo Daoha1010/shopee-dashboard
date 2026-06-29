@@ -142,13 +142,29 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
 .raw-tbl tbody tr:hover{background:#fff8f6;}
 .raw-tbl tbody td{padding:7px 12px;border-bottom:1px solid var(--bd);vertical-align:top;}
 .raw-tbl .td-url{max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#2563eb;font-size:11px;}
-.raw-tbl .td-keys{color:#6b7280;font-size:10px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.raw-tbl .td-keys{color:#6b7280;font-size:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.raw-tbl .td-method{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap;}
+.td-get{background:#dbeafe;color:#1e40af;}.td-post{background:#fce7f3;color:#9d174d;}
+.raw-tbl .td-datekey{font-size:10px;color:#6b7280;white-space:nowrap;font-family:monospace;}
 .json-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;}
 .json-modal.open{display:flex;}
-.json-box{background:#1e1e2e;border-radius:10px;width:90vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;}
-.json-box-hdr{background:#2d2d3f;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;color:#e2e8f0;font-size:13px;font-weight:700;}
-.json-box-close{background:none;border:none;color:#e2e8f0;font-size:20px;cursor:pointer;padding:0 4px;}
-.json-box-body{overflow:auto;padding:16px;font-family:monospace;font-size:11px;color:#a8ff78;white-space:pre;flex:1;}
+.json-box{background:#1e1e2e;border-radius:10px;width:95vw;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.json-box-hdr{background:#2d2d3f;padding:10px 16px;display:flex;flex-direction:column;gap:6px;color:#e2e8f0;}
+.json-box-hdr-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.json-box-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.json-box-close{background:none;border:none;color:#e2e8f0;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;}
+.json-box-url{font-size:10px;word-break:break-all;color:#94a3b8;flex:1;}
+.json-box-body-wrap{display:flex;flex:1;overflow:hidden;border-top:1px solid #3d3d5c;}
+.json-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #3d3d5c;}
+.json-pane:last-child{border-right:none;}
+.json-pane-hdr{background:#252535;padding:6px 12px;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;}
+.json-pane-body{overflow:auto;padding:12px;font-family:monospace;font-size:11px;color:#a8ff78;white-space:pre;flex:1;}
+.json-pane-body.req{color:#fbbf24;}
+.json-box-copy{background:#3b82f6;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;}
+.json-box-copy:hover{background:#2563eb;}
+.meta-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;}
+.meta-get{background:#3b5bdb;color:#fff;}.meta-post{background:#be185d;color:#fff;}
+.meta-day{font-size:10px;color:#94a3b8;background:#363654;border-radius:4px;padding:2px 8px;}
 .raw-empty{text-align:center;padding:40px;color:#6b7280;}
 </style>
 </head>
@@ -365,7 +381,7 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
   <div class="pane" id="pane-raw">
     <div class="panel">
       <div class="ph" style="flex-wrap:wrap;gap:8px;">
-        <span class="ph-title">🔧 Tất cả API Captures — bấm dòng để xem JSON đầy đủ</span>
+        <span class="ph-title">🔧 API Inspector — bấm dòng để xem Request + Response đầy đủ</span>
         <span id="raw-count" style="font-size:11px;color:var(--mu)"></span>
         <label style="font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;margin-left:auto;">
           <input type="checkbox" id="rawFilterChk" onchange="renderRawFilter()"> Chỉ hiện có data (&gt;1 items)
@@ -376,10 +392,13 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
         <table class="raw-tbl">
           <thead>
             <tr>
-              <th>Loại</th>
-              <th>URL (bấm để xem JSON)</th>
-              <th>Số items</th>
-              <th>Các key chính</th>
+              <th>Type</th>
+              <th>M</th>
+              <th>URL (click = Request+Response)</th>
+              <th>Date Range</th>
+              <th>Day</th>
+              <th>#</th>
+              <th>Keys chính</th>
               <th>Shop</th>
             </tr>
           </thead>
@@ -471,10 +490,26 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
   <div class="json-modal" id="jsonModal" onclick="if(event.target===this)closeModal()">
     <div class="json-box">
       <div class="json-box-hdr">
-        <span id="modalUrl" style="font-size:11px;word-break:break-all;flex:1;margin-right:8px;color:#94a3b8"></span>
-        <button class="json-box-close" onclick="closeModal()">✕</button>
+        <div class="json-box-hdr-top">
+          <span class="json-box-url" id="modalUrl"></span>
+          <button class="json-box-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="json-box-meta">
+          <span class="meta-badge" id="modalMethod"></span>
+          <span class="meta-day" id="modalDay"></span>
+          <button class="json-box-copy" onclick="copyFetch()">📋 Copy fetch()</button>
+        </div>
       </div>
-      <div class="json-box-body" id="modalBody"></div>
+      <div class="json-box-body-wrap">
+        <div class="json-pane">
+          <div class="json-pane-hdr">📤 Request Body / Params</div>
+          <div class="json-pane-body req" id="modalReq"></div>
+        </div>
+        <div class="json-pane">
+          <div class="json-pane-hdr">📥 Response JSON</div>
+          <div class="json-pane-body" id="modalBody"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1195,11 +1230,48 @@ const rawJsonStore = {};
 let rawDeduped = [];
 
 function openModal(i) {
-  document.getElementById('modalUrl').textContent = rawJsonStore[i]?.__url || '';
-  document.getElementById('modalBody').textContent = JSON.stringify(rawJsonStore[i]?.__json || {}, null, 2).substring(0, 40000);
+  const s = rawJsonStore[i] || {};
+  document.getElementById('modalUrl').textContent = s.__url || '';
+  const m = (s.__method || 'GET').toUpperCase();
+  document.getElementById('modalMethod').textContent = m;
+  document.getElementById('modalMethod').className = 'meta-badge ' + (m==='POST'?'meta-post':'meta-get');
+  document.getElementById('modalDay').textContent = s.__collectionDay ? '📅 ' + s.__collectionDay : '';
+  // Request pane: show query params for GET, body for POST
+  let reqText = '';
+  if (s.__reqBody && Object.keys(s.__reqBody).length) {
+    reqText = JSON.stringify(s.__reqBody, null, 2);
+  } else {
+    // Extract query string from URL
+    const qIdx = (s.__url||'').indexOf('?');
+    if (qIdx >= 0) {
+      const qs = (s.__url||'').slice(qIdx+1);
+      const params = {};
+      qs.split('&').forEach(p => { const [k,v]=p.split('='); if(k) params[decodeURIComponent(k)]=decodeURIComponent(v||''); });
+      reqText = JSON.stringify(params, null, 2);
+    } else {
+      reqText = '(no params)';
+    }
+  }
+  document.getElementById('modalReq').textContent = reqText;
+  document.getElementById('modalBody').textContent = JSON.stringify(s.__json || {}, null, 2).substring(0, 60000);
   document.getElementById('jsonModal').classList.add('open');
 }
 function closeModal() { document.getElementById('jsonModal').classList.remove('open'); }
+function copyFetch() {
+  const s = rawJsonStore[document.getElementById('jsonModal').__curIdx || 0] || {};
+  const m = (s.__method || 'GET').toUpperCase();
+  let code = '';
+  if (m === 'POST') {
+    const urlBase = (s.__url||'').split('?')[0];
+    code = `// Paste in browser console on banhang.shopee.vn:\nawait fetch('${urlBase}', {\n  method: 'POST',\n  credentials: 'include',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify(${JSON.stringify(s.__reqBody||{}, null, 2)})\n}).then(r => r.json()).then(console.log)`;
+  } else {
+    code = `// Paste in browser console on banhang.shopee.vn:\nawait fetch('${s.__url||''}', {\n  method: 'GET',\n  credentials: 'include'\n}).then(r => r.json()).then(console.log)`;
+  }
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.querySelector('.json-box-copy');
+    btn.textContent = '✅ Đã copy!'; setTimeout(() => btn.textContent='📋 Copy fetch()', 2000);
+  });
+}
 
 function renderRawFilter() {
   const onlyData = document.getElementById('rawFilterChk').checked;
@@ -1210,15 +1282,27 @@ function renderRawFilter() {
   const typeColors = {ads:'#EE4D2D',orders:'#3b82f6',performance:'#22c55e',traffic:'#8b5cf6'};
   document.getElementById('raw-tbody').innerHTML = rows.map(r => {
     const bg = typeColors[r.__type]||'#6b7280';
-    return `<tr onclick="openModal(${r.__idx})">
+    const m = (r.__method||'GET').toUpperCase();
+    const mClass = m==='POST'?'td-post':'td-get';
+    const dateRange = r.__dateRange || '—';
+    const day = r.collectionDay || '—';
+    return `<tr onclick="openModalByIdx(${r.__idx})">
       <td><span style="background:${bg};color:#fff;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">${r.__type}</span></td>
+      <td><span class="raw-tbl td-method ${mClass}">${m}</span></td>
       <td class="td-url" title="${r.url||''}">${r.__urlPath}</td>
-      <td style="text-align:center;font-weight:700;color:${r.__itemCount>1?'#16a34a':'#9ca3af'}">${r.__itemCount}</td>
+      <td class="td-datekey">${dateRange}</td>
+      <td style="font-size:10px;color:#6b7280">${day}</td>
+      <td style="text-align:center;font-weight:700;color:${r.__itemCount>1?'#16a34a':'#9ca3af'};font-size:12px">${r.__itemCount}</td>
       <td class="td-keys">${r.__keys}</td>
       <td style="font-size:10px;color:#6b7280">${r.shopName||r.shopId||''}</td>
     </tr>`;
   }).join('');
   document.getElementById('raw-count').textContent = rows.length + ' / ' + rawDeduped.length + ' captures';
+}
+
+function openModalByIdx(i) {
+  document.getElementById('jsonModal').__curIdx = i;
+  openModal(i);
 }
 
 function renderRaw(data) {
@@ -1234,24 +1318,41 @@ function renderRaw(data) {
   }
   document.getElementById('raw-empty').style.display = 'none';
 
-  // Deduplicate by URL base path
-  const byUrl = {};
+  // Deduplicate: keep latest capture per (urlBase + collectionDay)
+  const byKey = {};
   all.forEach(cap => {
     const u = (cap.url||'').split('?')[0];
-    if (!byUrl[u]) byUrl[u] = cap;
+    const key = u + '|' + (cap.collectionDay||'');
+    if (!byKey[key] || (cap.ts||0) > (byKey[key].ts||0)) byKey[key] = cap;
   });
 
   let idx = 0;
-  rawDeduped = Object.values(byUrl).map(cap => {
+  rawDeduped = Object.values(byKey).map(cap => {
     const i = idx++;
-    rawJsonStore[i] = { __url: cap.url, __json: cap.json };
+    const rb = cap.reqBody || {};
+    // Build human-readable date range string
+    const stRaw = rb.start_time || rb.from_time || rb.start_date;
+    const etRaw = rb.end_time   || rb.to_time   || rb.end_date;
+    let dateRange = '—';
+    if (stRaw && etRaw) {
+      const fmt = ts => new Date(Number(ts)*1000).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'});
+      dateRange = fmt(stRaw) + ' → ' + fmt(etRaw);
+    }
+    rawJsonStore[i] = {
+      __url: cap.url,
+      __json: cap.json,
+      __reqBody: cap.reqBody || null,
+      __method: cap.reqBody ? 'POST' : 'GET',
+      __collectionDay: cap.collectionDay || '',
+    };
     const urlPath = (cap.url||'').replace(/https?:\/\/[^\/]+/,'').split('?')[0];
     const arrs = collectArrays(cap.json||{});
     const biggest = arrs.sort((a,b)=>b.length-a.length)[0];
     const itemCount = biggest ? biggest.length : 0;
-    const keys = biggest ? Object.keys(biggest[0]||{}).slice(0,7).join(', ') : '—';
-    return { ...cap, __idx:i, __urlPath:urlPath, __itemCount:itemCount, __keys:keys };
-  }).sort((a,b) => b.__itemCount - a.__itemCount); // Sort by item count desc
+    const keys = biggest ? Object.keys(biggest[0]||{}).slice(0,6).join(', ') : '—';
+    return { ...cap, __idx:i, __urlPath:urlPath, __itemCount:itemCount, __keys:keys,
+             __method: cap.reqBody ? 'POST' : 'GET', __dateRange: dateRange };
+  }).sort((a,b) => b.__itemCount - a.__itemCount);
 
   renderRawFilter();
 }
