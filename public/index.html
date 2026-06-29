@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shopee Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<style>
+:root{--or:#EE4D2D;--or2:#ff7337;--g:#22c55e;--b:#3b82f6;--p:#8b5cf6;--am:#f59e0b;--bg:#f3f4f6;--card:#fff;--bd:#e5e7eb;--tx:#111827;--mu:#6b7280;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}
+/* TOP BAR */
+.top{background:linear-gradient(135deg,var(--or),var(--or2));color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.top h1{font-size:16px;font-weight:700;flex:1;}
+.server-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;}
+.server-dot.off{background:#f87171;}
+select.shop-sel{padding:6px 12px;border-radius:7px;border:none;font-size:13px;font-weight:600;background:rgba(255,255,255,.2);color:#fff;cursor:pointer;outline:none;}
+select.shop-sel option{background:#333;color:#fff;}
+/* TABS */
+.tabs{background:#fff;border-bottom:1px solid var(--bd);padding:0 24px;display:flex;position:sticky;top:56px;z-index:99;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.tab{padding:13px 18px;font-size:13px;font-weight:600;color:var(--mu);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;}
+.tab.active{color:var(--or);border-bottom-color:var(--or);}
+.badge{background:var(--or);color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;margin-left:5px;}
+/* CONTENT */
+.content{padding:20px 24px;max-width:1440px;margin:0 auto;}
+.pane{display:none;}.pane.active{display:block;}
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:20px;}
+.card{background:var(--card);border-radius:10px;padding:14px 16px;border:1px solid var(--bd);}
+.card-label{font-size:11px;color:var(--mu);margin-bottom:4px;}
+.card-val{font-size:22px;font-weight:700;}
+.card-sub{font-size:10px;color:var(--mu);margin-top:2px;}
+/* PANEL */
+.panel{background:var(--card);border-radius:10px;border:1px solid var(--bd);margin-bottom:16px;overflow:hidden;}
+.ph{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.ph-title{font-size:13px;font-weight:700;}
+.chart-wrap{padding:16px;height:260px;position:relative;}
+/* TOOLBAR */
+.tb{padding:8px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.tb-row2{padding:7px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:#fafafa;}
+.srch{flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--bd);border-radius:7px;font-size:12px;outline:none;}
+.srch:focus{border-color:var(--or);}
+.btn{padding:6px 13px;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;}
+.btn-exp{background:#16a34a;color:#fff;}
+.btn-clr{background:#fee2e2;color:#dc2626;}
+.cnt{font-size:11px;color:var(--mu);}
+/* FILTERS */
+.f-label{font-size:11px;color:var(--mu);white-space:nowrap;font-weight:600;}
+.f-sel{padding:5px 9px;border:1px solid var(--bd);border-radius:6px;font-size:12px;outline:none;background:#fff;cursor:pointer;max-width:160px;}
+.f-sel:focus{border-color:var(--or);}
+.f-date{padding:5px 8px;border:1px solid var(--bd);border-radius:6px;font-size:12px;outline:none;width:128px;}
+.f-date:focus{border-color:var(--or);}
+.f-sep{color:var(--mu);font-size:11px;}
+.f-active{border-color:var(--or)!important;background:#fff3f0!important;}
+/* TABLE */
+.tw{overflow-x:auto;max-height:65vh;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{background:#fafafa;padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;color:var(--mu);border-bottom:2px solid var(--bd);position:sticky;top:0;cursor:pointer;white-space:nowrap;user-select:none;}
+thead th:hover{background:#f3f4f6;}
+thead th.asc::after{content:' ▲';font-size:9px;}
+thead th.desc::after{content:' ▼';font-size:9px;}
+tbody tr:hover{background:#fff8f6;}
+tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* BADGES */
+.bk{display:inline-block;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;}
+.bk-g{background:#dcfce7;color:#166534;}.bk-r{background:#fee2e2;color:#991b1b;}
+.bk-o{background:#fff7ed;color:#c2410c;}.bk-b{background:#eff6ff;color:#1e40af;}
+.bk-gr{background:#f3f4f6;color:#4b5563;}
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:var(--mu);}
+.empty-ico{font-size:40px;margin-bottom:10px;}
+/* SERVER OFFLINE */
+.offline-bar{background:#fef3c7;border-bottom:2px solid #f59e0b;padding:10px 24px;font-size:13px;font-weight:600;color:#92400e;display:none;}
+/* LAST SYNC */
+.sync-info{font-size:11px;color:var(--mu);}
+/* SHOP PILL */
+.shop-pill{display:inline-block;background:#fff3f0;border:1px solid #fed7aa;border-radius:5px;padding:1px 7px;font-size:10px;color:var(--or);font-weight:600;}
+/* MULTI-SELECT CHIP SHOP WIDGET */
+.ms-wrap{position:relative;display:inline-block;}
+.ms-btn{display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;min-width:130px;max-width:230px;height:32px;text-align:left;}
+.ms-btn:hover{border-color:var(--or);}
+.ms-btn.ms-active{border-color:var(--or);background:#fff3f0;}
+.ms-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx);font-size:12px;}
+.ms-caret{flex-shrink:0;color:var(--mu);font-size:9px;transition:transform .15s;}
+.ms-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:#fff;border:1px solid var(--bd);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);min-width:230px;max-width:320px;overflow:hidden;}
+.ms-panel.open{display:block;}
+.ms-search{width:100%;padding:9px 12px;border:none;border-bottom:1px solid var(--bd);font-size:12px;outline:none;color:var(--tx);}
+.ms-list{max-height:230px;overflow-y:auto;}
+.ms-item{display:flex;align-items:center;gap:9px;padding:8px 12px;cursor:pointer;font-size:12px;user-select:none;}
+.ms-item:hover{background:#fff8f6;}
+.ms-item input[type=checkbox]{accent-color:var(--or);cursor:pointer;width:14px;height:14px;flex-shrink:0;}
+.ms-item-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ms-item-rename{flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--mu);font-size:11px;padding:1px 3px;border-radius:3px;opacity:0;}
+.ms-item:hover .ms-item-rename{opacity:1;}
+.ms-item-rename:hover{color:var(--or);background:#fff0eb;}
+.ms-empty{padding:18px;text-align:center;color:var(--mu);font-size:12px;}
+.ms-footer{padding:7px 12px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;gap:6px;}
+.ms-footer button{font-size:11px;padding:4px 10px;border:1px solid var(--bd);border-radius:5px;cursor:pointer;background:#fff;color:var(--tx);font-weight:600;}
+.ms-footer button:hover{background:#f3f4f6;}
+/* SHOP NAME MODAL */
+.sn-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;}
+.sn-modal.open{display:flex;}
+.sn-box{background:#fff;border-radius:12px;width:420px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.sn-hdr{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.sn-hdr h3{font-size:14px;font-weight:700;}
+.sn-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--mu);}
+.sn-body{overflow-y:auto;padding:12px 20px;flex:1;}
+.sn-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.sn-id{font-size:11px;color:var(--mu);font-family:monospace;min-width:96px;background:#f3f4f6;padding:4px 8px;border-radius:5px;}
+.sn-inp{flex:1;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:12px;outline:none;}
+.sn-inp:focus{border-color:var(--or);}
+.sn-footer{padding:12px 20px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:8px;}
+/* CLEAR MODAL */
+.cl-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;}
+.cl-modal.open{display:flex;}
+.cl-box{background:#fff;border-radius:12px;width:460px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+.cl-hdr{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;}
+.cl-hdr h3{font-size:14px;font-weight:700;flex:1;}
+.cl-body{padding:20px;}
+.cl-opt{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.cl-opt label{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:2px solid var(--bd);border-radius:8px;cursor:pointer;font-size:13px;}
+.cl-opt label:hover{border-color:var(--or);background:#fff8f6;}
+.cl-opt label.selected{border-color:var(--or);background:#fff3f0;}
+.cl-opt input[type=radio]{margin-top:2px;accent-color:var(--or);}
+.cl-opt-text{flex:1;}
+.cl-opt-title{font-weight:600;color:var(--tx);display:block;}
+.cl-opt-desc{font-size:11px;color:var(--mu);margin-top:2px;display:block;}
+.cl-shop-select{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:7px;font-size:12px;margin-top:8px;display:none;}
+.cl-footer{padding:12px 20px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:8px;}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-danger:hover{background:#b91c1c;}
+/* RAW */
+.raw-wrap{overflow-x:auto;max-height:78vh;overflow-y:auto;}
+.raw-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.raw-tbl thead th{background:#f9fafb;padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;border-bottom:2px solid var(--bd);position:sticky;top:0;white-space:nowrap;cursor:pointer;}
+.raw-tbl thead th:hover{background:#f3f4f6;}
+.raw-tbl tbody tr{cursor:pointer;}
+.raw-tbl tbody tr:hover{background:#fff8f6;}
+.raw-tbl tbody td{padding:7px 12px;border-bottom:1px solid var(--bd);vertical-align:top;}
+.raw-tbl .td-url{max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#2563eb;font-size:11px;}
+.raw-tbl .td-keys{color:#6b7280;font-size:10px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.json-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;}
+.json-modal.open{display:flex;}
+.json-box{background:#1e1e2e;border-radius:10px;width:90vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;}
+.json-box-hdr{background:#2d2d3f;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;color:#e2e8f0;font-size:13px;font-weight:700;}
+.json-box-close{background:none;border:none;color:#e2e8f0;font-size:20px;cursor:pointer;padding:0 4px;}
+.json-box-body{overflow:auto;padding:16px;font-family:monospace;font-size:11px;color:#a8ff78;white-space:pre;flex:1;}
+.raw-empty{text-align:center;padding:40px;color:#6b7280;}
+</style>
+</head>
+<body>
+<div class="offline-bar" id="offlineBar">⚠️ Server chưa chạy. Hãy mở <strong>start.bat</strong> trước rồi làm mới trang này.</div>
+
+<div class="top">
+  <h1>🛒 Shopee Dashboard</h1>
+  <select class="shop-sel" id="shopSel"><option value="all">Tất cả shop</option></select>
+  <span id="syncInfo" class="sync-info"></span>
+  <span id="serverDot" class="server-dot off" title="Trạng thái server"></span>
+  <button class="btn" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openShopNames()">⚙ Đặt tên shop</button>
+  <button class="btn" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openClearModal()">🗑 Xóa dữ liệu</button>
+  <button class="btn btn-exp" onclick="exportAll()">⬇ Excel tất cả</button>
+</div>
+
+<!-- Shop Name Modal -->
+<div class="sn-modal" id="snModal" onclick="if(event.target===this)closeShopNames()">
+  <div class="sn-box">
+    <div class="sn-hdr">
+      <h3>🏪 Đặt tên shop</h3>
+      <button class="sn-close" onclick="closeShopNames()">✕</button>
+    </div>
+    <div class="sn-body" id="snBody">
+      <p style="font-size:12px;color:var(--mu);margin-bottom:12px;">Nhập tên thật (username Shopee) cho từng shop ID. Tên được lưu vĩnh viễn.</p>
+    </div>
+    <div class="sn-footer">
+      <button class="btn" style="background:#f3f4f6;color:var(--tx);" onclick="closeShopNames()">Hủy</button>
+      <button class="btn btn-exp" onclick="saveAllShopNames()">💾 Lưu tất cả</button>
+    </div>
+  </div>
+</div>
+
+<!-- Clear Data Modal -->
+<div class="cl-modal" id="clModal" onclick="if(event.target===this)closeClearModal()">
+  <div class="cl-box">
+    <div class="cl-hdr">
+      <span style="font-size:20px">🗑</span>
+      <h3>Xóa dữ liệu</h3>
+      <button class="sn-close" onclick="closeClearModal()">✕</button>
+    </div>
+    <div class="cl-body">
+      <div class="cl-opt">
+        <label onclick="selectClearOpt('shop')">
+          <input type="radio" name="clearOpt" value="shop" id="clOptShop">
+          <span class="cl-opt-text">
+            <span class="cl-opt-title">🏪 Xóa 1 shop</span>
+            <span class="cl-opt-desc">Chỉ xóa dữ liệu của một shop cụ thể, giữ nguyên các shop khác</span>
+          </span>
+        </label>
+        <label onclick="selectClearOpt('all')">
+          <input type="radio" name="clearOpt" value="all" id="clOptAll">
+          <span class="cl-opt-text">
+            <span class="cl-opt-title">🔄 Xóa tất cả dữ liệu capture</span>
+            <span class="cl-opt-desc">Xóa toàn bộ ads/orders/performance/traffic. Tên shop vẫn được giữ lại.</span>
+          </span>
+        </label>
+        <label onclick="selectClearOpt('reset')">
+          <input type="radio" name="clearOpt" value="reset" id="clOptReset">
+          <span class="cl-opt-text">
+            <span class="cl-opt-title">💥 Reset hoàn toàn</span>
+            <span class="cl-opt-desc">Xóa toàn bộ dữ liệu + danh sách shop. Về trạng thái ban đầu.</span>
+          </span>
+        </label>
+      </div>
+      <select class="cl-shop-select" id="clShopSel">
+        <option value="">— Chọn shop cần xóa —</option>
+      </select>
+      <p style="font-size:11px;color:#dc2626;margin-top:12px;">⚠️ Thao tác này không thể hoàn tác. Sau khi xóa, hãy truy cập lại Shopee để extension thu thập dữ liệu mới.</p>
+    </div>
+    <div class="cl-footer">
+      <button class="btn" style="background:#f3f4f6;color:var(--tx);" onclick="closeClearModal()">Hủy</button>
+      <button class="btn btn-danger" onclick="confirmClear()">🗑 Xóa ngay</button>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="ads">📢 Quảng cáo <span class="badge" id="b-ads">0</span></button>
+  <button class="tab" data-tab="orders">📦 Đơn hàng <span class="badge" id="b-orders">0</span></button>
+  <button class="tab" data-tab="performance">📈 Hiệu quả SP <span class="badge" id="b-performance">0</span></button>
+  <button class="tab" data-tab="traffic">🔍 Nguồn truy cập <span class="badge" id="b-traffic">0</span></button>
+  <button class="tab" data-tab="raw">🔧 Raw Data</button>
+</div>
+
+<div class="content">
+  <div class="pane active" id="pane-ads">
+    <div class="cards" id="c-ads"></div>
+    <div class="panel" id="cp-ads" style="display:none">
+      <div class="ph"><span class="ph-title">Chi phí & Doanh thu (Top 15 sản phẩm)</span></div>
+      <div class="chart-wrap"><canvas id="ch-ads"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="tb-row2">
+        <span class="f-label">🏪 Shop:</span>
+        <div class="ms-wrap" id="ms-ads">
+          <button class="ms-btn" type="button" onclick="toggleMs('ads')">
+            <span class="ms-label" id="ms-label-ads">Tất cả shop</span>
+            <span class="ms-caret">▼</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-ads">
+            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('ads',this.value)">
+            <div class="ms-list" id="ms-list-ads"><div class="ms-empty">Đang tải…</div></div>
+            <div class="ms-footer">
+              <button onclick="selectAllMs('ads')">☑ Tất cả</button>
+              <button onclick="clearMs('ads')">✕ Bỏ chọn</button>
+            </div>
+          </div>
+        </div>
+        <span class="f-label">📢 Loại:</span>
+        <select class="f-sel" id="ft-ads" onchange="setFilter('ads','campaignType',this.value)" style="max-width:180px">
+          <option value="all">Tất cả loại</option>
+          <option value="Chiến dịch SP">Chiến dịch SP (CPC)</option>
+          <option value="Chiến dịch Shop">Chiến dịch Shop (GMV Max)</option>
+        </select>
+        <span class="f-label">📅 Từ:</span>
+        <input type="date" class="f-date" id="fd-from-ads" onchange="setFilter('ads','from',this.value)">
+        <span class="f-sep">→</span>
+        <input type="date" class="f-date" id="fd-to-ads" onchange="setFilter('ads','to',this.value)">
+        <button class="btn btn-clr" onclick="clearFilter('ads')">✕ Bỏ lọc</button>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;margin-left:6px;padding:5px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;">
+          <input type="checkbox" id="ads-group-toggle" onchange="onFilterChange('ads')">
+          <span>📊 Gộp theo tên chiến dịch</span>
+        </label>
+      </div>
+      <div class="tb">
+        <input class="srch" id="s-ads" placeholder="🔍 Tìm tên chiến dịch...">
+        <span class="cnt" id="cnt-ads"></span>
+        <button class="btn btn-exp" onclick="exportSheet('ads')">⬇ Excel</button>
+      </div>
+      <div class="tw"><table id="t-ads"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+  <div class="pane" id="pane-orders">
+    <div class="cards" id="c-orders"></div>
+    <div class="panel" id="cp-orders" style="display:none">
+      <div class="ph"><span class="ph-title">Phân bố trạng thái đơn</span></div>
+      <div class="chart-wrap" style="height:240px"><canvas id="ch-orders"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="tb-row2">
+        <span class="f-label">🏪 Shop:</span>
+        <div class="ms-wrap" id="ms-orders">
+          <button class="ms-btn" type="button" onclick="toggleMs('orders')">
+            <span class="ms-label" id="ms-label-orders">Tất cả shop</span>
+            <span class="ms-caret">▼</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-orders">
+            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('orders',this.value)">
+            <div class="ms-list" id="ms-list-orders"><div class="ms-empty">Đang tải…</div></div>
+            <div class="ms-footer">
+              <button onclick="selectAllMs('orders')">☑ Tất cả</button>
+              <button onclick="clearMs('orders')">✕ Bỏ chọn</button>
+            </div>
+          </div>
+        </div>
+        <span class="f-label">📅 Từ:</span>
+        <input type="date" class="f-date" id="fd-from-orders" onchange="setFilter('orders','from',this.value)">
+        <span class="f-sep">→</span>
+        <input type="date" class="f-date" id="fd-to-orders" onchange="setFilter('orders','to',this.value)">
+        <button class="btn btn-clr" onclick="clearFilter('orders')">✕ Bỏ lọc</button>
+      </div>
+      <div class="tb">
+        <input class="srch" id="s-orders" placeholder="🔍 Tìm mã đơn, sản phẩm...">
+        <span class="cnt" id="cnt-orders"></span>
+        <button class="btn btn-exp" onclick="exportSheet('orders')">⬇ Excel</button>
+      </div>
+      <div class="tw"><table id="t-orders"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+  <div class="pane" id="pane-performance">
+    <div class="cards" id="c-performance"></div>
+    <div class="panel" id="cp-performance" style="display:none">
+      <div class="ph"><span class="ph-title">Top sản phẩm theo lượt xem</span></div>
+      <div class="chart-wrap"><canvas id="ch-performance"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="tb-row2">
+        <span class="f-label">🏪 Shop:</span>
+        <div class="ms-wrap" id="ms-performance">
+          <button class="ms-btn" type="button" onclick="toggleMs('performance')">
+            <span class="ms-label" id="ms-label-performance">Tất cả shop</span>
+            <span class="ms-caret">▼</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-performance">
+            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('performance',this.value)">
+            <div class="ms-list" id="ms-list-performance"><div class="ms-empty">Đang tải…</div></div>
+            <div class="ms-footer">
+              <button onclick="selectAllMs('performance')">☑ Tất cả</button>
+              <button onclick="clearMs('performance')">✕ Bỏ chọn</button>
+            </div>
+          </div>
+        </div>
+        <span class="f-label">📅 Từ:</span>
+        <input type="date" class="f-date" id="fd-from-performance" onchange="setFilter('performance','from',this.value)">
+        <span class="f-sep">→</span>
+        <input type="date" class="f-date" id="fd-to-performance" onchange="setFilter('performance','to',this.value)">
+        <button class="btn btn-clr" onclick="clearFilter('performance')">✕ Bỏ lọc</button>
+      </div>
+      <div class="tb">
+        <input class="srch" id="s-performance" placeholder="🔍 Tìm tên sản phẩm...">
+        <span class="cnt" id="cnt-performance"></span>
+        <button class="btn btn-exp" onclick="exportSheet('performance')">⬇ Excel</button>
+      </div>
+      <div class="tw"><table id="t-performance"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+  <div class="pane" id="pane-raw">
+    <div class="panel">
+      <div class="ph" style="flex-wrap:wrap;gap:8px;">
+        <span class="ph-title">🔧 Tất cả API Captures — bấm dòng để xem JSON đầy đủ</span>
+        <span id="raw-count" style="font-size:11px;color:var(--mu)"></span>
+        <label style="font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;margin-left:auto;">
+          <input type="checkbox" id="rawFilterChk" onchange="renderRawFilter()"> Chỉ hiện có data (&gt;1 items)
+        </label>
+        <input id="rawSearch" oninput="renderRawFilter()" placeholder="Lọc URL..." style="padding:4px 8px;border:1px solid var(--bd);border-radius:5px;font-size:12px;width:200px;">
+      </div>
+      <div class="raw-wrap">
+        <table class="raw-tbl">
+          <thead>
+            <tr>
+              <th>Loại</th>
+              <th>URL (bấm để xem JSON)</th>
+              <th>Số items</th>
+              <th>Các key chính</th>
+              <th>Shop</th>
+            </tr>
+          </thead>
+          <tbody id="raw-tbody"></tbody>
+        </table>
+        <div class="raw-empty" id="raw-empty" style="display:none">Chưa có dữ liệu. Hãy truy cập trang Shopee với extension đang bật.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON Modal -->
+  <div class="json-modal" id="jsonModal" onclick="if(event.target===this)closeModal()">
+    <div class="json-box">
+      <div class="json-box-hdr">
+        <span id="modalUrl" style="font-size:11px;word-break:break-all;flex:1;margin-right:8px;color:#94a3b8"></span>
+        <button class="json-box-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="json-box-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="pane" id="pane-traffic">
+    <div class="cards" id="c-traffic"></div>
+    <div class="panel" id="cp-traffic" style="display:none">
+      <div class="ph"><span class="ph-title">Phân bố nguồn truy cập</span></div>
+      <div class="chart-wrap" style="height:260px"><canvas id="ch-traffic"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="tb-row2">
+        <span class="f-label">🏪 Shop:</span>
+        <div class="ms-wrap" id="ms-traffic">
+          <button class="ms-btn" type="button" onclick="toggleMs('traffic')">
+            <span class="ms-label" id="ms-label-traffic">Tất cả shop</span>
+            <span class="ms-caret">▼</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-traffic">
+            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('traffic',this.value)">
+            <div class="ms-list" id="ms-list-traffic"><div class="ms-empty">Đang tải…</div></div>
+            <div class="ms-footer">
+              <button onclick="selectAllMs('traffic')">☑ Tất cả</button>
+              <button onclick="clearMs('traffic')">✕ Bỏ chọn</button>
+            </div>
+          </div>
+        </div>
+        <span class="f-label">📅 Từ:</span>
+        <input type="date" class="f-date" id="fd-from-traffic" onchange="setFilter('traffic','from',this.value)">
+        <span class="f-sep">→</span>
+        <input type="date" class="f-date" id="fd-to-traffic" onchange="setFilter('traffic','to',this.value)">
+        <button class="btn btn-clr" onclick="clearFilter('traffic')">✕ Bỏ lọc</button>
+      </div>
+      <div class="tb">
+        <input class="srch" id="s-traffic" placeholder="🔍 Tìm nguồn traffic...">
+        <span class="cnt" id="cnt-traffic"></span>
+        <button class="btn btn-exp" onclick="exportSheet('traffic')">⬇ Excel</button>
+      </div>
+      <div class="tw"><table id="t-traffic"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:3001/api';
+const TYPES = ['ads','orders','performance','traffic'];
+const COLORS = ['#EE4D2D','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#a855f7','#06b6d4'];
+let allData = {}, charts = {}, tblState = {}, currentShop = 'all';
+
+/* ── helpers ── */
+const fv = (v,t) => {
+  if(v===null||v===undefined||v==='') return '—';
+  if(t==='ts') { const n=Number(v); return n>1e9?new Date(n*1000).toLocaleString('vi-VN'):String(v); }
+  if(t==='pct') { const n=Number(v); return isNaN(n)?v:(n<1?(n*100).toFixed(1)+'%':n.toFixed(1)+'%'); }
+  if(t==='vnd') { const n=Number(v); return isNaN(n)?v:n.toLocaleString('vi-VN')+'đ'; }
+  if(t==='f2')  { const n=Number(v); return isNaN(n)?v:n.toFixed(2); }
+  const n=Number(v); return isNaN(n)?String(v):n.toLocaleString('vi-VN');
+};
+const gt = k => { const l=k.toLowerCase();
+  if(/time|date|create|ts$/.test(l)) return 'ts';
+  if(/rpt_(ctr|atc_rate|checkout_rate|cr|direct_cr|broad_cir|direct_cir|sov|product_ctr)$/.test(l)) return 'pct';
+  if(/rpt_(broad_gmv|direct_gmv|voucher_amount|voucher_sales|cost|cpc|cpdc|cpm)$/.test(l)) return 'vnd';
+  if(/rpt_(roi|broad_roi|direct_roi)/.test(l)) return 'f2';
+  if(/rate|pct|ctr|cvr|cr$|ratio/.test(l)) return 'pct';
+  if(/amount|spend|cost|revenue|gmv|fee|price|income|pay/.test(l)) return 'vnd';
+  if(/roas|roi/.test(l)) return 'f2';
+  return 'n'; };
+const statusBadge = v => { const s=String(v).toLowerCase();
+  if(/paid|success|ship|deliver|complet|active/.test(s)) return `<span class="bk bk-g">${v}</span>`;
+  if(/cancel|fail|reject/.test(s)) return `<span class="bk bk-r">${v}</span>`;
+  if(/pending|wait|process/.test(s)) return `<span class="bk bk-o">${v}</span>`;
+  return `<span class="bk bk-gr">${v}</span>`; };
+
+function flatten(obj,pre='',depth=0){
+  const o={};
+  for(const [k,v] of Object.entries(obj)){
+    const key=pre?pre+'_'+k:k;
+    if(depth<2&&v!==null&&typeof v==='object'&&!Array.isArray(v)) Object.assign(o,flatten(v,key,depth+1));
+    else if(!Array.isArray(v)) o[key]=v;
+  } return o;
+}
+
+// ── Shopee monetary field formatter ──
+// All VND fields in API = real VND × 100,000
+// broad_order_amount / direct_order_amount = số lượng sản phẩm bán (COUNT, không chia)
+const MONEY_VND = /rpt_(broad_gmv|direct_gmv|voucher_amount|voucher_sales|cost|cpc|cpdc|cpm)$/i;
+function shopeeNum(k, v) {
+  if(typeof v !== 'number') return v;
+  if(MONEY_VND.test(k)) return Math.round(v / 100000);
+  return v;
+}
+
+// ── Column display labels (Vietnamese) ──
+const COL_LABELS = {
+  __campaignType:'Loại chiến dịch', __campaignState:'Trạng thái', __totalProducts:'Số SP', __shopCount:'Số shop', __shopNames:'Các shop', __dateRange:'Khoảng ngày', title:'Tên chiến dịch', link:'Link', rpt_impression:'Lượt xem', rpt_click:'Lượt click',
+  rpt_ctr:'CTR', rpt_broad_gmv:'Doanh số (VND)', rpt_direct_gmv:'DS trực tiếp (VND)',
+  rpt_cost:'Chi phí (VND)', rpt_broad_roi:'ROAS', rpt_direct_roi:'ROAS trực tiếp',
+  rpt_broad_order:'Đơn hàng', rpt_direct_order:'Đơn trực tiếp', rpt_atc:'Add to Cart',
+  rpt_atc_rate:'ATC Rate', rpt_checkout:'Checkout', rpt_checkout_rate:'Checkout Rate',
+  rpt_cpc:'Chi phí/CV (VND)', rpt_cr:'Tỷ lệ CV', rpt_direct_cr:'Tỷ lệ CV trực tiếp',
+  rpt_avg_rank:'Rank TB', rpt_page_views:'Page Views', rpt_view:'Views',
+  rpt_voucher_amount:'Voucher Amount (VND)', rpt_voucher_sales:'Doanh số Voucher (VND)',
+  rpt_broad_order_amount:'SP đã bán (rộng)', rpt_direct_order_amount:'SP đã bán (trực tiếp)',
+  rpt_broad_cir:'ACOS (rộng)', rpt_direct_cir:'ACOS (trực tiếp)',
+  rpt_location_in_ads:'Vị trí hiển thị', rpt_sov:'SOV'
+};
+// ── Score an array: higher = more likely to be real business data ──
+const BIZ_RE = /view|click|cost|spend|revenue|amount|order|impression|conversion|roas|ctr|acos|sale|traffic|visit|uv|pv|gmv|fee|price|stock|sold|item_id|itemid|campaign|advert|keyword|budget/i;
+const NAV_RE = /transify|icon_url|track_key|collapse|tab_key|route|menu|navigate|sidebar|export_id|file_name|progress|job_id|download|report_id|task_id/i;
+function scoreArr(arr){
+  if(!arr||arr.length===0) return -999;
+  const item=arr[0];
+  if(!item||typeof item!=='object') return -999;
+  // Flatten 1 level so nested report{} objects are visible for scoring
+  const flatItem = flatten(item,'',0);
+  const keys=Object.keys(flatItem);
+  let score=0;
+  score += Math.min(arr.length,100)*1;                                 // more rows = better
+  score += keys.filter(k=>typeof flatItem[k]==='number').length * 6;  // numeric fields = business data
+  score += keys.filter(k=>BIZ_RE.test(k)).length * 15;                // business-named fields
+  score -= keys.filter(k=>NAV_RE.test(k)).length * 20;                // nav/export fields = penalise hard
+  if(keys.length < 4) score -= 40;                                     // too few fields = noise
+  if(keys.some(k=>/export_id|file_name|progress/.test(k))) score -= 100;
+  if(arr.every(r=>r.status===1||r.status==='1'||r.status===undefined)) score -= 30;
+  return score;
+}
+
+// ── Parse Unix timestamp range from URL ──
+function extractDateRange(url) {
+  try {
+    const p = new URL(url);
+    const from = Number(p.searchParams.get('from'));
+    const to   = Number(p.searchParams.get('to'));
+    if(!from||!to) return null;
+    const fmt = ts => new Date(ts*1000).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
+    return { from: fmt(from), to: fmt(to), fromTs: from, toTs: to };
+  } catch(e){ return null; }
+}
+let adsDateRange = null; // stored globally so cards can show it
+
+// ── Detect campaign type from reqBody or entry structure ──
+function detectCampaignType(cap, entry) {
+  // From request body page_type field (captured after extension update)
+  const rb = cap?.reqBody;
+  if (rb) {
+    const pt = rb.page_type || rb.tab_type || rb.type || '';
+    if (/shop|smart|gmv_max/i.test(pt)) return 'Chiến dịch Shop';
+    if (/product|cpc|keyword/i.test(pt)) return 'Chiến dịch SP';
+  }
+  // Fallback: if entry has no image (product campaigns always have product image)
+  if (entry && !entry.image && !entry.group_image) return 'Chiến dịch Shop';
+  // Fallback: name patterns
+  const title = (entry?.title||'').toLowerCase();
+  if (/gmv max|shop gmv|auto|tự động/i.test(title)) return 'Chiến dịch Shop';
+  return 'Chiến dịch SP';
+}
+
+// ── Parser: product/get/ + report/get/ → campaign detail rows ──
+// product/get/ has: data.campaign{campaign_id, name, type, state, gms.total_ads}
+// report/get/  has: data[]{key=campaign_id, metrics{...}}
+function parseCampaignDetailReport(captures) {
+  // Build map: campaign_id → {name, type, state, totalAds, shopId, shopName, ts}
+  const campaignMeta = {};
+  for (const cap of captures) {
+    const campaign = cap?.json?.data?.campaign;
+    if (!campaign || !campaign.campaign_id) continue;
+    const id = String(campaign.campaign_id);
+    campaignMeta[id] = {
+      name: campaign.name || 'Chiến dịch ' + id,
+      type: campaign.type || '',        // 'product_gms' = Shop GMV Max
+      state: campaign.state || '',
+      totalAds: campaign.gms?.total_ads || campaign.group_image?.total_count || 0,
+      productSelection: campaign.product_selection || '',
+      shopId: cap.shopId || 'unknown',
+      shopName: cap.shopName || '',
+      ts: cap.ts || 0
+    };
+  }
+  if (!Object.keys(campaignMeta).length) return null;
+
+  // Build map: campaign_id → metrics from report/get/
+  const campaignMetrics = {};
+  for (const cap of captures) {
+    const dataArr = cap?.json?.data;
+    if (!Array.isArray(dataArr) || !dataArr.length) continue;
+    // report/get/ returns [{key, metrics, ratio}]
+    for (const item of dataArr) {
+      if (!item.key || !item.metrics) continue;
+      const id = String(item.key);
+      if (!campaignMetrics[id] || cap.ts > campaignMetrics[id].__ts) {
+        campaignMetrics[id] = { ...item.metrics, __ts: cap.ts || 0 };
+      }
+    }
+  }
+
+  // Build date info from report/get/ captures (reqBody has the date range)
+  const reportDateMap = {}; // campaign_id → date info
+  for (const cap of captures) {
+    const dataArr = cap?.json?.data;
+    if (!Array.isArray(dataArr) || !dataArr.length) continue;
+    const rb = cap.reqBody || {};
+    const stNum = Number(rb.start_time || rb.from_time)||0;
+    const etNum = Number(rb.end_time   || rb.to_time  )||0;
+    if (!stNum) continue;
+    const fmtD2 = ts => new Date(ts*1000).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'});
+    const dk = `${Math.floor(stNum/86400)}_${Math.floor(etNum/86400)}`;
+    for (const item of dataArr) {
+      if (!item.key) continue;
+      const iid = String(item.key);
+      if (!reportDateMap[iid]) reportDateMap[iid] = { dateKey:dk, dataFrom:fmtD2(stNum), dataTo:fmtD2(etNum), stNum, etNum };
+    }
+  }
+
+  // Combine: only include campaigns that have BOTH meta AND metrics
+  const rows = [];
+  for (const [id, meta] of Object.entries(campaignMeta)) {
+    const m = campaignMetrics[id];
+    if (!m) continue;
+    // Determine campaign type label
+    const isShopCampaign = /gms|product_gms|auto|gmv/i.test(meta.type) || meta.productSelection === 'auto';
+    const campaignType = isShopCampaign ? 'Chiến dịch Shop' : 'Chiến dịch SP';
+    const di = reportDateMap[id] || {};
+    const row = {
+      __campaignType: campaignType,
+      title: meta.name,
+      __campaignState: meta.state,
+      __totalProducts: meta.totalAds,
+      __shopId: meta.shopId,
+      __shopName: meta.shopName,
+      __captureTs: meta.ts,
+      __campaignId: id,
+      __dateKey:   di.dateKey   || 'detail',
+      __dataFrom:  di.dataFrom  || '',
+      __dataTo:    di.dataTo    || '',
+      __dataFromTs: di.stNum    || 0,
+      __dataToTs:   di.etNum    || 0
+    };
+    // Add metrics with monetary conversion
+    Object.entries(m).forEach(([k, v]) => {
+      if (k.startsWith('__')) return;
+      row['rpt_' + k] = shopeeNum('rpt_' + k, v);
+    });
+    rows.push(row);
+  }
+  return rows.length ? rows : null;
+}
+
+// ── Group rows by campaign title, summing metrics across shops ──
+const RATE_KEYS = new Set(['rpt_ctr','rpt_broad_roi','rpt_direct_roi','rpt_broad_cir',
+  'rpt_direct_cir','rpt_atc_rate','rpt_checkout_rate','rpt_cr','rpt_direct_cr',
+  'rpt_cpc','rpt_avg_rank','rpt_sov','rpt_cpdc','rpt_cpm']);
+function groupByTitle(rows) {
+  const groups = {};
+  for (const r of rows) {
+    const key = (r.__campaignType||'') + '||' + (r.title||'');
+    if (!groups[key]) {
+      groups[key] = { ...r, __shopCount: 1, _shopSet: new Set([r.__shopName||r.__shopId||'?']) };
+    } else {
+      const g = groups[key];
+      g.__shopCount++;
+      g._shopSet.add(r.__shopName||r.__shopId||'?');
+      // Sum all numeric metrics except rates (will recalculate)
+      for (const [k, v] of Object.entries(r)) {
+        if (k.startsWith('__') || k.startsWith('_') || typeof v !== 'number' || RATE_KEYS.has(k)) continue;
+        g[k] = (g[k]||0) + v;
+      }
+      // Also keep __totalProducts sum
+      if (typeof r.__totalProducts === 'number') g.__totalProducts = (g.__totalProducts||0) + r.__totalProducts;
+    }
+  }
+  return Object.values(groups).map(g => {
+    // Recalculate rate metrics from summed base values
+    if (g.rpt_impression > 0 && g.rpt_click != null)
+      g.rpt_ctr = g.rpt_click / g.rpt_impression;
+    if (g.rpt_cost > 0) {
+      if (g.rpt_broad_gmv > 0) g.rpt_broad_roi = g.rpt_broad_gmv / g.rpt_cost;
+      if (g.rpt_direct_gmv > 0) g.rpt_direct_roi = g.rpt_direct_gmv / g.rpt_cost;
+    }
+    if (g.rpt_click > 0 && g.rpt_cost > 0) g.rpt_cpc = g.rpt_cost / g.rpt_click;
+    g.__shopNames = [...g._shopSet].join(', ');
+    delete g._shopSet;
+    return g;
+  });
+}
+
+// ── Special parser for Shopee PAS homepage/query → entry_list ──
+function parsePasEntryList(cap) {
+  const el = cap?.json?.data?.entry_list;
+  if (!Array.isArray(el) || !el.length) return null;
+  adsDateRange = extractDateRange(cap.url||'');
+
+  // Extract actual data date range from reqBody (the Shopee date filter user selected)
+  const rb     = cap.reqBody || {};
+  const stRaw  = rb.start_time || rb.from_time || rb.start_date;
+  const etRaw  = rb.end_time   || rb.to_time   || rb.end_date;
+  const stNum  = Number(stRaw)||0, etNum = Number(etRaw)||0;
+  const fmtD   = ts => ts ? new Date(ts*1000).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}) : '';
+  const dateKey = stNum && etNum
+    ? `${Math.floor(stNum/86400)}_${Math.floor(etNum/86400)}`
+    : String(Math.floor((cap.ts||Date.now())/86400000));
+
+  return el.map(entry => {
+    const campaignType = detectCampaignType(cap, entry);
+    const row = {
+      __campaignType: campaignType,
+      title: entry.title,
+      link: entry.link||'',
+      __shopId: cap.shopId,
+      __shopName: cap.shopName,
+      __captureTs: cap.ts||0,
+      __campaignId: String(entry.id || entry.campaign_id || entry.adzone_id || ''),
+      __dateKey: dateKey,
+      __dataFrom: fmtD(stNum),
+      __dataTo:   fmtD(etNum),
+      __dataFromTs: stNum,
+      __dataToTs:   etNum
+    };
+    if (entry.report) {
+      Object.entries(entry.report).forEach(([k,v]) => { row['rpt_'+k] = shopeeNum('rpt_'+k, v); });
+    }
+    return row;
+  });
+}
+function collectArrays(obj,depth=0,out=[]){
+  if(depth>7||!obj||typeof obj!=='object') return out;
+  if(Array.isArray(obj)){
+    if(obj.length>0&&typeof obj[0]==='object'&&obj[0]!==null) out.push(obj);
+    return out;
+  }
+  for(const v of Object.values(obj)) collectArrays(v,depth+1,out);
+  return out;
+}
+function findArr(obj){
+  const candidates=collectArrays(obj);
+  if(!candidates.length) return null;
+  candidates.sort((a,b)=>scoreArr(b)-scoreArr(a));
+  return candidates[0];
+}
+function mergeCaptures(captures, type){
+  // ── Ads: SUMIF by campaign ID across shops and date ranges ──
+  if(type === 'ads'){
+    // Step 1 – collect every row from every capture
+    const rawRows = [];
+    for(const cap of captures){
+      const rows = parsePasEntryList(cap);
+      if(rows?.length) rawRows.push(...rows);
+    }
+    const detailRows = parseCampaignDetailReport(captures);
+    if(detailRows?.length) rawRows.push(...detailRows);
+    if(!rawRows.length) return [];
+
+    // Step 2 – for same campaign+shop+dateKey, keep ONLY latest capture
+    //          (prevents double-counting when same date range is re-captured)
+    const latestMap = {};
+    for(const r of rawRows){
+      const cid = r.__campaignId || (r.__campaignType + '||' + r.title);
+      const k   = cid + '|' + (r.__shopId||'') + '|' + (r.__dateKey||'0');
+      if(!latestMap[k] || (r.__captureTs||0) > (latestMap[k].__captureTs||0)) latestMap[k] = r;
+    }
+
+    // Step 3 – SUMIF across different date ranges for same campaign+shop
+    const sumMap = {};
+    for(const r of Object.values(latestMap)){
+      const cid  = r.__campaignId || (r.__campaignType + '||' + r.title);
+      const gkey = cid + '|' + (r.__shopId||'');
+      if(!sumMap[gkey]){
+        sumMap[gkey] = { ...r, _dateSet: new Set([r.__dateKey||'']) };
+      } else {
+        const g = sumMap[gkey];
+        if(!g._dateSet.has(r.__dateKey||'')){
+          g._dateSet.add(r.__dateKey||'');
+          // Sum numeric metrics — skip rate keys (will recalculate below)
+          for(const [k,v] of Object.entries(r)){
+            if(k.startsWith('__')||k.startsWith('_')||typeof v!=='number'||RATE_KEYS.has(k)) continue;
+            g[k] = (g[k]||0) + v;
+          }
+          // Widen date range span
+          if(r.__dataFromTs && (!g.__dataFromTs || r.__dataFromTs < g.__dataFromTs)){
+            g.__dataFrom = r.__dataFrom; g.__dataFromTs = r.__dataFromTs;
+          }
+          if(r.__dataToTs && (!g.__dataToTs || r.__dataToTs > g.__dataToTs)){
+            g.__dataTo = r.__dataTo; g.__dataToTs = r.__dataToTs;
+          }
+          if((r.__captureTs||0) > (g.__captureTs||0)) g.__captureTs = r.__captureTs;
+        }
+      }
+    }
+
+    // Step 4 – recalculate derived rate metrics, format date range display
+    const merged = Object.values(sumMap).map(g => {
+      if((g.rpt_impression||0) > 0) g.rpt_ctr = (g.rpt_click||0) / g.rpt_impression;
+      if((g.rpt_cost||0) > 0){
+        if((g.rpt_broad_gmv||0) > 0)  g.rpt_broad_roi  = g.rpt_broad_gmv / g.rpt_cost;
+        if((g.rpt_direct_gmv||0) > 0) g.rpt_direct_roi = g.rpt_direct_gmv / g.rpt_cost;
+      }
+      if((g.rpt_click||0) > 0 && (g.rpt_cost||0) > 0) g.rpt_cpc = g.rpt_cost / g.rpt_click;
+      g.__dateRange = g.__dataFrom && g.__dataTo
+        ? (g.__dataFrom === g.__dataTo ? g.__dataFrom : g.__dataFrom + '→' + g.__dataTo)
+        : '—';
+      delete g._dateSet;
+      return g;
+    });
+
+    if(merged.length) return merged;
+  }
+  // ── Generic: Group by url base, pick best scoring array per URL ──
+  const byUrl={};
+  for(const cap of captures){
+    const u=(cap.url||'').split('?')[0];
+    const newScore = (cap.priority?200:0) + scoreArr(findArr(cap.json));
+    const oldScore = byUrl[u] ? (byUrl[u].priority?200:0) + scoreArr(findArr(byUrl[u].json)) : -9999;
+    if(newScore > oldScore) byUrl[u]=cap;
+  }
+  const all=[], seen=new Set();
+  for(const cap of Object.values(byUrl)){
+    const arr=findArr(cap.json);
+    if(!arr||scoreArr(arr)<0) continue;
+    for(const row of arr){
+      const key=JSON.stringify(row);
+      if(!seen.has(key)){ seen.add(key); all.push({...row,__shopId:cap.shopId,__shopName:cap.shopName,__captureTs:cap.ts||0}); }
+    }
+  } return all;
+}
+function fk(obj,cands){ for(const k of cands) if(k in (obj||{})) return k; return null; }
+function sumNum(flat,keys){ const k=keys.find(k=>k in(flat[0]||{})); return k?flat.reduce((s,r)=>s+(Number(r[k])||0),0):null; }
+
+/* ── MULTI-SELECT SHOP WIDGET ── */
+const selectedShops = {};   // type → Set<shopId>
+const shopNameMap   = {};   // shopId → display name (across all tabs)
+TYPES.forEach(t => selectedShops[t] = new Set());
+
+// Open/close dropdown
+function toggleMs(type) {
+  const panel = document.getElementById('ms-panel-' + type);
+  const isOpen = panel.classList.contains('open');
+  TYPES.forEach(t => document.getElementById('ms-panel-'+t)?.classList.remove('open'));
+  if (!isOpen) panel.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ms-wrap'))
+    TYPES.forEach(t => document.getElementById('ms-panel-'+t)?.classList.remove('open'));
+}, true);
+
+// Filter items in dropdown by search text
+function filterMsList(type, q) {
+  document.querySelectorAll('#ms-list-'+type+' .ms-item').forEach(el => {
+    el.style.display = (el.dataset.name||'').toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+// Select all shops = clear filter
+function selectAllMs(type) {
+  selectedShops[type].clear();
+  document.querySelectorAll('#ms-list-'+type+' input[type=checkbox]').forEach(cb => cb.checked = false);
+  updateMsLabel(type);
+  onFilterChange(type);
+}
+function clearMs(type) { selectAllMs(type); }
+
+// Toggle a single shop checkbox
+function toggleShop(type, shopId, checked) {
+  if (checked) selectedShops[type].add(shopId);
+  else selectedShops[type].delete(shopId);
+  updateMsLabel(type);
+  onFilterChange(type);
+}
+
+// Update button label + active state
+function updateMsLabel(type) {
+  const sel = selectedShops[type];
+  const label = document.getElementById('ms-label-' + type);
+  const btn   = document.querySelector('#ms-'+type+' .ms-btn');
+  if (!label) return;
+  const total = document.querySelectorAll('#ms-list-'+type+' .ms-item').length;
+  if (!sel || sel.size === 0) {
+    label.textContent = total ? `Tất cả (${total} shop)` : 'Tất cả shop';
+    btn?.classList.remove('ms-active');
+  } else {
+    const names = [...sel].map(id => shopNameMap[id] || id);
+    const first = names[0].length > 16 ? names[0].slice(0,16)+'…' : names[0];
+    label.textContent = names.length === 1 ? first : `${first} +${names.length-1}`;
+    btn?.classList.add('ms-active');
+  }
+}
+
+// Build the checkbox list inside the panel
+function buildShopChipList(type, entries) {
+  const list = document.getElementById('ms-list-' + type);
+  if (!list) return;
+  const sel = selectedShops[type];
+  if (!entries.length) {
+    list.innerHTML = '<div class="ms-empty">Chưa có dữ liệu shop</div>';
+    return;
+  }
+  list.innerHTML = entries.map(({shopId: id, name}) => {
+    shopNameMap[id] = name;
+    const chk = sel.has(id) ? 'checked' : '';
+    const dn  = name.replace(/"/g,'&quot;');
+    return `<label class="ms-item" data-name="${dn}">
+      <input type="checkbox" value="${id}" ${chk} onchange="toggleShop('${type}','${id}',this.checked)" onclick="event.stopPropagation()">
+      <span class="ms-item-name" title="${dn}">${name}</span>
+      <button class="ms-item-rename" title="Đổi tên" onclick="event.preventDefault();event.stopPropagation();startRename('${type}','${id}',this)">✏️</button>
+    </label>`;
+  }).join('');
+  updateMsLabel(type);
+}
+
+// Inline rename
+function startRename(type, shopId, btn) {
+  const item    = btn.closest('.ms-item');
+  const nameEl  = item.querySelector('.ms-item-name');
+  const cur     = shopNameMap[shopId] || shopId;
+  const inp     = document.createElement('input');
+  inp.value     = cur;
+  inp.style.cssText = 'flex:1;font-size:12px;padding:2px 6px;border:1px solid var(--or);border-radius:4px;outline:none;';
+  inp.onclick   = e => e.stopPropagation();
+  inp.onkeydown = async e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const newName = inp.value.trim();
+      if (newName && newName !== cur) await saveRename(shopId, newName, type);
+      else { nameEl.style.display=''; inp.remove(); btn.style.display=''; }
+    }
+    if (e.key === 'Escape') { nameEl.style.display=''; inp.remove(); btn.style.display=''; }
+  };
+  nameEl.style.display = 'none';
+  btn.style.display    = 'none';
+  item.insertBefore(inp, btn);
+  inp.focus(); inp.select();
+}
+
+async function saveRename(shopId, newName, type) {
+  try {
+    await fetch(`${API}/shops/${shopId}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name: newName })
+    });
+    shopNameMap[shopId] = newName;
+    // Update allData.shops
+    if (allData.shops?.[shopId]) allData.shops[shopId].name = newName;
+    // Re-render chip list (preserving selection)
+    TYPES.forEach(t => populateShopFilter(t, allRows[t]||[]));
+  } catch(e) { console.error(e); }
+}
+
+/* ── SHOP SELECTOR ── */
+const GENERIC_RE = /kênh người bán|shopee seller|portal/i;
+function shopDisplayName(s) {
+  // Prefer shopNameMap (custom rename) > server name if real > shopId
+  const mapped = shopNameMap[s.shopId];
+  if (mapped && !GENERIC_RE.test(mapped)) return mapped;
+  if (s.name && !GENERIC_RE.test(s.name)) return s.name;
+  return s.shopId; // fall back to numeric ID — still unique
+}
+function updateShopSel(shops){
+  const sel=document.getElementById('shopSel');
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">Tất cả shop ('+Object.keys(shops).length+')</option>';
+  Object.values(shops).sort((a,b)=>b.lastSeen-a.lastSeen).forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.shopId; o.textContent=shopDisplayName(s);
+    if(s.shopId===cur) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+/* ── TABLE ── */
+// Preferred column order for each tab type
+const PREF_COLS = {
+  ads: ['__campaignType','title','__dateRange','__shopCount','__campaignState','__totalProducts','rpt_impression','rpt_click','rpt_ctr','rpt_cost','rpt_broad_gmv','rpt_broad_roi','rpt_broad_order','rpt_direct_order','rpt_atc','rpt_checkout','rpt_cpc','rpt_avg_rank','rpt_direct_gmv','rpt_direct_roi']
+};
+function sortCols(type, allCols){
+  const pref = PREF_COLS[type]||[];
+  const pset = new Set(pref);
+  const rest = allCols.filter(c=>!pset.has(c));
+  return [...pref.filter(c=>allCols.includes(c)), ...rest].slice(0,22);
+}
+
+function renderTable(type, rows){
+  const tbl=document.getElementById('t-'+type);
+  if(!rows.length){ tbl.innerHTML=`<tr><td colspan="99"><div class="empty"><div class="empty-ico">📭</div><p>Chưa có dữ liệu — hãy truy cập trang Shopee để extension thu thập.</p></div></td></tr>`; document.getElementById('cnt-'+type).textContent=''; return; }
+  const flat=rows.map(r=>flatten(r));
+  const rawCols=Object.keys(flat[0]||{}).filter(k=>!k.startsWith('__')&&String(flat[0][k]||'').length<250);
+  let cols = sortCols(type, rawCols);
+  const showShop = currentShop==='all';
+  // Default sort: ads → sort by rpt_cost desc; others → no sort
+  if(!tblState[type]) tblState[type]={
+    sortCol: type==='ads' ? 'rpt_cost' : null,
+    sortDir: -1
+  };
+  const st=tblState[type];
+  const q=(document.getElementById('s-'+type)||{}).value?.toLowerCase()||'';
+  let data=[...flat];
+  if(q) data=data.filter(r=>cols.some(c=>String(r[c]||'').toLowerCase().includes(q)));
+  if(st.sortCol) data.sort((a,b)=>{
+    const av=a[st.sortCol],bv=b[st.sortCol];
+    const an=Number(av),bn=Number(bv);
+    return st.sortDir*(isNaN(an)||isNaN(bn)?String(av||'').localeCompare(String(bv||'')):an-bn);
+  });
+  document.getElementById('cnt-'+type).textContent=data.length.toLocaleString()+' dòng';
+  const isS=c=>/status|state/.test(c.toLowerCase());
+  const thead=tbl.querySelector('thead');
+  thead.innerHTML='<tr>'+(showShop?'<th>Shop</th>':'')+cols.map(c=>{
+    const cls=st.sortCol===c?(st.sortDir>0?'asc':'desc'):'';
+    const label = COL_LABELS[c]||c.replace(/_/g,' ');
+    return `<th class="${cls}" data-col="${c}">${label}</th>`;
+  }).join('')+'</tr>';
+  thead.querySelectorAll('th[data-col]').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const col=th.dataset.col;
+      st.sortCol===col?st.sortDir*=-1:(st.sortCol=col,st.sortDir=-1);
+      renderTable(type,rows);
+    });
+  });
+  tbl.querySelector('tbody').innerHTML=data.slice(0,600).map(r=>'<tr>'+(showShop?`<td><span class="shop-pill">${r.__shopName||r.__shopId||''}</span></td>`:'')+cols.map(c=>{
+    const v=r[c];
+    let cell;
+    if(c==='__campaignType'){
+      const isShop = (v||'').includes('Shop');
+      cell=`<span class="bk ${isShop?'bk-b':'bk-o'}">${v||'—'}</span>`;
+    } else if(c==='__campaignState'){
+      const s=(v||'').toLowerCase();
+      const cls=s==='ongoing'?'bk-g':s==='paused'?'bk-gr':'bk-r';
+      const label=s==='ongoing'?'Đang chạy':s==='paused'?'Tạm dừng':v||'—';
+      cell=`<span class="bk ${cls}">${label}</span>`;
+    } else if(c==='__shopCount'){
+      const n=Number(v)||0;
+      cell = n > 1 ? `<span class="bk bk-b" title="${r.__shopNames||''}">${n} shop</span>`
+                   : n === 1 ? `<span style="font-size:11px;color:var(--mu)">1</span>` : '—';
+    } else {
+      cell=isS(c)?statusBadge(v):fv(v,gt(c));
+    }
+    return `<td title="${String(v||'')}">${cell}</td>`;
+  }).join('')+'</tr>').join('');
+}
+
+/* ── CARDS ── */
+function buildCards(type,rows){
+  const flat=rows.map(r=>flatten(r));
+  let html=`<div class="card"><div class="card-label">Tổng records</div><div class="card-val" style="color:var(--b)">${rows.length.toLocaleString()}</div><div class="card-sub">từ tất cả captures</div></div>`;
+  if(type==='ads'){
+    // Date range card (most important!)
+    if(adsDateRange) {
+      html=`<div class="card" style="border:2px solid var(--or);grid-column:1/-1;background:#fff3f0;">
+        <div class="card-label">📅 Khoảng thời gian dữ liệu</div>
+        <div class="card-val" style="color:var(--or);font-size:17px">${adsDateRange.from} → ${adsDateRange.to}</div>
+        <div class="card-sub">Từ Shopee Seller Portal · Quảng cáo CPC</div>
+      </div>`+html;
+    }
+    const sp=sumNum(flat,['rpt_cost']);
+    const rv=sumNum(flat,['rpt_broad_gmv']);
+    const cl=sumNum(flat,['rpt_click','click','click_count']);
+    const im=sumNum(flat,['rpt_impression','impression']);
+    const or=sumNum(flat,['rpt_broad_order','order','order_count']);
+    if(sp!=null)html+=`<div class="card"><div class="card-label">Tổng chi phí QC</div><div class="card-val" style="color:var(--or)">${fv(sp,'vnd')}</div></div>`;
+    if(rv!=null)html+=`<div class="card"><div class="card-label">Tổng doanh số QC</div><div class="card-val" style="color:var(--b)">${fv(rv,'vnd')}</div></div>`;
+    if(sp&&rv&&sp>0)html+=`<div class="card"><div class="card-label">ROAS TB</div><div class="card-val" style="color:var(--g)">${(rv/sp).toFixed(2)}x</div></div>`;
+    if(im!=null)html+=`<div class="card"><div class="card-label">Tổng lượt xem</div><div class="card-val" style="color:var(--mu)">${im.toLocaleString()}</div></div>`;
+    if(cl!=null)html+=`<div class="card"><div class="card-label">Tổng clicks</div><div class="card-val" style="color:var(--p)">${cl.toLocaleString()}</div></div>`;
+    if(or!=null)html+=`<div class="card"><div class="card-label">Đơn từ QC</div><div class="card-val" style="color:var(--am)">${or.toLocaleString()}</div></div>`;
+  }
+  if(type==='orders'){
+    const am=sumNum(flat,['total_amount','escrow_amount','order_amount','amount','total_price']);
+    if(am!=null)html+=`<div class="card"><div class="card-label">Tổng GMV</div><div class="card-val" style="color:var(--g)">${fv(am,'vnd')}</div></div>`;
+  }
+  if(type==='performance'){
+    const pv=sumNum(flat,['view_count','pv','page_view','impression']);
+    const uv=sumNum(flat,['uv','visitor','visitor_count']);
+    if(pv!=null)html+=`<div class="card"><div class="card-label">Tổng lượt xem</div><div class="card-val" style="color:var(--b)">${pv.toLocaleString()}</div></div>`;
+    if(uv!=null)html+=`<div class="card"><div class="card-label">Unique Visitors</div><div class="card-val" style="color:var(--g)">${uv.toLocaleString()}</div></div>`;
+  }
+  if(type==='traffic'){
+    const uv=sumNum(flat,['uv','visitor','visitor_count','unique_visitor']);
+    if(uv!=null)html+=`<div class="card"><div class="card-label">Tổng Visitors</div><div class="card-val" style="color:var(--b)">${uv.toLocaleString()}</div></div>`;
+  }
+  document.getElementById('c-'+type).innerHTML=html;
+}
+
+/* ── CHARTS ── */
+function destroyChart(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+function buildChart(type,rows){
+  destroyChart(type);
+  const flat=rows.map(r=>flatten(r)).slice(0,15);
+  const cp=document.getElementById('cp-'+type);
+  if(type==='ads'){
+    const nk=fk(flat[0],['title','item_name','name','product_name','ad_name','itemid','item_id']);
+    const sk=fk(flat[0],['rpt_cost','spend','cost','total_spend','fee']);
+    const rk=fk(flat[0],['rpt_broad_gmv','revenue','gmv','income','total_revenue']);
+    if(!sk&&!rk) return; cp.style.display='';
+    const labels=flat.map(r=>String(r[nk]||'?').substring(0,22));
+    const ds=[];
+    if(sk) ds.push({label:'Chi phí (VND)',data:flat.map(r=>Number(r[sk])||0),backgroundColor:COLORS[0],borderRadius:4});
+    if(rk) ds.push({label:'Doanh số (VND)',data:flat.map(r=>Number(r[rk])||0),backgroundColor:COLORS[1],borderRadius:4});
+    charts[type]=new Chart(document.getElementById('ch-'+type).getContext('2d'),{type:'bar',data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v.toLocaleString('vi-VN')}}}}});
+  }
+  if(type==='orders'){
+    const sk=fk(flat[0],['order_status','status','state']);
+    if(!sk) return; cp.style.display='';
+    const cnt={};
+    flat.forEach(r=>{const s=String(r[sk]||'unknown');cnt[s]=(cnt[s]||0)+1;});
+    charts[type]=new Chart(document.getElementById('ch-'+type).getContext('2d'),{type:'doughnut',data:{labels:Object.keys(cnt),datasets:[{data:Object.values(cnt),backgroundColor:COLORS,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}}});
+  }
+  if(type==='performance'){
+    const nk=fk(flat[0],['item_name','name','product_name','title']);
+    const vk=fk(flat[0],['view_count','pv','page_view','impression','uv','visitor']);
+    if(!vk) return; cp.style.display='';
+    charts[type]=new Chart(document.getElementById('ch-'+type).getContext('2d'),{type:'bar',data:{labels:flat.map(r=>String(r[nk]||r.itemid||'?').substring(0,16)),datasets:[{label:'Lượt xem',data:flat.map(r=>Number(r[vk])||0),backgroundColor:COLORS[2],borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}});
+  }
+  if(type==='traffic'){
+    const sk=fk(flat[0],['traffic_source','source','channel','name','source_type']);
+    const uk=fk(flat[0],['uv','visitor','visitor_count','unique_visitor','session']);
+    if(!sk||!uk) return; cp.style.display='';
+    charts[type]=new Chart(document.getElementById('ch-'+type).getContext('2d'),{type:'pie',data:{labels:flat.map(r=>String(r[sk]||'?')),datasets:[{data:flat.map(r=>Number(r[uk])||0),backgroundColor:COLORS,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}}});
+  }
+}
+
+/* ── RAW DATA VIEW ── */
+const rawJsonStore = {};
+let rawDeduped = [];
+
+function openModal(i) {
+  document.getElementById('modalUrl').textContent = rawJsonStore[i]?.__url || '';
+  document.getElementById('modalBody').textContent = JSON.stringify(rawJsonStore[i]?.__json || {}, null, 2).substring(0, 40000);
+  document.getElementById('jsonModal').classList.add('open');
+}
+function closeModal() { document.getElementById('jsonModal').classList.remove('open'); }
+
+function renderRawFilter() {
+  const onlyData = document.getElementById('rawFilterChk').checked;
+  const q = (document.getElementById('rawSearch').value||'').toLowerCase();
+  let rows = rawDeduped;
+  if(onlyData) rows = rows.filter(r=>r.__itemCount > 1);
+  if(q) rows = rows.filter(r=>r.__urlPath.toLowerCase().includes(q));
+  const typeColors = {ads:'#EE4D2D',orders:'#3b82f6',performance:'#22c55e',traffic:'#8b5cf6'};
+  document.getElementById('raw-tbody').innerHTML = rows.map(r => {
+    const bg = typeColors[r.__type]||'#6b7280';
+    return `<tr onclick="openModal(${r.__idx})">
+      <td><span style="background:${bg};color:#fff;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">${r.__type}</span></td>
+      <td class="td-url" title="${r.url||''}">${r.__urlPath}</td>
+      <td style="text-align:center;font-weight:700;color:${r.__itemCount>1?'#16a34a':'#9ca3af'}">${r.__itemCount}</td>
+      <td class="td-keys">${r.__keys}</td>
+      <td style="font-size:10px;color:#6b7280">${r.shopName||r.shopId||''}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('raw-count').textContent = rows.length + ' / ' + rawDeduped.length + ' captures';
+}
+
+function renderRaw(data) {
+  const all = [];
+  TYPES.forEach(t => {
+    (data[t] || []).forEach(cap => { all.push({ ...cap, __type: t }); });
+  });
+
+  if (!all.length) {
+    document.getElementById('raw-empty').style.display = 'block';
+    document.getElementById('raw-count').textContent = '0 captures';
+    return;
+  }
+  document.getElementById('raw-empty').style.display = 'none';
+
+  // Deduplicate by URL base path
+  const byUrl = {};
+  all.forEach(cap => {
+    const u = (cap.url||'').split('?')[0];
+    if (!byUrl[u]) byUrl[u] = cap;
+  });
+
+  let idx = 0;
+  rawDeduped = Object.values(byUrl).map(cap => {
+    const i = idx++;
+    rawJsonStore[i] = { __url: cap.url, __json: cap.json };
+    const urlPath = (cap.url||'').replace(/https?:\/\/[^\/]+/,'').split('?')[0];
+    const arrs = collectArrays(cap.json||{});
+    const biggest = arrs.sort((a,b)=>b.length-a.length)[0];
+    const itemCount = biggest ? biggest.length : 0;
+    const keys = biggest ? Object.keys(biggest[0]||{}).slice(0,7).join(', ') : '—';
+    return { ...cap, __idx:i, __urlPath:urlPath, __itemCount:itemCount, __keys:keys };
+  }).sort((a,b) => b.__itemCount - a.__itemCount); // Sort by item count desc
+
+  renderRawFilter();
+}
+
+/* ── RENDER ALL ── */
+const expData={};
+function renderAll(data){
+  if(!data) return;
+  adsDateRange = null; // reset before re-parsing
+  updateShopSel(data.shops||{});
+  renderRaw(data);
+  TYPES.forEach(t=>{
+    const captures=(data[t]||[]);
+    document.getElementById('b-'+t).textContent=captures.length;
+    const rows=mergeCaptures(captures, t);
+    allRows[t]=rows;
+    populateShopFilter(t, rows);
+    const filtered=getDisplayRows(t, rows);
+    expData[t]=filtered;
+    buildCards(t,filtered);
+    buildChart(t,filtered);
+    renderTable(t,filtered);
+    const si=document.getElementById('s-'+t);
+    if(si&&!si.dataset.bound){si.dataset.bound='1';si.addEventListener('input',()=>renderTable(t,applyTabFilter(t,allRows[t]||[])));}
+  });
+}
+
+/* ── EXPORT ── */
+function exportSheet(type){
+  const rows=expData[type]||[];
+  if(!rows.length) return alert('Không có dữ liệu!');
+  const ws=XLSX.utils.json_to_sheet(rows.map(r=>flatten(r)));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,type);
+  XLSX.writeFile(wb,`shopee_${type}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+function exportAll(){
+  const wb=XLSX.utils.book_new();
+  let any=false;
+  TYPES.forEach(t=>{const rows=expData[t]||[];if(rows.length){XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.map(r=>flatten(r))),t);any=true;}});
+  if(!any) return alert('Chưa có dữ liệu!');
+  XLSX.writeFile(wb,`shopee_all_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+/* ── TAB FILTERS ── */
+const tabFilters = {};
+const allRows    = {};
+TYPES.forEach(t => tabFilters[t] = {from:'', to:'', campaignType:'all'});
+
+function setFilter(type, key, val) {
+  tabFilters[type][key] = val;
+  const elMap = { from:'fd-from-'+type, to:'fd-to-'+type, campaignType:'ft-'+type };
+  const el = document.getElementById(elMap[key]);
+  if(el) el.classList.toggle('f-active', !!val && val!=='all');
+  onFilterChange(type);
+}
+
+function clearFilter(type) {
+  tabFilters[type] = {from:'', to:'', campaignType:'all'};
+  // Clear shop chip selection
+  selectedShops[type].clear();
+  updateMsLabel(type);
+  document.querySelectorAll('#ms-list-'+type+' input[type=checkbox]').forEach(cb => cb.checked=false);
+  // Clear date + type inputs
+  ['fd-from-'+type, 'fd-to-'+type].forEach(id => {
+    const el=document.getElementById(id); if(el){el.value='';el.classList.remove('f-active');}
+  });
+  const ft=document.getElementById('ft-'+type);
+  if(ft){ft.value='all';ft.classList.remove('f-active');}
+  // Clear group toggle
+  const tog=document.getElementById(type+'-group-toggle');
+  if(tog) tog.checked=false;
+  onFilterChange(type);
+}
+
+function applyTabFilter(type, rows) {
+  const f   = tabFilters[type];
+  const sel = selectedShops[type];
+  let r = [...rows];
+  // Multi-select shop filter
+  if (sel && sel.size > 0) r = r.filter(x => sel.has(x.__shopId));
+  // Campaign type filter
+  if(f.campaignType && f.campaignType !== 'all') r = r.filter(x => (x.__campaignType||'') === f.campaignType);
+  // Date filters — compare against actual data date range (from Shopee date picker), not capture time
+  if(f.from){ const ft=new Date(f.from+'T00:00:00').getTime()/1000; r=r.filter(x=>!x.__dataToTs  ||x.__dataToTs  >=ft); }
+  if(f.to)  { const tt=new Date(f.to+'T23:59:59').getTime()/1000;  r=r.filter(x=>!x.__dataFromTs||x.__dataFromTs<=tt); }
+  return r;
+}
+
+function populateShopFilter(type, rows) {
+  const GENERIC = /kênh người bán|shopee seller|portal/i;
+  const shopMap = {};
+  rows.forEach(r => {
+    if (!r.__shopId || r.__shopId === 'unknown') return;
+    // Prefer: shopNameMap (saved/renamed) > real shopName > shopId
+    const raw = r.__shopName || '';
+    const name = shopNameMap[r.__shopId]
+              || (raw && !GENERIC.test(raw) ? raw : null)
+              || r.__shopId;
+    shopMap[r.__shopId] = name;
+    shopNameMap[r.__shopId] = name; // update global map
+  });
+  // Also apply names from allData.shops (server registry)
+  if (allData.shops) {
+    Object.values(allData.shops).forEach(s => {
+      if (s.shopId && s.name && !GENERIC.test(s.name)) {
+        shopMap[s.shopId] = shopMap[s.shopId] || s.name;
+        shopNameMap[s.shopId] = s.name;
+      }
+    });
+  }
+  const entries = Object.entries(shopMap)
+    .map(([id, name]) => ({ shopId: id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  buildShopChipList(type, entries);
+}
+
+// Apply filter then optional grouping
+function getDisplayRows(type, rows) {
+  const filtered = applyTabFilter(type, rows);
+  if (type === 'ads') {
+    const tog = document.getElementById('ads-group-toggle');
+    if (tog && tog.checked) return groupByTitle(filtered);
+  }
+  return filtered;
+}
+
+function onFilterChange(type) {
+  const displayed = getDisplayRows(type, allRows[type]||[]);
+  expData[type] = displayed;
+  buildCards(type, displayed);
+  buildChart(type, displayed);
+  renderTable(type, displayed);
+}
+
+/* ── LOAD FROM API ── */
+async function loadData(){
+  try{
+    const res=await fetch(`${API}/data?shopId=${currentShop}`,{signal:AbortSignal.timeout(3000)});
+    const data=await res.json();
+    document.getElementById('serverDot').className='server-dot';
+    document.getElementById('offlineBar').style.display='none';
+    document.getElementById('syncInfo').textContent='Cập nhật: '+new Date().toLocaleTimeString('vi-VN');
+    allData=data;
+    renderAll(data);
+  }catch(e){
+    document.getElementById('serverDot').className='server-dot off';
+    document.getElementById('offlineBar').style.display='block';
+  }
+}
+
+/* ── TABS ── */
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ── SHOP SELECTOR ── */
+document.getElementById('shopSel').addEventListener('change',e=>{
+  currentShop=e.target.value; loadData();
+});
+
+/* ── SHOP NAME MODAL ── */
+function openShopNames() {
+  const shops = Object.values(allData.shops || {}).filter(s => s.shopId !== 'unknown');
+  if (!shops.length) { alert('Chưa có shop nào. Hãy truy cập Shopee với extension bật.'); return; }
+  shops.sort((a,b) => (a.shopId||'').localeCompare(b.shopId||''));
+  document.getElementById('snBody').innerHTML =
+    '<p style="font-size:12px;color:var(--mu);margin-bottom:12px;">Nhập tên thật (username Shopee) cho từng shop ID. Tên được lưu vĩnh viễn.</p>' +
+    shops.map(s => {
+      const cur = shopDisplayName(s);
+      const placeholder = cur === s.shopId ? 'vd: zendecor, tamanh007_1…' : cur;
+      const val = (cur !== s.shopId) ? cur : '';
+      return `<div class="sn-row">
+        <span class="sn-id">${s.shopId}</span>
+        <input class="sn-inp" data-id="${s.shopId}" value="${val}" placeholder="${placeholder}">
+      </div>`;
+    }).join('');
+  document.getElementById('snModal').classList.add('open');
+  // Focus first empty input
+  const first = document.querySelector('#snBody .sn-inp[value=""]') ||
+                document.querySelector('#snBody .sn-inp');
+  first?.focus();
+}
+
+function closeShopNames() {
+  document.getElementById('snModal').classList.remove('open');
+}
+
+async function saveAllShopNames() {
+  const inputs = document.querySelectorAll('#snBody .sn-inp');
+  const tasks = [];
+  inputs.forEach(inp => {
+    const id   = inp.dataset.id;
+    const name = inp.value.trim();
+    if (id && name) tasks.push(
+      fetch(`${API}/shops/${id}`, {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name })
+      }).then(() => { shopNameMap[id] = name; if(allData.shops?.[id]) allData.shops[id].name = name; })
+    );
+  });
+  await Promise.all(tasks);
+  closeShopNames();
+  // Refresh selectors
+  updateShopSel(allData.shops || {});
+  TYPES.forEach(t => populateShopFilter(t, allRows[t]||[]));
+}
+
+/* ── CLEAR DATA MODAL ── */
+let _clearOpt = null;
+
+function openClearModal() {
+  // Populate shop dropdown
+  const sel = document.getElementById('clShopSel');
+  sel.innerHTML = '<option value="">— Chọn shop cần xóa —</option>';
+  Object.values(allData.shops || {})
+    .sort((a,b) => (shopDisplayName(a)||'').localeCompare(shopDisplayName(b)||''))
+    .forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.shopId;
+      o.textContent = shopDisplayName(s) + ' (' + s.shopId + ')';
+      sel.appendChild(o);
+    });
+  // Reset selection
+  _clearOpt = null;
+  document.querySelectorAll('.cl-opt label').forEach(l => l.classList.remove('selected'));
+  document.querySelectorAll('.cl-opt input[type=radio]').forEach(r => r.checked = false);
+  document.getElementById('clShopSel').style.display = 'none';
+  document.getElementById('clModal').classList.add('open');
+}
+
+function closeClearModal() {
+  document.getElementById('clModal').classList.remove('open');
+}
+
+function selectClearOpt(opt) {
+  _clearOpt = opt;
+  document.querySelectorAll('.cl-opt label').forEach(l => l.classList.remove('selected'));
+  const radio = document.getElementById('clOpt' + opt.charAt(0).toUpperCase() + opt.slice(1));
+  if (radio) { radio.checked = true; radio.closest('label').classList.add('selected'); }
+  document.getElementById('clShopSel').style.display = (opt === 'shop') ? 'block' : 'none';
+}
+
+async function confirmClear() {
+  if (!_clearOpt) { alert('Vui lòng chọn loại xóa!'); return; }
+  let shopId = 'all';
+  if (_clearOpt === 'shop') {
+    shopId = document.getElementById('clShopSel').value;
+    if (!shopId) { alert('Vui lòng chọn shop cần xóa!'); return; }
+  }
+  const label = _clearOpt === 'shop'
+    ? `shop ${shopNameMap[shopId] || shopId}`
+    : _clearOpt === 'all' ? 'toàn bộ dữ liệu capture' : 'toàn bộ hệ thống';
+  if (!confirm(`Xác nhận xóa ${label}?`)) return;
+
+  try {
+    if (_clearOpt === 'reset') {
+      // Clear all data AND shops registry
+      await fetch(`${API}/clear?shopId=all`, { method: 'DELETE' });
+      // Also clear shop names
+      await fetch(`${API}/shops/reset-names`, { method: 'POST' });
+    } else {
+      await fetch(`${API}/clear?shopId=${shopId}`, { method: 'DELETE' });
+    }
+    closeClearModal();
+    // Reset client state
+    Object.keys(allRows).forEach(t => { allRows[t] = []; });
+    Object.keys(selectedShops).forEach(t => selectedShops[t].clear());
+    if (_clearOpt === 'reset') Object.keys(shopNameMap).forEach(k => delete shopNameMap[k]);
+    await loadData();
+    alert('✅ Đã xóa thành công! Hãy truy cập Shopee để thu thập dữ liệu mới.');
+  } catch(e) {
+    alert('❌ Lỗi: ' + e.message);
+  }
+}
+
+/* ── INIT ── */
+loadData();
+setInterval(loadData, 5000);
+</script>
+</body>
+</html>

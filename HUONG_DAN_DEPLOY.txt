@@ -1,0 +1,102 @@
+════════════════════════════════════════════════════════
+   🚀 HƯỚNG DẪN DEPLOY SHOPEE DASHBOARD LÊN CLOUD
+   Nền tảng: Railway.app (miễn phí $5 credit/tháng)
+════════════════════════════════════════════════════════
+
+📋 YÊU CẦU TRƯỚC KHI BẮT ĐẦU
+───────────────────────────────
+- Tài khoản GitHub (miễn phí)
+- Tài khoản Railway (miễn phí, login bằng GitHub)
+
+────────────────────────────────────────────────────────
+BƯỚC 1 — Upload code lên GitHub
+────────────────────────────────────────────────────────
+
+1. Mở https://github.com → "New repository"
+2. Đặt tên: shopee-dashboard (Private hoặc Public tuỳ ý)
+3. Không tick gì → "Create repository"
+4. Mở thư mục shopee-dashboard trên máy bằng Command Prompt:
+
+   cd "C:\Users\minha\Claude\Projects\Clone tool\shopee-dashboard"
+   git init
+   git add .
+   git commit -m "Initial deploy"
+   git branch -M main
+   git remote add origin https://github.com/TÊN_BẠN/shopee-dashboard.git
+   git push -u origin main
+
+   (Thay TÊN_BẠN bằng GitHub username của bạn)
+
+────────────────────────────────────────────────────────
+BƯỚC 2 — Deploy lên Railway
+────────────────────────────────────────────────────────
+
+1. Vào https://railway.app → Login bằng GitHub
+2. "New Project" → "Deploy from GitHub repo"
+3. Chọn repo "shopee-dashboard" vừa tạo
+4. Railway sẽ tự detect Node.js và deploy (~1-2 phút)
+
+────────────────────────────────────────────────────────
+BƯỚC 3 — Thêm Persistent Disk (lưu dữ liệu không mất)
+────────────────────────────────────────────────────────
+
+⚠️ QUAN TRỌNG: Không làm bước này thì data sẽ mất khi restart!
+
+1. Trong Railway dashboard → Click vào service vừa deploy
+2. Tab "Volumes" → "Add Volume"
+3. Mount Path: /data
+4. Size: 1 GB (đủ dùng cho vài năm data)
+5. Click "Add"
+
+────────────────────────────────────────────────────────
+BƯỚC 4 — Cấu hình Environment Variables
+────────────────────────────────────────────────────────
+
+Trong Railway → Service → Tab "Variables" → "Add Variable"
+
+Thêm 2 biến:
+
+  DATA_DIR = /data
+
+  API_KEY  = (tự đặt chuỗi bí mật, VD: shopee_mykey_2024_xyz)
+             Lưu lại chuỗi này! Cần nhập vào extension ở Bước 5.
+
+Railway sẽ tự restart service sau khi thêm variables.
+
+────────────────────────────────────────────────────────
+BƯỚC 5 — Lấy URL và cấu hình Extension
+────────────────────────────────────────────────────────
+
+1. Trong Railway → Service → Tab "Settings" → "Networking"
+   → "Generate Domain" → Copy URL dạng:
+   https://shopee-dashboard-xxx.railway.app
+
+2. Mở Chrome → Extension popup → Click ⚙️ (Settings)
+   - Server URL: https://shopee-dashboard-xxx.railway.app
+   - API Key:    (chuỗi bí mật bạn đặt ở Bước 4)
+   - Click "💾 Lưu"
+   - Click "🔌 Test kết nối" → phải thấy ✅
+
+3. Từ giờ mọi data sẽ được lưu lên cloud!
+   Dashboard truy cập: https://shopee-dashboard-xxx.railway.app
+
+────────────────────────────────────────────────────────
+💡 LỢI ÍCH SAU KHI DEPLOY
+────────────────────────────────────────────────────────
+
+✅ Dashboard luôn online, không cần mở start.bat
+✅ Dữ liệu lưu trữ tập trung, không mất khi tắt máy
+✅ Có thể mở dashboard từ điện thoại hoặc máy khác
+✅ Nhiều người cùng xem dashboard được
+✅ Auto-harvest hoạt động mượt mà hơn
+
+────────────────────────────────────────────────────────
+💰 CHI PHÍ RAILWAY
+────────────────────────────────────────────────────────
+
+- Railway cho $5 credit/tháng miễn phí
+- App nhỏ này chạy ~$1-2/tháng → FREE hoàn toàn
+- Disk 1GB: $0.25/tháng → vẫn nằm trong free credit
+- Nếu dùng nhiều hơn: Plan Hobby $5/tháng
+
+════════════════════════════════════════════════════════

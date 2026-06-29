@@ -1,0 +1,52 @@
+=========================================================
+  HƯỚNG DẪN CÀI ĐẶT SHOPEE DASHBOARD (Windows)
+=========================================================
+
+BƯỚC 1 — Cài Node.js (chỉ làm 1 lần)
+---------------------------------------
+1. Mở trình duyệt, truy cập: https://nodejs.org
+2. Bấm nút "LTS" (màu xanh lá) để tải về
+3. Chạy file .msi vừa tải, bấm Next liên tục đến khi xong
+4. Khởi động lại máy tính
+
+BƯỚC 2 — Cài đặt server (chỉ làm 1 lần)
+------------------------------------------
+1. Mở thư mục "shopee-dashboard"
+2. Double-click vào file "setup.bat"
+3. Chờ cửa sổ đen hiện "Setup hoàn tất!" rồi đóng lại
+
+BƯỚC 3 — Khởi động server (mỗi lần dùng)
+------------------------------------------
+1. Double-click vào file "start.bat"
+2. Cửa sổ đen hiện "Server chạy tại http://localhost:3001"
+3. Trình duyệt tự mở dashboard — KHÔNG đóng cửa sổ đen này
+
+BƯỚC 4 — Cài Chrome Extension
+-------------------------------
+1. Mở Chrome, vào địa chỉ: chrome://extensions
+2. Bật "Chế độ nhà phát triển" (góc trên phải)
+3. Bấm "Tải tiện ích đã giải nén"
+4. Chọn thư mục "shopee-extension-v2"
+5. Bấm "Chọn thư mục"
+6. Extension xuất hiện với icon cam — cài thành công!
+
+BƯỚC 5 — Sử dụng hàng ngày
+----------------------------
+1. Chạy start.bat (bước 3)
+2. Bấm icon extension Shopee trên Chrome
+3. Bấm "Mở tất cả 4 trang Shopee" → đăng nhập shop
+4. Lướt qua các trang, extension tự thu thập dữ liệu
+5. Bấm "Mở Dashboard" để xem số liệu
+6. Dữ liệu được LƯU TỰ ĐỘNG — không cần làm lại mỗi ngày
+
+LƯU Ý QUAN TRỌNG:
+- Server (cửa sổ đen start.bat) phải luôn chạy khi dùng
+- Extension popup hiện đèn XANH = server online, ĐỎ = offline
+- Nếu offline, dữ liệu vẫn được lưu tạm trong extension
+  và sẽ tự đồng bộ khi server được bật lại
+
+CÓ VẤN ĐỀ?
+- Cửa sổ đen hiện lỗi: thử chạy lại setup.bat
+- Dashboard không tải: kiểm tra start.bat đang chạy
+- Không thấy dữ liệu: truy cập lại các trang Shopee
+=========================================================
