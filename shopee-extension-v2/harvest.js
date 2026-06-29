@@ -128,34 +128,24 @@ async function clickNextPages(page, curShop, shopIdx, totalShops) {
   const maxPages = page.multiPage || 5;
   const pageWait = page.pageWait  || 3500;
 
-  // Tìm nút "next page" với nhiều selector fallback
+  // Tìm nút "next page" — Shopee dùng class eds-pager__button-next
   const findNextBtn = () => {
-    // Các selector phổ biến của Shopee seller center
+    // Primary: class chính xác của Shopee seller center
+    const primary = document.querySelector('button.eds-pager__button-next:not([disabled])');
+    if (primary) return primary;
+
+    // Fallback selectors
     const sels = [
-      'li.shopee-page-controller__page--next:not(.shopee-page-controller__page--disabled) button',
+      'button[class*="pager__button-next"]:not([disabled])',
+      'button[class*="button-next"]:not([disabled])',
       'li[class*="next"]:not([class*="disabled"]) button',
-      'button[class*="next"]:not(:disabled)',
-      '[class*="page-next"]:not([disabled])',
-      '[class*="pageNext"]:not([disabled])',
       '.ant-pagination-next:not(.ant-pagination-disabled) button',
-      '.ant-pagination-next:not(.ant-pagination-disabled)',
-      '[aria-label="Next Page"]:not([disabled])',
-      '[title="Next Page"]',
     ];
     for (const sel of sels) {
       try {
         const el = document.querySelector(sel);
         if (el && !el.disabled && el.offsetParent !== null) return el;
       } catch(e) {}
-    }
-    // Fallback: tìm button/li chứa ký tự > hoặc svg mũi tên phải
-    for (const el of document.querySelectorAll('li, button')) {
-      if (el.disabled || el.getAttribute('aria-disabled') === 'true') continue;
-      if (el.classList.toString().toLowerCase().includes('disabled')) continue;
-      const txt = el.textContent.trim();
-      if (txt === '>' || txt === '›' || txt === '»') return el;
-      // SVG arrow right
-      if (el.querySelector('svg') && /next|right|forward/i.test(el.className)) return el;
     }
     return null;
   };
