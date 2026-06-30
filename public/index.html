@@ -2757,18 +2757,24 @@ async function importAllDriveFiles() {
   const progress = document.getElementById('import-all-progress');
   if (allBtn) { allBtn.disabled = true; allBtn.textContent = '⏳ Đang import...'; }
 
+  window._importingAll = true; // ngăn closeDriveModal trong processDriveWorkbook
   let done = 0;
   for (const f of files) {
     if (progress) progress.textContent = `${done}/${files.length} — đang import: ${f.name}`;
     const btn = document.getElementById('btn-' + f.id);
-    if (btn) {
-      await importDriveFile(f.id, f.name, btn);
-    }
+    if (btn) await importDriveFile(f.id, f.name, btn);
     done++;
   }
+  window._importingAll = false;
+
+  // Đợi debounce save hoàn tất rồi mới close modal
+  if (progress) progress.textContent = `💾 Đang lưu lên Firestore...`;
+  clearTimeout(_saveTimer);
+  await saveDriveToFirestore(); // save ngay lập tức với full data
 
   if (progress) progress.textContent = `✅ Xong ${done}/${files.length} file`;
   if (allBtn) { allBtn.textContent = '✓ Import All xong'; allBtn.style.background = '#16a34a'; }
+  closeDriveModal();
 }
 
 function processDriveWorkbook(wb, fileName, fileId) {
@@ -2790,18 +2796,25 @@ function processDriveWorkbook(wb, fileName, fileId) {
     driveImported[key] = { fileId, fileName, sheetName, rows, type };
   });
 
-  saveDriveToFirestore();
+  scheduleSaveDriveToFirestore();
   renderDriveData();
-  closeDriveModal();
+  if (!window._importingAll) closeDriveModal();
 }
 
 function removeDriveImport(key) {
   delete driveImported[key];
-  saveDriveToFirestore();
+  scheduleSaveDriveToFirestore();
   renderDriveData();
 }
 
 // ── Firestore save/load ────────────────────────────────────────────
+let _saveTimer = null;
+function scheduleSaveDriveToFirestore() {
+  // Debounce: nhiều import liên tiếp → chỉ save 1 lần sau 600ms
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => saveDriveToFirestore(), 600);
+}
+
 async function saveDriveToFirestore() {
   if (!gToken) { console.warn('saveDriveToFirestore: no token'); return; }
   try {
