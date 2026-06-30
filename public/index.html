@@ -2451,7 +2451,10 @@ if (document.readyState !== 'loading') {
 
 /* ── GOOGLE DRIVE INTEGRATION ── */
 const GDRIVE_CLIENT_ID = '968957527535-0hrelcev484acqs735qpmu92ibhsks60.apps.googleusercontent.com';
-const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/datastore';
+const GCP_PROJECT  = 'shopee-dashboard-501003';
+const FS_DB        = 'shopee-dashboard'; // Firestore database ID
+const FS_DOC       = `https://firestore.googleapis.com/v1/projects/${GCP_PROJECT}/databases/${FS_DB}/documents/shopee-dash/drive-imports`;
 let gToken = null;
 let gTokenClient = null;
 let driveImported = {}; // fileId → { name, rows, type }
@@ -2583,12 +2586,14 @@ function updateDriveOrderCards(uid) {
 
 function buildOrderPane(item, uid) {
   const cols = detectOrderCols(item.rows);
-  driveOrderData[uid] = { rows: item.rows, cols };
+  driveOrderData[uid] = { rows: item.rows, cols, key: item.fileId + '_' + item.sheetName };
   const statuses = getUniqueStatuses(item.rows, cols.status);
+  const key = escHtml(item.fileId + '_' + item.sheetName);
   return `
-    <div class="drive-pane-title">
-      📂 ${escHtml(item.fileName)} — ${escHtml(item.sheetName)}
-      <span style="color:var(--mu);font-weight:400;margin-left:6px;">(${item.rows.length} dòng)</span>
+    <div class="drive-pane-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>📂 ${escHtml(item.fileName)} — ${escHtml(item.sheetName)}
+      <span style="color:var(--mu);font-weight:400;margin-left:6px;">(${item.rows.length} dòng)</span></span>
+      <button onclick="removeDriveImport('${key}')" style="background:#fee2e2;border:none;border-radius:5px;padding:3px 10px;font-size:11px;color:#dc2626;cursor:pointer;font-weight:600;flex-shrink:0;">✕ Xóa</button>
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap;">
       <span class="f-label">📦 Lọc trạng thái:</span>
@@ -2619,12 +2624,13 @@ function initGIS() {
         gToken = resp.access_token;
         localStorage.setItem('gdrive_token', gToken);
         showDriveConnected();
+        restoreDriveImported(); // tải lại data từ Firestore sau khi có token mới
       }
     }
   });
-  // Kiểm tra token đã lưu
+  // Kiểm tra token đã lưu → tự restore Firestore data
   const saved = localStorage.getItem('gdrive_token');
-  if (saved) { gToken = saved; showDriveConnected(); }
+  if (saved) { gToken = saved; showDriveConnected(); restoreDriveImported(); }
 }
 
 function connectDrive() {
@@ -2746,8 +2752,50 @@ function processDriveWorkbook(wb, fileName, fileId) {
     driveImported[key] = { fileId, fileName, sheetName, rows, type };
   });
 
+  saveDriveToFirestore();
   renderDriveData();
   closeDriveModal();
+}
+
+function removeDriveImport(key) {
+  delete driveImported[key];
+  saveDriveToFirestore();
+  renderDriveData();
+}
+
+// ── Firestore save/load ────────────────────────────────────────────
+async function saveDriveToFirestore() {
+  if (!gToken) return;
+  try {
+    const body = {
+      fields: {
+        data:      { stringValue: JSON.stringify(driveImported) },
+        updatedAt: { stringValue: new Date().toISOString() }
+      }
+    };
+    const res = await fetch(FS_DOC, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) console.warn('Firestore save error', await res.text());
+  } catch(e) { console.warn('saveDriveToFirestore error', e); }
+}
+
+async function restoreDriveImported() {
+  if (!gToken) return;
+  try {
+    const res = await fetch(FS_DOC, {
+      headers: { 'Authorization': `Bearer ${gToken}` }
+    });
+    if (res.status === 404) return; // chưa có data, bình thường
+    if (!res.ok) { console.warn('Firestore load error', res.status); return; }
+    const doc = await res.json();
+    const dataStr = doc.fields?.data?.stringValue;
+    if (!dataStr) return;
+    driveImported = JSON.parse(dataStr);
+    if (Object.keys(driveImported).length) renderDriveData();
+  } catch(e) { console.warn('restoreDriveImported error', e); }
 }
 
 function renderDriveData() {
