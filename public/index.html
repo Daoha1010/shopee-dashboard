@@ -166,6 +166,61 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
 .meta-get{background:#3b5bdb;color:#fff;}.meta-post{background:#be185d;color:#fff;}
 .meta-day{font-size:10px;color:#94a3b8;background:#363654;border-radius:4px;padding:2px 8px;}
 .raw-empty{text-align:center;padding:40px;color:#6b7280;}
+
+/* ─── MOBILE RESPONSIVE ─── */
+@media (max-width: 767px) {
+  /* TOP BAR */
+  .top{height:auto;min-height:50px;flex-wrap:wrap;padding:10px 14px;gap:8px;}
+  .top h1{font-size:14px;}
+  select.shop-sel{font-size:12px;max-width:130px;padding:5px 8px;}
+  .top input[type=date]{width:106px!important;font-size:11px!important;padding:4px 6px!important;}
+  .sync-info{display:none;}
+  .top .btn{font-size:11px;padding:5px 9px;}
+  .top-btn-secondary{display:none!important;}
+  /* TABS: horizontal scroll */
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding:0 12px;scrollbar-width:none;top:auto;position:static;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{padding:11px 12px;font-size:12px;}
+  /* CONTENT */
+  .content{padding:12px 14px;}
+  /* CARDS: 2 columns */
+  .cards{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+  .card{padding:12px 12px;}
+  .card-val{font-size:18px;}
+  .card-label{font-size:10px;}
+  /* CHART */
+  .chart-wrap{height:200px;padding:10px;}
+  /* TABLE */
+  thead th{font-size:10px;padding:7px 8px;}
+  tbody td{font-size:11px;padding:7px 8px;}
+  /* FILTERS */
+  .f-date{width:106px;}
+  .f-sel{font-size:11px;max-width:140px;}
+  .tb-row2{gap:5px;padding:7px 10px;}
+  .tb{gap:5px;padding:6px 10px;}
+  .srch{min-width:110px;}
+  /* MULTI-SELECT */
+  .ms-btn{min-width:110px;max-width:170px;font-size:11px;}
+  .ms-panel{min-width:200px;max-width:90vw;}
+  /* MODALS */
+  .sn-box{width:95vw!important;}
+  .cl-box{width:95vw!important;}
+  .json-box{width:100vw;max-height:95vh;border-radius:0;}
+  /* OFFLINE BAR */
+  .offline-bar{padding:8px 14px;font-size:12px;}
+  /* RAW TABLE */
+  .raw-tbl thead th{font-size:10px;padding:6px 8px;}
+  .raw-tbl tbody td{font-size:11px;padding:6px 8px;}
+  .td-url{max-width:200px!important;}
+}
+@media (max-width: 480px) {
+  /* Very small phones: hide secondary top buttons completely */
+  .top-btn-secondary{display:none!important;}
+  /* Stack card values nicely */
+  .card-val{font-size:16px;}
+  /* Shrink tab text */
+  .tab{font-size:11px;padding:10px 10px;}
+}
 </style>
 </head>
 <body>
@@ -177,11 +232,11 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
   <input type="date" id="dateFrom" style="padding:5px 8px;border:1px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;" title="Từ ngày" onchange="applyDateFilter()">
   <span style="color:rgba(255,255,255,.7);font-size:12px;">→</span>
   <input type="date" id="dateTo" style="padding:5px 8px;border:1px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;" title="Đến ngày" onchange="applyDateFilter()">
-  <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;" onclick="clearDateFilter()">✕ Bỏ lọc ngày</button>
+  <button class="btn top-btn-secondary" style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;" onclick="clearDateFilter()">✕ Bỏ lọc ngày</button>
   <span id="syncInfo" class="sync-info"></span>
   <span id="serverDot" class="server-dot off" title="Trạng thái server"></span>
-  <button class="btn" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openShopNames()">⚙ Đặt tên shop</button>
-  <button class="btn" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openClearModal()">🗑 Xóa dữ liệu</button>
+  <button class="btn top-btn-secondary" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openShopNames()">⚙ Đặt tên shop</button>
+  <button class="btn top-btn-secondary" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openClearModal()">🗑 Xóa dữ liệu</button>
   <button class="btn btn-exp" onclick="exportAll()">⬇ Excel tất cả</button>
   <button class="btn" id="triggerHarvestBtn" style="background:#7c3aed;color:#fff;font-weight:700;" onclick="triggerHarvest()">🤖 Thu thập tất cả</button>
 </div>
@@ -345,6 +400,11 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
       <div class="tb">
         <input class="srch" id="s-orders" placeholder="🔍 Tìm mã đơn, sản phẩm...">
         <span class="cnt" id="cnt-orders"></span>
+        <span id="ord-import-info" style="font-size:11px;color:var(--mu);"></span>
+        <label class="btn" style="background:#7c3aed;color:#fff;cursor:pointer;margin-left:auto;" title="Import file Excel xuất từ Shopee">
+          📥 Import Excel
+          <input type="file" id="ord-xlsx-inp" accept=".xlsx,.xls" style="display:none" onchange="importOrderExcel(this)">
+        </label>
         <button class="btn btn-exp" onclick="exportSheet('orders')">⬇ Excel</button>
       </div>
       <div class="tw"><table id="t-orders"><thead></thead><tbody></tbody></table></div>
@@ -1492,6 +1552,88 @@ function exportAll(){
   TYPES.forEach(t=>{const rows=expData[t]||[];if(rows.length){XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.map(r=>flatten(r))),t);any=true;}});
   if(!any) return alert('Chưa có dữ liệu!');
   XLSX.writeFile(wb,`shopee_all_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+/* ── ORDERS EXCEL IMPORT ── */
+let importedOrders = [];   // rows from Excel import
+
+function importOrderExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!raw.length) return alert('File không có dữ liệu!');
+
+      // Group by Mã đơn hàng (multiple rows per order = multiple products)
+      const orderMap = {};
+      for (const row of raw) {
+        const sn = String(row['Mã đơn hàng'] || '').trim();
+        if (!sn) continue;
+        // Parse date: "2026-06-01 03:38" → "2026-06-01"
+        let order_date = '';
+        const rawDate = row['Ngày đặt hàng'];
+        if (rawDate instanceof Date) {
+          order_date = rawDate.toISOString().slice(0, 10);
+        } else if (rawDate) {
+          order_date = String(rawDate).slice(0, 10);
+        }
+        const product = String(row['Tên sản phẩm'] || '').trim();
+        const qty     = Number(row['Số lượng'] || 0);
+        const revenue = Number(row['Tổng giá trị đơn hàng (VND)'] || 0);
+
+        if (!orderMap[sn]) {
+          orderMap[sn] = {
+            order_date,
+            order_sn:       sn,
+            status:         String(row['Trạng Thái Đơn Hàng'] || '—').trim(),
+            cancel_reason:  String(row['Lý do hủy'] || '').trim(),
+            product_names:  product ? [product] : [],
+            qty:            qty,
+            revenue,          // take once (same for all rows of same order)
+            payment_method: String(row['Phương thức thanh toán'] || '—').trim(),
+            shipping:       String(row['Đơn Vị Vận Chuyển'] || '—').trim(),
+            tracking:       String(row['Mã vận đơn'] || '').trim(),
+            buyer:          String(row['Người Mua'] || '—').trim(),
+            __shopId:       '',
+            __shopName:     'Excel Import',
+            __captureTs:    0,
+            __fromExcel:    true,
+          };
+        } else {
+          // Additional product row: append name, add qty
+          if (product && !orderMap[sn].product_names.includes(product))
+            orderMap[sn].product_names.push(product);
+          orderMap[sn].qty += qty;
+        }
+      }
+      // Finalize product_names as string
+      importedOrders = Object.values(orderMap).map(o => ({
+        ...o, product_names: o.product_names.join(' | ')
+      }));
+
+      // Merge with API-captured orders: API data wins for same order_sn
+      const apiSnSet = new Set((allRows['orders'] || []).map(r => r.order_sn));
+      const excelOnly = importedOrders.filter(r => !apiSnSet.has(r.order_sn));
+      allRows['orders'] = [...(allRows['orders'] || []), ...excelOnly];
+
+      // Update info label
+      const info = document.getElementById('ord-import-info');
+      if (info) info.textContent = `✅ Import: ${importedOrders.length} đơn (${excelOnly.length} mới từ Excel)`;
+      // Reset file input so same file can be re-imported
+      input.value = '';
+      // Re-render orders tab
+      populateShopFilter('orders', allRows['orders']);
+      onFilterChange('orders');
+    } catch(err) {
+      console.error(err);
+      alert('Lỗi đọc file: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 /* ── TAB FILTERS ── */
