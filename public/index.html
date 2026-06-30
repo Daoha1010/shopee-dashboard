@@ -2687,16 +2687,30 @@ async function scanDriveFolder() {
       return;
     }
 
-    list.innerHTML = '<div class="drive-files">' + files.map(f => {
+    // Lưu danh sách file để dùng Import All
+    window._driveScannedFiles = files;
+
+    const notImported = files.filter(f => !Object.values(driveImported).find(d => d.fileId === f.id));
+    const importAllBtn = notImported.length > 1
+      ? `<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+          <button id="import-all-btn" onclick="importAllDriveFiles()"
+            style="background:#f97316;color:#fff;border:none;border-radius:7px;padding:7px 18px;font-size:12px;font-weight:700;cursor:pointer;">
+            ⬇ Import All (${notImported.length} file)
+          </button>
+          <span id="import-all-progress" style="font-size:11px;color:var(--mu);"></span>
+        </div>`
+      : '';
+
+    list.innerHTML = importAllBtn + '<div class="drive-files">' + files.map(f => {
       const imported = Object.values(driveImported).find(d => d.fileId === f.id);
       const tag = imported ? `<span style="font-size:10px;color:#16a34a;">✓ đã import</span>` : '';
       const date = new Date(f.modifiedTime).toLocaleDateString('vi-VN');
-      return `<div class="drive-file">
+      return `<div class="drive-file" data-fileid="${f.id}">
         <div style="flex:1;min-width:0">
           <div class="drive-file-name">📊 ${f.name} ${tag}</div>
           <div class="drive-file-date">Sửa: ${date} · ${f.size ? Math.round(f.size/1024)+'KB' : ''}</div>
         </div>
-        <button class="drive-file-import" onclick="importDriveFile('${f.id}','${f.name.replace(/'/g,'')}',this)">⬇ Import</button>
+        <button class="drive-file-import" id="btn-${f.id}" onclick="importDriveFile('${f.id}','${f.name.replace(/'/g,"\\'")}',this)">⬇ Import</button>
       </div>`;
     }).join('') + '</div>';
   } catch(e) {
@@ -2731,6 +2745,30 @@ async function importDriveFile(fileId, fileName, btn) {
     btn.disabled = false;
     alert('Import lỗi: ' + e.message);
   }
+}
+
+async function importAllDriveFiles() {
+  const files = (window._driveScannedFiles || []).filter(f =>
+    !Object.values(driveImported).find(d => d.fileId === f.id)
+  );
+  if (!files.length) return;
+
+  const allBtn = document.getElementById('import-all-btn');
+  const progress = document.getElementById('import-all-progress');
+  if (allBtn) { allBtn.disabled = true; allBtn.textContent = '⏳ Đang import...'; }
+
+  let done = 0;
+  for (const f of files) {
+    if (progress) progress.textContent = `${done}/${files.length} — đang import: ${f.name}`;
+    const btn = document.getElementById('btn-' + f.id);
+    if (btn) {
+      await importDriveFile(f.id, f.name, btn);
+    }
+    done++;
+  }
+
+  if (progress) progress.textContent = `✅ Xong ${done}/${files.length} file`;
+  if (allBtn) { allBtn.textContent = '✓ Import All xong'; allBtn.style.background = '#16a34a'; }
 }
 
 function processDriveWorkbook(wb, fileName, fileId) {
