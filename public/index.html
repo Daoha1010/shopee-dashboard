@@ -2508,8 +2508,11 @@ function openDriveModal()  { document.getElementById('driveModal').classList.add
 function closeDriveModal() { document.getElementById('driveModal').classList.remove('open'); }
 
 async function scanDriveFolder() {
-  const folderId = document.getElementById('driveFolderInp').value.trim();
+  let folderId = document.getElementById('driveFolderInp').value.trim();
   if (!folderId) { alert('Vui lòng nhập Folder ID!'); return; }
+  // Tự động trích xuất ID nếu người dùng paste cả URL
+  const urlMatch = folderId.match(/folders\/([a-zA-Z0-9_-]+)/);
+  if (urlMatch) folderId = urlMatch[1];
   localStorage.setItem('gdrive_folder_id', folderId);
 
   const list = document.getElementById('drive-files-list');
@@ -2518,15 +2521,19 @@ async function scanDriveFolder() {
   try {
     const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
     const fields = encodeURIComponent('files(id,name,modifiedTime,size,mimeType)');
-    const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=modifiedTime+desc`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=modifiedTime+desc&includeItemsFromAllDrives=true&supportsAllDrives=true`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${gToken}` } });
-    if (res.status === 401) { gToken = null; localStorage.removeItem('gdrive_token'); showDriveAuth(); return; }
+    if (res.status === 401) { gToken = null; localStorage.removeItem('gdrive_token'); showDriveConnected(); connectDrive(); return; }
     const data = await res.json();
+    if (data.error) { list.innerHTML = `<div class="drive-status" style="color:#dc2626;">Lỗi API: ${data.error.message}</div>`; return; }
     const files = (data.files || []).filter(f =>
       f.name.match(/\.(xlsx|xls)$/i) ||
       f.mimeType.includes('spreadsheet')
     );
-    if (!files.length) { list.innerHTML = '<div class="drive-status">Không tìm thấy file Excel trong folder này.</div>'; return; }
+    if (!files.length) {
+      list.innerHTML = `<div class="drive-status">Không tìm thấy file Excel.<br><small style="color:var(--mu)">Tổng file trong folder: ${(data.files||[]).length}</small></div>`;
+      return;
+    }
 
     list.innerHTML = '<div class="drive-files">' + files.map(f => {
       const imported = Object.values(driveImported).find(d => d.fileId === f.id);
