@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Hiệu Suất 6 Shop — T5 & T6/2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#161b22 0%,#0d1117 100%);padding:18px 24px;border-bottom:1px solid #21262d;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.header h1{font-size:1.25rem;font-weight:700;color:#58a6ff}
+.header .meta{font-size:0.72rem;color:#6e7681;margin-top:3px}
+.hbadges{display:flex;gap:8px;flex-wrap:wrap}
+.badge{padding:4px 12px;border-radius:20px;font-size:0.73rem;font-weight:600}
+.badge-blue{background:#1f6feb;color:#cae8ff}
+.badge-green{background:#1a3f2b;color:#3fb950;border:1px solid #238636}
+
+/* FILTER BAR */
+.filter-bar{background:#161b22;padding:10px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #21262d;flex-wrap:wrap}
+.filter-bar label{font-size:0.78rem;color:#8b949e;font-weight:500}
+select{background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:5px 10px;font-size:0.8rem;cursor:pointer;outline:none}
+select:focus,select:hover{border-color:#58a6ff}
+
+/* MAIN */
+.main{padding:16px 20px}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi-card{background:#161b22;border-radius:10px;padding:14px 16px;border:1px solid #21262d;position:relative;overflow:hidden;cursor:default;transition:border-color .2s}
+.kpi-card:hover{border-color:#30363d;background:#1c2128}
+.kpi-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
+.c-blue::after{background:linear-gradient(90deg,#1f6feb,#58a6ff)}
+.c-green::after{background:linear-gradient(90deg,#238636,#3fb950)}
+.c-yellow::after{background:linear-gradient(90deg,#9e6a03,#d29922)}
+.c-red::after{background:linear-gradient(90deg,#b91c1c,#ef4444)}
+.c-purple::after{background:linear-gradient(90deg,#6e40c9,#a371f7)}
+.c-teal::after{background:linear-gradient(90deg,#0d7377,#14b8a6)}
+.c-orange::after{background:linear-gradient(90deg,#b45309,#f59e0b)}
+.c-pink::after{background:linear-gradient(90deg,#9d174d,#ec4899)}
+.kpi-label{font-size:0.66rem;color:#6e7681;text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:5px}
+.kpi-value{font-size:1.28rem;font-weight:700;color:#f0f6fc;line-height:1}
+.kpi-sub{font-size:0.67rem;color:#484f58;margin-top:5px}
+.kpi-icon{position:absolute;right:12px;top:12px;font-size:1.3rem;opacity:.2}
+
+/* ROWS */
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.row1{margin-bottom:14px}
+.card{background:#161b22;border-radius:10px;padding:16px;border:1px solid #21262d;transition:border-color .2s}
+.card-title{font-size:.74rem;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.4px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+
+/* REVENUE FUNNEL */
+.rfunnel{display:flex;flex-direction:column;gap:2px}
+.rfs{display:flex;align-items:center;gap:0;border-radius:6px;overflow:hidden;min-height:40px}
+.rfs-label{width:170px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding:0 10px 0 0;font-size:.71rem;color:#8b949e;font-weight:500;background:#0d1117;height:40px;border-radius:6px 0 0 6px}
+.rfs-track{flex:1;background:#0d1117;position:relative;height:40px;border-radius:0 6px 6px 0;overflow:hidden}
+.rfs-bar{height:100%;display:flex;align-items:center;padding:0 10px;font-size:.71rem;font-weight:700;color:#fff;white-space:nowrap;gap:6px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.rfs-meta{display:flex;align-items:center;gap:8px;padding-left:10px;min-width:190px}
+.rfs-cnt{font-size:.69rem;color:#484f58;min-width:50px;text-align:right}
+.rfs-pct{font-size:.69rem;font-weight:700;min-width:40px;text-align:right}
+.rfs-rev{font-size:.71rem;font-weight:700;min-width:80px;text-align:right;color:#f0f6fc}
+.rf-conn{height:4px;margin:0 0 0 170px;display:flex;align-items:center;padding:0 4px}
+.rf-conn-line{height:1px;flex:1;background:repeating-linear-gradient(90deg,#21262d 0,#21262d 5px,transparent 5px,transparent 9px)}
+.rf-leak{display:inline-flex;align-items:center;gap:4px;font-size:.63rem;color:#ef444499;background:#ef444411;border:1px solid #ef444422;border-radius:4px;padding:2px 7px;margin-top:3px}
+.rf-sep{height:1px;background:#21262d;margin:6px 0 6px 170px}
+
+/* CONV FUNNEL */
+.cfunnel{display:flex;flex-direction:column;gap:7px}
+.cf-row{display:flex;align-items:center;gap:8px}
+.cf-label{width:130px;font-size:.72rem;color:#8b949e;text-align:right;flex-shrink:0}
+.cf-track{flex:1;height:30px;background:#0d1117;border-radius:5px;overflow:hidden}
+.cf-bar{height:100%;border-radius:5px;display:flex;align-items:center;padding:0 8px;font-size:.69rem;font-weight:600;color:#fff;white-space:nowrap;transition:width .7s cubic-bezier(.4,0,.2,1)}
+.cf-n{width:52px;font-size:.69rem;color:#484f58;text-align:right;flex-shrink:0}
+.cf-pct{width:44px;font-size:.69rem;color:#58a6ff;text-align:right;flex-shrink:0;font-weight:600}
+.cf-sep{height:1px;background:#21262d;margin:4px 0}
+
+/* FEE TABLE */
+.fee-tbl{width:100%;border-collapse:collapse;font-size:.78rem}
+.fee-tbl th{color:#484f58;font-size:.66rem;font-weight:600;text-transform:uppercase;padding:5px 8px;border-bottom:1px solid #21262d;text-align:left}
+.fee-tbl td{padding:6px 8px;border-bottom:1px solid #0d1117;color:#c9d1d9}
+.fee-tbl tr:last-child td{border-bottom:none;color:#d29922;font-weight:700;border-top:1px solid #30363d}
+.fbar{height:5px;background:#0d1117;border-radius:3px;margin-top:3px;overflow:hidden}
+.fbar-fill{height:100%;border-radius:3px}
+
+/* CANCEL BOXES */
+.c-boxes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.c-box{background:#0d1117;border-radius:8px;padding:10px;text-align:center;border:1px solid #21262d}
+.c-box .v{font-size:1.2rem;font-weight:700}
+.c-box .l{font-size:.66rem;color:#484f58;margin-top:2px}
+.c-box .r{font-size:.67rem;margin-top:2px}
+
+/* NOTE */
+.note{font-size:.68rem;color:#484f58;background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px 12px;line-height:1.6;margin-top:10px}
+.note span{color:#8b949e}
+
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:800px){.row2{grid-template-columns:1fr}.c-boxes{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📊 Dashboard Hiệu Suất Đơn Hàng — 6 Shop</h1>
+    <div class="meta">Tháng 5 & 6 / 2026 · Nguồn: Dashboard_Hieu_Suat_Don_Hang_6Shop_3</div>
+  </div>
+  <div class="hbadges">
+    <span class="badge badge-blue" id="badge-orders">-- đơn</span>
+    <span class="badge badge-green" id="badge-gmv">GMV: --</span>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <label>🏪 Shop:</label>
+  <select id="sel-shop" onchange="render()">
+    <option value="all">Tất cả Shop</option>
+  </select>
+  <label style="margin-left:10px">📅 Tháng:</label>
+  <select id="sel-month" onchange="render()">
+    <option value="all">Tất cả tháng</option>
+  </select>
+  <span style="margin-left:auto;font-size:.71rem;color:#484f58">* Hover vào biểu đồ để xem chi tiết</span>
+</div>
+
+<div class="main">
+  <div class="kpi-grid" id="kpi"></div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#d29922"></span>Phễu Doanh Thu (Revenue Funnel)</div>
+      <div id="rfunnel" class="rfunnel"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#58a6ff"></span>Phễu Chuyển Đổi (Conversion Funnel)</div>
+      <div id="cfunnel" class="cfunnel"></div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#3fb950"></span>So Sánh Tháng 5 vs Tháng 6 / 2026</div>
+      <div style="position:relative;height:220px"><canvas id="cMonth"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#14b8a6"></span>Doanh Thu GMV & NMV Theo Shop</div>
+      <div style="position:relative;height:220px"><canvas id="cShop"></canvas></div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#a371f7"></span>Tỷ Trọng Doanh Thu Sản Phẩm (Top 10)</div>
+      <div style="position:relative;height:250px"><canvas id="cProd"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#ec4899"></span>Chi Tiết Phí Sàn & Tỷ Lệ</div>
+      <table class="fee-tbl" id="fee-tbl"></table>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#ef4444"></span>Phân Tích Tỷ Lệ Hủy & Hoàn</div>
+      <div style="position:relative;height:180px"><canvas id="cCancel"></canvas></div>
+      <div class="c-boxes" id="cboxes"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#d29922"></span>Tỷ Lệ Hủy Theo Shop (%)</div>
+      <div style="position:relative;height:220px"><canvas id="cCancelRate"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const RAW = {"generated_for": "Order economics dashboard (GMV/NMV/cancel/return/product mix)", "shops": [{"id": "greatness38", "label": "Greatness 38", "group": "greatness"}, {"id": "greatness68", "label": "Greatness 68", "group": "greatness"}, {"id": "quatkdkjapansince1909", "label": "KDK Japan Since 1909", "group": "tamanh_kdk"}, {"id": "tamanh007_1", "label": "Tâm Anh 007", "group": "tamanh_kdk"}, {"id": "tamanh_homeshopping", "label": "Tâm Anh Home Shopping", "group": "tamanh_kdk"}, {"id": "tamanh_tefal_official_shop", "label": "Tâm Anh Tefal Official", "group": "tamanh_kdk"}], "months": [{"id": "2026-05", "label": "Tháng 5/2026"}, {"id": "2026-06", "label": "Tháng 6/2026"}], "records": [{"shop_id": "greatness38", "month": "2026-05", "total_orders": 38, "cancelled_orders": 15, "returned_orders": 0, "in_progress_orders": 0, "delivered_orders": 23, "gmv": 61939000.0, "nmv": 28365954.0, "cancelled_value": 26638000.0, "returned_value": 0.0, "fees_value": 6935046.0, "cancel_rate": 39.473684210526315, "return_rate": 0.0, "products": [{"key": "SKU::EY821868", "name": "Nồi chiên không dầu Tefal EasyFry Window 6L EY821868 - 12 chương trình nấu | BH 02 năm", "quantity": 9, "revenue": 17469000.0, "orders": 9}, {"key": "SKU::RK535AY0", "name": "Nồi cơm điện tử Mini Tefal Pop RK535 0.7L - 8 chế độ nấu - Bảo hành chính hãng 24 tháng", "quantity": 10, "revenue": 11626000.0, "orders": 10}, {"key": "SKU::EY905D10", "name": "Nồi chiên không dầu điện tử 2 ngăn Tefal Dual Easy Fry & Grill EY905D10 - Bảo Hành Chính Hãng 02 Năm", "quantity": 1, "revenue": 2589000.0, "orders": 1}, {"key": "SKU::NA230/00", "name": "Nồi Chiên Không Dầu Điện Tử Philips NA230/00 6.2 lít |1700W | Cửa Sổ Kính- BH Chính Hãng 2 năm", "quantity": 1, "revenue": 2199000.0, "orders": 1}, {"key": "SKU::RK736B68", "name": "Nồi cơm điện tử Tefal Easy Rice Plus RK736B68 1.8 lít - Hàng Chính Hãng / BH 02 Năm", "quantity": 1, "revenue": 1328000.0, "orders": 1}, {"key": "SKU::EN005", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "quantity": 2, "revenue": 90000.0, "orders": 2}]}, {"shop_id": "greatness68", "month": "2026-05", "total_orders": 178, "cancelled_orders": 41, "returned_orders": 1, "in_progress_orders": 0, "delivered_orders": 137, "gmv": 185632210.0, "nmv": 109078582.0, "cancelled_value": 48211392.0, "returned_value": 1300110.0, "fees_value": 27042126.0, "cancel_rate": 23.03370786516854, "return_rate": 0.5617977528089888, "products": [{"key": "SKU::VH686790", "name": "QUẠT SÀN Tefal TB Silence Plus VH686790 - 6 cánh 80W - Hàng chính hãng / BH 02 năm", "quantity": 83, "revenue": 77635000.0, "orders": 72}, {"key": "SKU::ED1823(W)", "name": "Quạt đứng AI lưu thông không khí AQUA ED1823T(W) - điều khiển giọng nói, hẹn giờ 12 tiếng - Bảo hành chính hãng", "quantity": 13, "revenue": 16895598.0, "orders": 13}, {"key": "SKU::VH689690", "name": "Quạt đứng có điều khiển từ xa Tefal Turbo Silence Plus VH689690 - Sản phẩm chính hãng / BH 02 năm", "quantity": 10, "revenue": 14440000.0, "orders": 9}, {"key": "SKU::N30NH(BR)", "name": "Quạt đứng Nhật lửng 5 cánh KDK N30NH(BR) - Bảo hành chính hãng 24 tháng", "quantity": 2, "revenue": 6558000.0, "orders": 2}, {"key": "SKU::P41U(BK)", "name": "Quạt Nhật đứng KDK P41U (BK)  màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 4, "revenue": 5996000.0, "orders": 3}, {"key": "SKU::CFR04-VOICE", "name": "Quạt đối lưu tuần hoàn không khí Fujihome CFR04-VOICE điều khiển bằng giọng nói, quạt làm mát", "quantity": 4, "revenue": 5120000.0, "orders": 4}, {"key": "SKU::FED3502R", "name": "Quạt đứng AQUA AQS-FED3502R(W) - VN - Bảo hành AQUA chính hãng", "quantity": 5, "revenue": 4995000.0, "orders": 5}, {"key": "SKU::CFR04-VOICE-W", "name": "Quạt tuần hoàn không khí điều khiển bằng giọng nói Fujihome CFR04-VOICE", "quantity": 3, "revenue": 3870000.0, "orders": 3}, {"key": "SKU::EN005", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "quantity": 31, "revenue": 1312220.0, "orders": 31}, {"key": "SKU::GFD-N400A02", "name": "Quạt đứng Gaabor GFD-N400A02 xoay tự động tuần hoàn có 3 chế độ gió tùy chỉnh- Chính Hãng", "quantity": 1, "revenue": 599000.0, "orders": 1}]}, {"shop_id": "quatkdkjapansince1909", "month": "2026-05", "total_orders": 81, "cancelled_orders": 21, "returned_orders": 1, "in_progress_orders": 0, "delivered_orders": 60, "gmv": 233845800.0, "nmv": 152533693.0, "cancelled_value": 50586000.0, "returned_value": 2749000.0, "fees_value": 27977107.0, "cancel_rate": 25.925925925925924, "return_rate": 1.2345679012345678, "products": [{"key": "SKU::N30NH", "name": "Quạt đứng Nhật lửng 5 cánh KDK N30NH - Bảo hành chính hãng 24 tháng", "quantity": 8, "revenue": 26352000.0, "orders": 8}, {"key": "SKU::T60DW", "name": "Quạt Trần Nhật KDK màu Xám Bạc T60DW - Bảo Hành Chính Hãng KDK", "quantity": 4, "revenue": 23587000.0, "orders": 4}, {"key": "SKU::G56DG", "name": "Quạt Trần Nhật KDK G56DG - Bảo Hành Chính Hãng 2 Năm KDK", "quantity": 5, "revenue": 20750000.0, "orders": 5}, {"key": "SKU::M40K", "name": "Quạt Đứng Nhật KDK 3 cánh - M40K - Bảo Hành Chính Hãng 2 Năm", "quantity": 6, "revenue": 19140000.0, "orders": 6}, {"key": "SKU::N30NH(GD)", "name": "Quạt đứng Nhật (37W) 5 cánh KDK N30NH(GD) - Bảo hành chính hãng 24 tháng", "quantity": 4, "revenue": 13176000.0, "orders": 4}, {"key": "SKU::U60FW(SIL)", "name": "Quạt trần KDK Nhật Bản U60FW(SIL) - sải cánh lớn - công suất 50W - Bảo hành chính hãng KDK", "quantity": 1, "revenue": 12990000.0, "orders": 1}, {"key": "SKU::A40B", "name": "Quạt bàn Nhật 3 mức gió (50W) KDK  A40B - Bảo hành chính hãng 12 tháng", "quantity": 7, "revenue": 11130000.0, "orders": 7}, {"key": "SKU::P41U(BK)", "name": "Quạt Nhật đứng KDK P41U (BK)  màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 7, "revenue": 10493000.0, "orders": 7}, {"key": "SKU::M40K(GY)", "name": "Quạt Đứng Nhật Cao Cấp KDK 3 cánh (51W) - M40K(GY) - Bảo Hành Chính Hãng 2 Năm", "quantity": 3, "revenue": 9767000.0, "orders": 3}, {"key": "SKU::M40M(BK)", "name": "Quạt treo tường Nhật KDK M40M (BK) màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 4, "revenue": 9276000.0, "orders": 4}, {"key": "SKU::W56WV(BK)", "name": "Quạt trần Nhật KDK 4 cánh, màu Đen W56WV - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 6690000.0, "orders": 1}, {"key": "SKU::P40V(GD)", "name": "Quạt đứng Nhật KDK màu Vàng P40V(GD) - Bảo hành Chính hãng KDK", "quantity": 2, "revenue": 5780000.0, "orders": 2}, {"key": "SKU::M40R(GD)", "name": "Quạt Nhật đảo trần KDK M40R(GD) - Cánh Kim Loại Màu Vàng- Bảo Hành Chính Hãng", "quantity": 2, "revenue": 5498000.0, "orders": 2}, {"key": "NAME::Quạt Trần Nhật KDK M11SU - Bảo Hành Chính Hãng KDK", "name": "Quạt Trần Nhật KDK M11SU - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 3790000.0, "orders": 1}, {"key": "SKU::M40K(CHG)", "name": "Quạt đứng Nhật tiết kiệm điện KDK M40K(CHG) 3 cánh (50W), màu Vàng sâm banh - B/H Chính Hãng 2 Năm", "quantity": 1, "revenue": 3259000.0, "orders": 1}, {"key": "SKU::41325840986", "name": "Cánh quạt KDK lửng 5 cánh N30NH", "quantity": 3, "revenue": 1104000.0, "orders": 2}, {"key": "NAME::Cánh Quạt KDK M40K - M40M - Hàng Chính Hãng - 3 Cánh / 40cm - Linh Kiện Quạt KDK", "name": "Cánh Quạt KDK M40K - M40M - Hàng Chính Hãng - 3 Cánh / 40cm - Linh Kiện Quạt KDK", "quantity": 1, "revenue": 359000.0, "orders": 1}, {"key": "SKU::21858013376", "name": "KHÓA CÁNH QUẠT KDK-N30NH , PANASONIC-F308 (HÀNG CHÍNH HÃNG)", "quantity": 1, "revenue": 118800.0, "orders": 1}, {"key": "SKU::X6 LITE", "name": "Quạt tích điện cầm tay mini Lumias X6 Lite - 5W, 5 tốc độ gió, sạc Type C", "quantity": 27, "revenue": 0.0, "orders": 27}]}, {"shop_id": "tamanh007_1", "month": "2026-05", "total_orders": 1377, "cancelled_orders": 362, "returned_orders": 40, "in_progress_orders": 0, "delivered_orders": 1015, "gmv": 2197843038.0, "nmv": 1213384811.0, "cancelled_value": 626150600.0, "returned_value": 52215000.0, "fees_value": 306092627.0, "cancel_rate": 26.289034132171384, "return_rate": 2.904865649963689, "products": [{"key": "SKU::BL83SD66", "name": "Máy xay nấu đa năng và Sữa Hạt Tefal BL83SD66 - Hàng chính hãng / BH 02 năm", "quantity": 42, "revenue": 147418000.0, "orders": 42}, {"key": "SKU::VH686790", "name": "QUẠT SÀN Tefal TB Silence Plus VH686790 - 6 cánh 80W - Hàng chính hãng / BH 02 năm", "quantity": 145, "revenue": 138055000.0, "orders": 138}, {"key": "SKU::QT1510E0", "name": "Bàn ủi hơi nước Tefal đứng cầm tay cao cấp IXEO Plus QT1510E0 - 2980W - Hàng Chính Hãng / BH 2 năm", "quantity": 26, "revenue": 109093000.0, "orders": 26}, {"key": "SKU::ED1823T", "name": "Quạt đứng AI AQUA lưu thông không khí ED1823T(W) - Điều khiển giọng nói - B/H 12 Tháng Chính Hãng", "quantity": 63, "revenue": 86177000.0, "orders": 62}, {"key": "SKU::JF4032E0", "name": "Bàn Ủi Hơi Nước Cầm Tay Tefal 2-trong-1 Duo Power, JF4032E0 / Bảo Hành Chính Hãng 02 năm", "quantity": 45, "revenue": 74215000.0, "orders": 45}, {"key": "SKU::EY821868", "name": "Nồi chiên không dầu Tefal EasyFry Window 6L EY821868 - 12 chương trình nấu | BH 02 năm", "quantity": 35, "revenue": 70295000.0, "orders": 35}, {"key": "SKU::VH689690", "name": "Quạt đứng có điều khiển từ xa Tefal Turbo Silence Plus VH689690 - Sản phẩm chính hãng / BH 02 năm", "quantity": 41, "revenue": 60619000.0, "orders": 41}, {"key": "SKU::N30NH(BR)", "name": "Quạt đứng Nhật lửng 5 cánh KDK N30NH(BR) - Bảo hành chính hãng 24 tháng", "quantity": 16, "revenue": 52794000.0, "orders": 16}, {"key": "SKU::CY601868", "name": "Nồi áp suất điện đa năng Tefal Home Chef CY601868", "quantity": 26, "revenue": 51854000.0, "orders": 26}, {"key": "NAME::Chảo Chiên Tefal Unlimited, sản xuất Pháp - / Bảo Hành 02 Năm", "name": "Chảo Chiên Tefal Unlimited, sản xuất Pháp - / Bảo Hành 02 Năm", "quantity": 44, "revenue": 50916000.0, "orders": 41}, {"key": "SKU::M40K(CHG)", "name": "Quạt đứng Nhật tiết kiệm điện KDK M40K(CHG) 3 cánh (50W), màu Vàng sâm banh - B/H Chính Hãng 2 Năm", "quantity": 15, "revenue": 48747000.0, "orders": 15}, {"key": "SKU::RK819868", "name": "Nồi cơm điện cao tần Tefal Rice Master Max RK819868 -1.8L / Chính hãng - BH 02 năm", "quantity": 16, "revenue": 47500238.0, "orders": 16}, {"key": "SKU::QT1811E0", "name": "[GIÁ TỐT - HOẢ TỐC] Bàn ủi hơi nước đứng Tefal IXEO Vision QT1811E0 - 5 Góc Ủi Linh Hoạt - Bảo Hành Chính Hãng 2 Năm", "quantity": 7, "revenue": 45430000.0, "orders": 6}, {"key": "SKU::RK515168", "name": "Nồi cơm điện tử Tefal Rice Mate Mini 0.7L RK515168 - technology AI - sản phẩm chính hãng / BH 02 Năm", "quantity": 41, "revenue": 42519000.0, "orders": 39}, {"key": "SKU::M40K(GY)", "name": "Quạt Đứng Nhật Cao Cấp KDK 3 cánh (51W) - M40K(GY) - Bảo Hành Chính Hãng 2 Năm", "quantity": 12, "revenue": 38832000.0, "orders": 12}, {"key": "SKU::BL967B66", "name": "Máy làm sữa hạt, sinh tố, xay nấu đa chức năng Tefal - BL967B66 1300W - Chính Hãng / Bảo Hành 02 Năm", "quantity": 13, "revenue": 35170000.0, "orders": 13}, {"key": "SKU::RK535", "name": "Nồi cơm điện tử Mini Tefal Pop RK535 0.7L - 8 chế độ nấu - Bảo hành chính hãng 24 tháng", "quantity": 25, "revenue": 32550000.0, "orders": 25}, {"key": "SKU::G719SA55", "name": "Bộ 5 nồi Inox cao cấp Tefal Duetto Plus, quánh 16cm/nồi 18cm/nồi 20/nồi 22cm/nồi 24cm G719SA55", "quantity": 12, "revenue": 31188000.0, "orders": 12}, {"key": "SKU::M40M(BK)", "name": "Quạt treo tường Nhật KDK M40M (BK) màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 12, "revenue": 27828000.0, "orders": 12}, {"key": "SKU::M40M (GY)", "name": "Quạt Nhật treo tường KDK M40M (GY) màu Xám - Bảo hành Chính hãng 2 năm", "quantity": 11, "revenue": 25509000.0, "orders": 11}, {"key": "SKU::20293576366", "name": "Nồi Inox 18/10 cao cấp Tefal Duetto Plus Nồi 20cm- 2.8L, Nồi 24cm - 4.9L, Nồi 28cm - 10.4L BH 2 năm", "quantity": 39, "revenue": 25341000.0, "orders": 35}, {"key": "SKU::RK736B68", "name": "Nồi cơm điện tử Tefal Easy Rice Plus RK736B68 1.8 lít - Hàng Chính Hãng / BH 02 Năm", "quantity": 16, "revenue": 22544000.0, "orders": 15}, {"key": "SKU::BL985A31", "name": "Máy xay nấu đa năng hút chân không, kèm 2 cối Tefal - BL985A31 - Hàng Chính Hãng / Bào Hành 02 Năm", "quantity": 3, "revenue": 18570000.0, "orders": 3}, {"key": "NAME::Bản ủi hơi nước cầm tay Tefal Pure Pop - Chính Hãng / BH 02 năm", "name": "Bản ủi hơi nước cầm tay Tefal Pure Pop - Chính Hãng / BH 02 năm", "quantity": 18, "revenue": 17822000.0, "orders": 18}, {"key": "SKU::N30NH(GD)", "name": "Quạt đứng Nhật (37W) 5 cánh KDK N30NH(GD) - Bảo hành chính hãng 24 tháng", "quantity": 5, "revenue": 16495000.0, "orders": 5}, {"key": "SKU::L7819022", "name": "Bộ nồi chảo cán rời 6 món Tefal Ingenio Unlimited L7819022 - Sản xuất Pháp", "quantity": 5, "revenue": 16295000.0, "orders": 5}, {"key": "SKU::M11SU(WH)", "name": "Quạt Trần Nhật KDK màu Trắng M11SU(WH) - Bảo Hành Chính Hãng KDK", "quantity": 4, "revenue": 15160000.0, "orders": 4}, {"key": "NAME::Chảo nồi có nắp đậy chống dính đa năng Tefal 3 trong một Size 22-24cm One Pick Pot Pan", "name": "Chảo nồi có nắp đậy chống dính đa năng Tefal 3 trong một Size 22-24cm One Pick Pot Pan", "quantity": 25, "revenue": 12800000.0, "orders": 24}, {"key": "SKU::RK776B68", "name": "Nồi cơm niêu điện tử Tefal RK776B68 1.8L - hàng thật / Bảo hành 02 Năm", "quantity": 7, "revenue": 12733000.0, "orders": 7}, {"key": "SKU::HL19V(WH)", "name": "Quạt đứng lửng Nhật KDK HL19V(WH) - Bảo hành chính hãng", "quantity": 4, "revenue": 11160000.0, "orders": 4}, {"key": "SKU::E3090604", "name": "Chảo chống dính inox Tefal Primary dành cho mọi loại bếp -Chính hãng / Bảo Hành 02 năm", "quantity": 32, "revenue": 10698000.0, "orders": 31}, {"key": "SKU::FED3502R", "name": "Quạt đứng AQUA AQS-FED3502R(W) - VN - Bảo hành AQUA chính hãng", "quantity": 10, "revenue": 9790000.0, "orders": 8}, {"key": "SKU::KO850810", "name": "Bình đun siêu tốc Tefal Smart & Light KO850810 - 1.7L", "quantity": 7, "revenue": 8743000.0, "orders": 7}, {"key": "SKU::EY905D10", "name": "Nồi chiên không dầu điện tử 2 ngăn Tefal Dual Easy Fry & Grill EY905D10 - Bảo Hành Chính Hãng 02 Năm", "quantity": 3, "revenue": 8470000.0, "orders": 3}, {"key": "SKU::L7619022", "name": "Set 2 chảo cán rời 24cm và 26cm chống dính Tefal Ingenio Daily Chef L7619022 - Chính hảng bảo hành 02 năm", "quantity": 4, "revenue": 8360000.0, "orders": 4}, {"key": "SKU::Z3", "name": "Máy cạo râu mini Enchen Z3 lưỡi dao 3 vòng tự mài, chống kẹt râu, pin dùng đến 3 tháng - BH 6 tháng", "quantity": 42, "revenue": 7218000.0, "orders": 42}, {"key": "SKU::CX1520/1", "name": "Quạt Đứng PHILIPS CX1520/01 (47W) Remote Điều Khiển, 3 Tốc Độ, Chạy Êm- BH Chính Hãng 2 năm", "quantity": 5, "revenue": 7185000.0, "orders": 5}, {"key": "SKU::ICT2201R(C)", "name": "Bếp Điện Từ Đơn AQUA 2200W ICT2201R, hẹn giờ 8 tiếng, 22 mức nhiệt - Bảo hành chính hãng 12 tháng", "quantity": 7, "revenue": 7143000.0, "orders": 7}, {"key": "SKU::FV6872E0", "name": "Bàn ủi hơi nước Tefal Smart Protect Plus FV6872E0 sản xuất Pháp - Hàng Chính Hãng / Bảo Hành 02 Năm", "quantity": 3, "revenue": 7047000.0, "orders": 3}, {"key": "SKU::E308S674", "name": "Bộ 3 nồi Inox đáy từ Tefal Primary 16/18/20cm E308S674 - Bảo hành chính hãng 02 năm", "quantity": 7, "revenue": 6993000.0, "orders": 7}, {"key": "SKU::25352008082", "name": "Chảo Chiên và Rán Chống Dính Tefal Sochef - Size 21/24/28Cm - Dùng các loại bếp / BH 02 Năm", "quantity": 19, "revenue": 6686200.0, "orders": 18}, {"key": "SKU::MB520138", "name": "Máy xay thịt Tefal đa năng 3 trong 1 MB520138 - 300W, 400ml - hàng thật / Bảo hành 02 Năm", "quantity": 14, "revenue": 6646000.0, "orders": 14}, {"key": "SKU::A40B(BL)", "name": "Quạt bàn Nhật 3 mức gió KDK xanh A40B (BL) - Bảo hành chính hãng 12 tháng", "quantity": 4, "revenue": 6596000.0, "orders": 3}, {"key": "SKU::KO140AE0", "name": "Bình đun siêu tốc Tefal 1.5L KO140AE0 - Trắng/ KO1408E0 - Đen - 1500W / BH 02 năm", "quantity": 10, "revenue": 6480000.0, "orders": 10}, {"key": "SKU::K001A504", "name": "Bộ dụng cụ bếp TEFAL 5 món màu đen - Sản xuất tại CHÂU ÂU - Bảo hành chính hãng", "quantity": 13, "revenue": 6229000.0, "orders": 13}, {"key": "SKU::M40R", "name": "Quạt đảo trần KDK M40R cánh nhựa,  5 tốc độ gió,3 cánh 40cm, bảo hành chính hãng 24 tháng", "quantity": 2, "revenue": 5639000.0, "orders": 2}, {"key": "SKU::29820186301", "name": "Chảo rán Tefal Ultimate - Sản Xuất Pháp - Hàng Chính Hãng / BH 02 năm", "quantity": 6, "revenue": 5434000.0, "orders": 6}, {"key": "SKU::P40U(GD)", "name": "Quạt đứng KDK màu Vàng  P40U(GD) - Bảo hành Chính hãng KDK", "quantity": 2, "revenue": 4098000.0, "orders": 2}, {"key": "SKU::FV2C60E0", "name": "Bàn ủi hơi nước Tefal Power FV2C60E0 - 2200W | Bảo hành chính hãng Tefal 24 tháng", "quantity": 5, "revenue": 3745000.0, "orders": 5}, {"key": "SKU::K2213204", "name": "Dao làm bếp Tefal Comfort K2213204 - 20cm", "quantity": 19, "revenue": 3591000.0, "orders": 19}, {"key": "SKU::CY2116P1", "name": "Nồi áp suất đa năng Tefal CY2116P1- 6L - Bảo hành chính hãng 24 tháng", "quantity": 2, "revenue": 3558000.0, "orders": 2}, {"key": "SKU::M56PR(SIL)", "name": "Quạt trần KDK, màu Bạch kim M56PR(SIL) - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 3449000.0, "orders": 1}, {"key": "SKU::P41U (BK)", "name": "Quạt Nhật đứng KDK P41U (BK)  màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 2, "revenue": 3298000.0, "orders": 2}, {"key": "SKU::A40B(GY)", "name": "Quạt bàn Nhật 3 mức gió (50W) KDK  A40B(GY) - Bảo hành chính hãng 12 tháng", "quantity": 2, "revenue": 3298000.0, "orders": 2}, {"key": "SKU::KO190AE0", "name": "Bình đun siêu tốc Tefal KO190AE0 - 1.9L - Bảo hành chính hãng 24 tháng", "quantity": 4, "revenue": 3160000.0, "orders": 4}, {"key": "SKU::2743712", "name": "Dụng cụ nấu ăn Tefal Bienvenue, Xẻng , Muôi múc canh - Sản xuất Châu Âu", "quantity": 22, "revenue": 2838000.0, "orders": 22}, {"key": "SKU::MB603166", "name": "Máy xay thực phẩm Tefal Choppeo MB603166 - 500W, 2L, cối thủy tinh / BH 02 năm", "quantity": 3, "revenue": 2817000.0, "orders": 3}, {"key": "NAME::Bình đun siêu tốc 1.7 Lít Tefal KI605830 - thủy tinh - HÀNG CHÍNH HÃNG - BẢO HÀNH 2 NĂM", "name": "Bình đun siêu tốc 1.7 Lít Tefal KI605830 - thủy tinh - HÀNG CHÍNH HÃNG - BẢO HÀNH 2 NĂM", "quantity": 3, "revenue": 2370000.0, "orders": 3}, {"key": "SKU::K221S475", "name": "Trọn bộ 04 dao làm bếp Tefal Tefal Comfort K221S475 - 9cm, 12cm, 15cm, 20cm / - Bảo Hành 02 Năm", "quantity": 4, "revenue": 2236000.0, "orders": 4}, {"key": "SKU::M40C(BL)", "name": "Quạt Nhật treo tường KDK màu Xanh M40C(BL) - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 2190000.0, "orders": 1}, {"key": "SKU::DST0520/20", "name": "Bàn Ủi Khô, Bàn Là Philips DST0520 - Công Suất 1200W - Bảo Hành Chính Hãng 2 Năm", "quantity": 7, "revenue": 2113000.0, "orders": 7}, {"key": "SKU::N56YG(BB)", "name": "Quạt Trần Nhật KDK, màu Đồng N56YG(BB) - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 1949000.0, "orders": 1}, {"key": "SKU::HD5830/90", "name": "Bếp từ đơn Philips HD5830/90 | 8 chế độ| 2000W - Hàng Chính Hãng BH 2 năm", "quantity": 1, "revenue": 1929000.0, "orders": 1}, {"key": "SKU::X6 Lite", "name": "Quạt tích điện cầm tay mini Lumias X6 Lite - 5W, 5 tốc độ gió, sạc Type C", "quantity": 66, "revenue": 1919000.0, "orders": 66}, {"key": "SKU::BL871D31", "name": "Máy xay sinh tố Tefal PerfectMix BL871D31 - Bảo hành chính hãng 02 năm", "quantity": 1, "revenue": 1839000.0, "orders": 1}, {"key": "SKU::25385348906", "name": "Chảo sâu lòng chống dính đáy từ Tefal So Chef 24cm/28cm - Hàng chính hãng / Bảo hành 02 năm", "quantity": 4, "revenue": 1836000.0, "orders": 4}, {"key": "SKU::HR2041 /10", "name": "Máy xay sinh tố PHILIPS HR2041 /10 | 450W xay nhuyễn trong 45s - Hàng Chính Hãng BH 24 tháng", "quantity": 2, "revenue": 1438000.0, "orders": 2}, {"key": "SKU::PPM5111N", "name": "Máy Massage Cổ Gáy Chữ U Philips PPM5111N Có Nhạc Thư Giãn - Hàng Chính Hãng / Bảo Hành 01 Năm", "quantity": 1, "revenue": 1309000.0, "orders": 1}, {"key": "SKU::ZE420D38", "name": "Máy ép trái cây Tefal ZE420D38 -  Bảo hành chính hãng 02 năm", "quantity": 1, "revenue": 1190000.0, "orders": 1}, {"key": "NAME::Nồi chảo chống dính đáy từ Tefal So Matcha - chính hãng / BH 02 Năm", "name": "Nồi chảo chống dính đáy từ Tefal So Matcha - chính hãng / BH 02 Năm", "quantity": 2, "revenue": 1058000.0, "orders": 2}, {"key": "SKU::G1790495", "name": "Chảo Chiên Tefal So Matcha G1790495 - 24cm, Chống Dính Titan, Dùng Được Bếp Từ", "quantity": 3, "revenue": 1050000.0, "orders": 3}, {"key": "SKU::VC2048", "name": "Nồi hấp điện 3 tầng đa năng TEFAL VC2048 không chứa BPA - hấp bánh bao, rau củ quả BH 2 Năm", "quantity": 1, "revenue": 1049000.0, "orders": 1}, {"key": "SKU::E3089504", "name": "Nồi hấp Inox cao cấp 18/10 Tefal Couscous Primary E3089504, 24cm - Bảo hành chính hãng 2 năm", "quantity": 1, "revenue": 1019000.0, "orders": 1}, {"key": "SKU::EN005", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "quantity": 198, "revenue": 360000.0, "orders": 198}]}, {"shop_id": "tamanh_homeshopping", "month": "2026-05", "total_orders": 358, "cancelled_orders": 113, "returned_orders": 4, "in_progress_orders": 0, "delivered_orders": 245, "gmv": 722904000.0, "nmv": 362896484.0, "cancelled_value": 273286000.0, "returned_value": 5776000.0, "fees_value": 80945516.0, "cancel_rate": 31.564245810055862, "return_rate": 1.1173184357541899, "products": [{"key": "SKU::BL83SD66", "name": "Máy xay nấu đa năng và Sữa Hạt Tefal BL83SD66 - Hàng chính hãng / BH 02 năm", "quantity": 24, "revenue": 81816000.0, "orders": 24}, {"key": "SKU::QT1510E0", "name": "Bàn ủi hơi nước Tefal đứng cầm tay cao cấp IXEO Plus QT1510E0 - 2980W - Hàng Chính Hãng / BH 2 năm", "quantity": 12, "revenue": 47964000.0, "orders": 12}, {"key": "SKU::VH686790", "name": "QUẠT SÀN Tefal TB Silence Plus VH686790 - 6 cánh 80W - Hàng chính hãng / BH 02 năm", "quantity": 30, "revenue": 28600000.0, "orders": 30}, {"key": "SKU::G719SA55", "name": "Bộ 5 nồi Inox cao cấp Tefal Duetto Plus, quánh 16cm/nồi 18cm/nồi 20/nồi 22cm/nồi 24cm G719SA55", "quantity": 10, "revenue": 25652000.0, "orders": 10}, {"key": "SKU::P41U(BK)", "name": "Quạt Nhật đứng KDK P41U (BK)  màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 14, "revenue": 20986000.0, "orders": 14}, {"key": "SKU::RK515168", "name": "Nồi cơm điện tử Tefal Rice Mate Mini 0.7L RK515168 - technology AI - sản phẩm chính hãng / BH 02 Năm", "quantity": 21, "revenue": 20979000.0, "orders": 21}, {"key": "SKU::CY601868", "name": "Nồi áp suất điện đa năng Tefal Home Chef CY601868", "quantity": 10, "revenue": 19050000.0, "orders": 10}, {"key": "SKU::M11SU", "name": "Quạt Trần Nhật KDK M11SU - Bảo Hành Chính Hãng 2 Năm", "quantity": 5, "revenue": 18950000.0, "orders": 5}, {"key": "SKU::FV6872E0", "name": "Bàn ủi hơi nước Tefal Smart Protect Plus FV6872E0 sản xuất Pháp - Hàng Chính Hãng / Bảo Hành 02 Năm", "quantity": 8, "revenue": 16920000.0, "orders": 7}, {"key": "SKU::UR5840", "name": "[Miễn phí lắp đặt - BH 1 năm] Máy lọc nước âm tủ bếp Truliva Delica UR5840, lõi RO cực đại", "quantity": 1, "revenue": 13790000.0, "orders": 1}, {"key": "SKU::U60FW(SIL)", "name": "Quạt trần KDK Nhật Bản U60FW(SIL) - sải cánh lớn - công suất 50W - Bảo hành chính hãng KDK", "quantity": 1, "revenue": 12990000.0, "orders": 1}, {"key": "SKU::QT1811E0", "name": "[GIÁ TỐT - HOẢ TỐC] Bàn ủi hơi nước đứng Tefal IXEO Vision QT1811E0 - 5 Góc Ủi Linh Hoạt - Bảo Hành Chính Hãng 2 Năm", "quantity": 2, "revenue": 12539000.0, "orders": 2}, {"key": "SKU::M40M(GY)", "name": "Quạt Nhật treo tường KDK M40M (GY) màu Xám - Bảo hành Chính hãng 2 năm", "quantity": 5, "revenue": 11595000.0, "orders": 5}, {"key": "SKU::G1796695", "name": "Nồi chảo chống dính đáy từ Tefal So Matcha phù hợp cho mọi loại bếp - Hàng Chính Hãng / BH 02 Năm", "quantity": 14, "revenue": 7153000.0, "orders": 4}, {"key": "SKU::20293576366", "name": "Nồi Inox 18/10 cao cấp Tefal Duetto Plus Nồi 20cm- 2.8L, Nồi 24cm - 4.9L, Nồi 28cm - 10.4L BH 2 năm", "quantity": 12, "revenue": 7018000.0, "orders": 8}, {"key": "SKU::N30NH(BR)", "name": "Quạt đứng Nhật lửng 5 cánh KDK N30NH(BR) - Bảo hành chính hãng 24 tháng", "quantity": 2, "revenue": 6598000.0, "orders": 2}, {"key": "SKU::KP115ER", "name": "Tủ Ướp Rượu Kadeka KP115ER - Bảo Hành Chính Hãng KaDeKa", "quantity": 1, "revenue": 6590000.0, "orders": 1}, {"key": "SKU::JF4032E0", "name": "Bàn Ủi Hơi Nước Cầm Tay Tefal 2-trong-1 Duo Power, JF4032E0 / Bảo Hành Chính Hãng 02 năm", "quantity": 4, "revenue": 6296000.0, "orders": 4}, {"key": "SKU::Q10VF", "name": "Robot hút bụi lau nhà Roborock Q10 VF | Q10 VF+ lực hút 10000Pa - Lau rung 3000 lần/ phút", "quantity": 1, "revenue": 6150000.0, "orders": 1}, {"key": "SKU::RK819868", "name": "Nồi cơm điện cao tần Tefal Rice Master Max RK819868 -1.8L / Chính hãng - BH 02 năm", "quantity": 2, "revenue": 5838000.0, "orders": 2}, {"key": "SKU::MB520138", "name": "Máy xay thịt Tefal đa năng 3 trong 1 MB520138 - 300W, 400ml - hàng thật / Bảo hành 02 Năm", "quantity": 13, "revenue": 5837000.0, "orders": 13}, {"key": "NAME::Kieslect Lady Watch Elfin - Đồng hồ thông minh AMOLED 1.32\" FHD, nhiều chỉ số sức khỏe", "name": "Kieslect Lady Watch Elfin - Đồng hồ thông minh AMOLED 1.32\" FHD, nhiều chỉ số sức khỏe", "quantity": 3, "revenue": 5370000.0, "orders": 3}, {"key": "SKU::KO1408E0", "name": "Bình đun siêu tốc Tefal 1.5L KO140AE0 - Trắng/ KO1408E0 - Đen - 1500W / BH 02 năm", "quantity": 8, "revenue": 4712000.0, "orders": 7}, {"key": "SKU::PPM7303", "name": "Máy massage cầm tay Philips PPM7303 - Đi kèm là 6 đầu massage - Chườm nhiệt rung giảm căng cơ", "quantity": 2, "revenue": 4380000.0, "orders": 1}, {"key": "SKU::G56DG(DG)", "name": "Quạt Trần Nhật KDK G56DG - Bảo Hành Chính Hãng 2 Năm", "quantity": 1, "revenue": 3990000.0, "orders": 1}, {"key": "SKU::M11SU(WH)", "name": "Quạt Trần Nhật KDK màu Trắng M11SU(WH) - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 3790000.0, "orders": 1}, {"key": "SKU::G2551902", "name": "Chảo Chiên Tefal Unlimited, Sản Xuất Pháp - Hàng Chính Hãng / Bảo hành 02 Năm", "quantity": 3, "revenue": 3769000.0, "orders": 3}, {"key": "SKU::G719S655", "name": "Bộ 3 nồi inox 304 cao cấp Tefal Duetto Plus (Quánh 16cm 1.4L, Nồi 20cm 2.8L, Nồi 24cm 4.9L) - Hàng Chính Hãng - BH 2 năm", "quantity": 2, "revenue": 3438000.0, "orders": 2}, {"key": "SKU::N30NH", "name": "Quạt đứng Nhật lửng 5 cánh KDK N30NH - Bảo hành chính hãng 24 tháng", "quantity": 1, "revenue": 3299000.0, "orders": 1}, {"key": "SKU::DT2024E; DT2024E; DT2026E1; DT2020E1", "name": "Bàn ủi hơi nước cầm tay Tefal Pure Pop colorful - Hàng Chính Hãng / BH 02 năm", "quantity": 3, "revenue": 2807000.0, "orders": 3}, {"key": "SKU::RK736B68", "name": "Nồi cơm điện tử Tefal Easy Rice Plus RK736B68 1.8 lít - Hàng Chính Hãng / BH 02 Năm", "quantity": 2, "revenue": 2718000.0, "orders": 2}, {"key": "SKU::EY905D10", "name": "Nồi chiên không dầu điện tử 2 ngăn Tefal Dual Easy Fry & Grill EY905D10 - Bảo Hành Chính Hãng 02 Năm", "quantity": 1, "revenue": 2599000.0, "orders": 1}, {"key": "SKU::KO850810", "name": "Bình đun siêu tốc Tefal Smart & Light KO850810 - 1.7L", "quantity": 2, "revenue": 2398000.0, "orders": 2}, {"key": "SKU::Z3", "name": "Máy cạo râu mini Enchen Z3 lưỡi dao 3 vòng tự mài, chống kẹt râu, pin dùng đến 3 tháng - BH 6 tháng", "quantity": 14, "revenue": 2366000.0, "orders": 14}, {"key": "SKU::M40M(BK)", "name": "Quạt treo tường Nhật KDK M40M (BK) màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 1, "revenue": 2319000.0, "orders": 1}, {"key": "SKU::X6 Lite", "name": "Quạt tích điện cầm tay mini Lumias X6 Lite - 5W, 5 tốc độ gió, sạc Type C", "quantity": 24, "revenue": 2197000.0, "orders": 15}, {"key": "SKU::EY821868", "name": "Nồi chiên không dầu Tefal EasyFry Window 6L EY821868 - 12 chương trình nấu | BH 02 năm", "quantity": 1, "revenue": 2059000.0, "orders": 1}, {"key": "NAME::Chảo chống dính inox Tefal Primary dùng cho mọi loại bếp (20/24/26/28cm) - Chính hãng / BH 2 năm", "name": "Chảo chống dính inox Tefal Primary dùng cho mọi loại bếp (20/24/26/28cm) - Chính hãng / BH 2 năm", "quantity": 6, "revenue": 1874000.0, "orders": 6}, {"key": "SKU::G1350496", "name": "Chảo sâu lòng chống dính đáy từ Tefal So Chef 24cm/28cm - Hàng chính hãng / Bảo hành 02 năm", "quantity": 4, "revenue": 1856000.0, "orders": 4}, {"key": "SKU::F08", "name": "Quạt cây Lumias F08 lite - 40W, 4 cấp độ - Remote điều khiển từ xa", "quantity": 2, "revenue": 1780000.0, "orders": 2}, {"key": "SKU::VH689690", "name": "Quạt đứng có điều khiển từ xa Tefal Turbo Silence Plus VH689690 - Sản phẩm chính hãng / BH 02 năm", "quantity": 1, "revenue": 1449000.0, "orders": 1}, {"key": "SKU::G1350695", "name": "Chảo Chiên và Rán Chống Dính Tefal Sochef - Size 21/24/28Cm - Dùng Các Loại Bếp - Chính Hãng BH 02 Năm", "quantity": 3, "revenue": 1357000.0, "orders": 3}, {"key": "SKU::K001A504", "name": "Bộ dụng cụ bếp TEFAL 5 món màu đen - Sản xuất tại CHÂU ÂU - Bảo hành chính hãng", "quantity": 3, "revenue": 1347000.0, "orders": 3}, {"key": "NAME::Chảo nồi có nắp chống dính đa năng Tefal 3 trong 1 Size 22-24cm One Pick Pot Pan", "name": "Chảo nồi có nắp chống dính đa năng Tefal 3 trong 1 Size 22-24cm One Pick Pot Pan", "quantity": 2, "revenue": 1188000.0, "orders": 2}, {"key": "SKU::ZE420D38", "name": "Máy ép trái cây Tefal ZE420D38 -  Bảo hành chính hãng 02 năm", "quantity": 1, "revenue": 999000.0, "orders": 1}, {"key": "SKU::PPM7323", "name": "Súng Massage Cầm Tay Philips Fascial gun PPM7323 - Hàng Chính Hãng / Bảo Hành 02 Năm", "quantity": 1, "revenue": 879000.0, "orders": 1}, {"key": "SKU::DST0520/20", "name": "Bàn Ủi Khô, Bàn Là Philips DST0520 - Công Suất 1200W - Bảo Hành Chính Hãng 2 Năm", "quantity": 2, "revenue": 550000.0, "orders": 2}, {"key": "SKU::K2213204", "name": "Dao làm bếp Tefal Comfort K2213204 - 20cm", "quantity": 2, "revenue": 370000.0, "orders": 2}, {"key": "SKU::2743712", "name": "Dụng cụ nấu ăn Tefal Bienvenue, Xẻng , Muôi múc canh - Sản xuất Châu Âu", "quantity": 3, "revenue": 357000.0, "orders": 3}, {"key": "NAME::Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "quantity": 69, "revenue": 90000.0, "orders": 69}]}, {"shop_id": "tamanh_tefal_official_shop", "month": "2026-05", "total_orders": 320, "cancelled_orders": 108, "returned_orders": 11, "in_progress_orders": 0, "delivered_orders": 212, "gmv": 783686000.0, "nmv": 369124558.0, "cancelled_value": 312829000.0, "returned_value": 22535000.0, "fees_value": 79197442.0, "cancel_rate": 33.75, "return_rate": 3.4375000000000004, "products": [{"key": "SKU::QT1510E0", "name": "Bàn ủi hơi nước Tefal đứng cầm tay cao cấp IXEO Plus QT1510E0 - 2980W - Hàng Chính Hãng / BH 2 năm", "quantity": 47, "revenue": 186653000.0, "orders": 47}, {"key": "SKU::NA230/00", "name": "Nồi Chiên Không Dầu Điện Tử Philips NA230/00 6.2 lít |1700W | Cửa Sổ Kính- BH Chính Hãng 2 năm", "quantity": 22, "revenue": 48098000.0, "orders": 22}, {"key": "SKU::CY601868", "name": "Nồi áp suất điện đa năng Tefal Home Chef CY601868", "quantity": 21, "revenue": 40119000.0, "orders": 21}, {"key": "SKU::BL83SD66", "name": "Máy xay nấu đa năng và Sữa Hạt Tefal BL83SD66 - Hàng chính hãng / BH 02 năm", "quantity": 9, "revenue": 30431000.0, "orders": 9}, {"key": "SKU::G719SA55", "name": "Bộ 5 nồi Inox cao cấp Tefal Duetto Plus, quánh 16cm/nồi 18cm/nồi 20/nồi 22cm/nồi 24cm G719SA55", "quantity": 11, "revenue": 27249000.0, "orders": 11}, {"key": "SKU::EY905D10", "name": "Nồi chiên không dầu điện tử 2 ngăn Tefal Dual Easy Fry & Grill EY905D10 - Bảo Hành Chính Hãng 02 Năm", "quantity": 9, "revenue": 22950000.0, "orders": 9}, {"key": "NAME::Bộ nồi chảo cán rời 6 món Tefal Ingenio Unlimited L7819022 - Sản xuất Pháp", "name": "Bộ nồi chảo cán rời 6 món Tefal Ingenio Unlimited L7819022 - Sản xuất Pháp", "quantity": 6, "revenue": 17994000.0, "orders": 6}, {"key": "SKU::VH689690", "name": "Quạt đứng có điều khiển từ xa Tefal Turbo Silence Plus VH689690 - Sản phẩm chính hãng / BH 02 năm", "quantity": 7, "revenue": 9873000.0, "orders": 7}, {"key": "SKU::JF4032E0", "name": "Bàn Ủi Hơi Nước Cầm Tay Tefal 2-trong-1 Duo Power, JF4032E0 / Bảo Hành Chính Hãng 02 năm", "quantity": 6, "revenue": 9354000.0, "orders": 6}, {"key": "SKU::HR2041 /10", "name": "Máy xay sinh tố PHILIPS HR2041 /10 | 450W xay nhuyễn trong 45s - Hàng Chính Hãng BH 24 tháng", "quantity": 13, "revenue": 8737000.0, "orders": 10}, {"key": "SKU::EY821868", "name": "Nồi chiên không dầu Tefal EasyFry Window 6L EY821868 - 12 chương trình nấu | BH 02 năm", "quantity": 4, "revenue": 7936000.0, "orders": 4}, {"key": "SKU::G719S655", "name": "Bộ 3 nồi inox 304 cao cấp Tefal Duetto Plus (Quánh 16cm 1.4L, Nồi 20cm 2.8L, Nồi 24cm 4.9L) - Hàng Chính Hãng - BH 2 năm", "quantity": 4, "revenue": 6796000.0, "orders": 4}, {"key": "SKU::VH686790", "name": "QUẠT SÀN Tefal TB Silence Plus VH686790 - 6 cánh 80W - Hàng chính hãng / BH 02 năm", "quantity": 7, "revenue": 6643000.0, "orders": 6}, {"key": "NAME::Nồi chảo chống dính đáy từ Tefal So Matcha - Hàng Chính Hãng / BH 02 Năm", "name": "Nồi chảo chống dính đáy từ Tefal So Matcha - Hàng Chính Hãng / BH 02 Năm", "quantity": 12, "revenue": 6573000.0, "orders": 7}, {"key": "SKU::QT1811E0", "name": "[GIÁ TỐT - HOẢ TỐC] Bàn ủi hơi nước đứng Tefal IXEO Vision QT1811E0 - 5 Góc Ủi Linh Hoạt - Bảo Hành Chính Hãng 2 Năm", "quantity": 1, "revenue": 6559000.0, "orders": 1}, {"key": "SKU::CY2116P1", "name": "Nồi áp suất đa năng Tefal CY2116P1- 6L - Bảo hành chính hãng 24 tháng", "quantity": 2, "revenue": 3458000.0, "orders": 2}, {"key": "SKU::M40K", "name": "Quạt Đứng Nhật KDK 3 cánh - M40K - Bảo Hành Chính Hãng 2 Năm", "quantity": 1, "revenue": 3249000.0, "orders": 1}, {"key": "NAME::Chảo chống dính đáy từ Tefal Duetto Plus 24/26/28cm- G7320434/G7320524/G7320634 - Bền bỉ, hạn chế dầu mỡ", "name": "Chảo chống dính đáy từ Tefal Duetto Plus 24/26/28cm- G7320434/G7320524/G7320634 - Bền bỉ, hạn chế dầu mỡ", "quantity": 5, "revenue": 2945000.0, "orders": 5}, {"key": "SKU::BL967B66", "name": "Máy làm sữa hạt, sinh tố, xay nấu đa chức năng Tefal - BL967B66 1300W - Chính Hãng / Bảo Hành 02 Năm", "quantity": 1, "revenue": 2559000.0, "orders": 1}, {"key": "NAME::Chảo Chiên Tefal Unlimited, sinh sản Pháp - hàng thật / Bảo Hành 02 Năm", "name": "Chảo Chiên Tefal Unlimited, sinh sản Pháp - hàng thật / Bảo Hành 02 Năm", "quantity": 2, "revenue": 2368000.0, "orders": 2}, {"key": "SKU::M40M(GY)", "name": "Quạt Nhật treo tường KDK M40M (GY) màu Xám - Bảo hành Chính hãng 2 năm", "quantity": 1, "revenue": 2319000.0, "orders": 1}, {"key": "SKU::M40M(BK)", "name": "Quạt treo tường Nhật KDK M40M (BK) màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 1, "revenue": 2319000.0, "orders": 1}, {"key": "NAME::Bản ủi hơi nước cầm tay Tefal Pure Pop colorful - Hàng Chính Hãng / BH 02 năm", "name": "Bản ủi hơi nước cầm tay Tefal Pure Pop colorful - Hàng Chính Hãng / BH 02 năm", "quantity": 2, "revenue": 1898000.0, "orders": 2}, {"key": "SKU::25385348906", "name": "Chảo sâu lòng chống dính đáy từ Tefal So Chef 24cm/28cm - Hàng chính hãng / Bảo hành 02 năm", "quantity": 4, "revenue": 1796000.0, "orders": 4}, {"key": "SKU::F08", "name": "Quạt cây Lumias F08 lite - 40W, 4 cấp độ - Remote điều khiển từ xa", "quantity": 2, "revenue": 1638000.0, "orders": 2}, {"key": "SKU::DST0520/20", "name": "Bàn Ủi Khô, Bàn Là Philips DST0520 - Công Suất 1200W - Bảo Hành Chính Hãng 2 Năm", "quantity": 5, "revenue": 1375000.0, "orders": 4}, {"key": "SKU::KO850810", "name": "Bình đun siêu tốc Tefal Smart & Light KO850810 - 1.7L", "quantity": 1, "revenue": 1279000.0, "orders": 1}, {"key": "SKU::K221S475", "name": "Trọn bộ 04 dao làm bếp Tefal Tefal Comfort K221S475 - 9cm, 12cm, 15cm, 20cm / - Bảo Hành 02 Năm", "quantity": 2, "revenue": 1038000.0, "orders": 2}, {"key": "SKU::RK515168", "name": "Nồi cơm điện tử Tefal Rice Mate Mini 0.7L RK515168 - technology AI - sản phẩm chính hãng / BH 02 Năm", "quantity": 1, "revenue": 989000.0, "orders": 1}, {"key": "SKU::MB520138", "name": "Máy xay thịt Tefal đa năng 3 trong 1 MB520138 - 300W, 400ml - hàng thật / Bảo hành 02 Năm", "quantity": 2, "revenue": 987000.0, "orders": 2}, {"key": "SKU::2743712", "name": "Dụng cụ nấu ăn Tefal Bienvenue, Xẻng , Muôi múc canh - Sản xuất Châu Âu", "quantity": 8, "revenue": 872000.0, "orders": 7}, {"key": "SKU::KO190AE0", "name": "Bình đun siêu tốc Tefal KO190AE0 - 1.9L - Bảo hành chính hãng 24 tháng", "quantity": 1, "revenue": 749000.0, "orders": 1}, {"key": "SKU::16YB3VN", "name": "Nồi cơm điện mini Supor 16YB3VN-36 0.8L 360W chống dính Nấu/Giữ ấm | Xửng hấp| Bảo hành 12 tháng", "quantity": 1, "revenue": 719000.0, "orders": 1}, {"key": "NAME::Chảo đúc cao cấp Tefal Robusto có miệng rót - Hàng Chính Hãng / Bảo Hành 02 Năm", "name": "Chảo đúc cao cấp Tefal Robusto có miệng rót - Hàng Chính Hãng / Bảo Hành 02 Năm", "quantity": 1, "revenue": 659000.0, "orders": 1}, {"key": "SKU::X6-LITE", "name": "Quạt tích điện cầm tay mini Lumias X6 Lite - 5W, 5 tốc độ gió, sạc Type C", "quantity": 4, "revenue": 507000.0, "orders": 3}, {"key": "SKU::K2213104", "name": "Dao làm bếp Tefal Comfort K2213104 - 15cm - Bảo Hành Chính Hãng 2 Năm", "quantity": 2, "revenue": 398000.0, "orders": 2}, {"key": "NAME::Dụng cụ nấu ăn Tefal Bienvenue, Xẻng , Muôi múc canh - Sản xuất Châu Âu", "name": "Dụng cụ nấu ăn Tefal Bienvenue, Xẻng , Muôi múc canh - Sản xuất Châu Âu", "quantity": 3, "revenue": 327000.0, "orders": 3}, {"key": "SKU::22778388455", "name": "Chảo chống dính inox Tefal Primary dùng cho mọi loại bếp -Chính hãng / Bảo hành 02 năm", "quantity": 1, "revenue": 255000.0, "orders": 1}, {"key": "SKU::3888554011", "name": "Dao làm bếp Tefal Comfort K2213204 - 20cm", "quantity": 1, "revenue": 189000.0, "orders": 1}]}, {"shop_id": "greatness38", "month": "2026-06", "total_orders": 74, "cancelled_orders": 29, "returned_orders": 1, "in_progress_orders": 4, "delivered_orders": 41, "gmv": 115684000.0, "nmv": 50375590.0, "cancelled_value": 53052000.0, "returned_value": 1439000.0, "fees_value": 10817410.0, "cancel_rate": 39.189189189189186, "return_rate": 1.3513513513513513, "products": [{"key": "SKU::RK535AY0", "name": "Nồi cơm điện tử Mini Tefal Pop RK535 0.7L - 8 chế độ nấu - Bảo hành chính hãng 24 tháng", "quantity": 12, "revenue": 16128000.0, "orders": 12}, {"key": "SKU::SMB-7327", "name": "Máy Làm Sữa Hạt Đa Năng BlueStone SMB-7327 1 Lít 800W", "quantity": 7, "revenue": 8813000.0, "orders": 7}, {"key": "SKU::NA230/00", "name": "Nồi Chiên Không Dầu Điện Tử Philips NA230/00 6.2 lít |1700W | Cửa Sổ Kính- BH Chính Hãng 2 năm", "quantity": 3, "revenue": 7302000.0, "orders": 3}, {"key": "SKU::EY821868", "name": "Nồi chiên không dầu Tefal EasyFry Window 6L EY821868 - 12 chương trình nấu | BH 02 năm", "quantity": 3, "revenue": 6336000.0, "orders": 3}, {"key": "SKU::RK736B68", "name": "Nồi cơm điện tử Tefal Easy Rice Plus RK736B68 1.8 lít - Hàng Chính Hãng / BH 02 Năm", "quantity": 4, "revenue": 5756000.0, "orders": 4}, {"key": "SKU::BLUSTOBLB5345", "name": "Máy Xay Sinh Tố BlueStone BLB-5345 1.5 Lít 800W", "quantity": 3, "revenue": 4497000.0, "orders": 3}, {"key": "SKU::RK515168", "name": "Nồi cơm điện tử Tefal Rice Mate Mini 0.7L RK515168 - technology AI - sản phẩm chính hãng / BH 02 Năm", "quantity": 4, "revenue": 4196000.0, "orders": 4}, {"key": "SKU::BLUSTOBLB6028", "name": "Máy Làm Sữa Hạt BlueStone BLB-6028 | 1.75L – 1000W – Chống Trào, Độ Ồn Thấp – Nấu Đa Năng – Bảo Hành 2 Năm", "quantity": 1, "revenue": 2049000.0, "orders": 1}, {"key": "SKU::BLUNCHAFB5861", "name": "Nồi Chiên Không Dầu BlueStone AFB-5861 7 Lít 1800W", "quantity": 1, "revenue": 1979000.0, "orders": 1}, {"key": "SKU::NA130/00", "name": "Nồi chiên không dầu Philips 6.2 lít NA130/00 , BH 24 THÁNG", "quantity": 1, "revenue": 1824000.0, "orders": 1}, {"key": "SKU::AF-35M01A", "name": "Nồi chiên không dầu Gaabor 3.5 lít AF-35M01A", "quantity": 2, "revenue": 1382000.0, "orders": 2}, {"key": "SKU::RC50M-BE01A", "name": "Nồi Cơm Điện Gaabor RC50M-BE01A  5L Lòng Nồi 2.2L Công Suất 700W Giữ Nhiệt 24h Nấu Đa Năng", "quantity": 2, "revenue": 1382000.0, "orders": 2}, {"key": "SKU::BLUSTOBLB5323", "name": "Máy Xay Sinh Tố BlueStone BLB-5323 2 Lít 600W - Lưỡi Dao 6 Cánh Thép Không Gỉ", "quantity": 1, "revenue": 899000.0, "orders": 1}, {"key": "SKU::EN005", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "quantity": 3, "revenue": 89000.0, "orders": 3}, {"key": "SKU::OCB-1015W", "name": "Bàn Chải Điện BlueStone OCB-1015W BH Chính hãng 2 năm", "quantity": 8, "revenue": 0.0, "orders": 8}]}, {"shop_id": "greatness68", "month": "2026-06", "total_orders": 169, "cancelled_orders": 42, "returned_orders": 5, "in_progress_orders": 8, "delivered_orders": 119, "gmv": 191903000.0, "nmv": 113481133.0, "cancelled_value": 47876000.0, "returned_value": 5186000.0, "fees_value": 25359867.0, "cancel_rate": 24.85207100591716, "return_rate": 2.9585798816568047, "products": [{"key": "SKU::VH686790", "name": "QUẠT SÀN Tefal TB Silence Plus VH686790 - 6 cánh 80W - Hàng chính hãng / BH 02 năm", "quantity": 83, "revenue": 82917000.0, "orders": 82}, {"key": "SKU::CFR04-VOICE", "name": "Quạt đối lưu tuần hoàn không khí Fujihome CFR04-VOICE điều khiển bằng giọng nói, quạt làm mát", "quantity": 17, "revenue": 20230000.0, "orders": 16}, {"key": "SKU::VH689690", "name": "Quạt đứng có điều khiển từ xa Tefal Turbo Silence Plus VH689690 - Sản phẩm chính hãng / BH 02 năm", "quantity": 12, "revenue": 18988000.0, "orders": 11}, {"key": "SKU::CFR04-VOICE-G", "name": "Quạt tuần hoàn điều khiển giọng nói Nhập Khẩu FUJIHOME CFR04-VOICE, quạt thông minh đa chiều", "quantity": 8, "revenue": 9790000.0, "orders": 8}, {"key": "SKU::ED1823(W)", "name": "Quạt đứng AI lưu thông không khí AQUA ED1823T(W) - điều khiển giọng nói, hẹn giờ 12 tiếng - Bảo hành chính hãng", "quantity": 4, "revenue": 5676000.0, "orders": 4}, {"key": "SKU::CFR04-VOICE-W", "name": "Quạt tuần hoàn không khí điều khiển bằng giọng nói Fujihome CFR04-VOICE", "quantity": 4, "revenue": 4860000.0, "orders": 4}, {"key": "SKU::GFD-N400A02", "name": "Quạt đứng Gaabor GFD-N400A02 xoay tự động tuần hoàn có 3 chế độ gió tùy chỉnh- Chính Hãng", "quantity": 2, "revenue": 1218000.0, "orders": 2}, {"key": "SKU::X6 LITE", "name": "Quạt tích điện cầm tay mini Lumias X6 Lite - 5W, 5 tốc độ gió, sạc Type C", "quantity": 1, "revenue": 189000.0, "orders": 1}, {"key": "SKU::EN005", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "quantity": 4, "revenue": 159000.0, "orders": 4}]}, {"shop_id": "quatkdkjapansince1909", "month": "2026-06", "total_orders": 97, "cancelled_orders": 32, "returned_orders": 1, "in_progress_orders": 2, "delivered_orders": 63, "gmv": 361566000.0, "nmv": 187713679.0, "cancelled_value": 130189000.0, "returned_value": 2790000.0, "fees_value": 40873321.0, "cancel_rate": 32.98969072164948, "return_rate": 1.0309278350515463, "products": [{"key": "SKU::M40K(CHG)", "name": "Quạt đứng Nhật tiết kiệm điện KDK M40K(CHG) 3 cánh (50W), màu Vàng sâm banh - B/H Chính Hãng 2 Năm", "quantity": 17, "revenue": 55403000.0, "orders": 17}, {"key": "SKU::N30NH", "name": "Quạt đứng Nhật lửng 5 cánh KDK N30NH - Bảo hành chính hãng 24 tháng", "quantity": 16, "revenue": 53584000.0, "orders": 15}, {"key": "NAME::[KDK x Hà Linh]  Quạt Trần Nhật KDK M11SU - Bảo Hành Chính Hãng KDK", "name": "[KDK x Hà Linh]  Quạt Trần Nhật KDK M11SU - Bảo Hành Chính Hãng KDK", "quantity": 7, "revenue": 26530000.0, "orders": 4}, {"key": "SKU::M40K", "name": "Quạt Đứng Nhật KDK 3 cánh - M40K - Bảo Hành Chính Hãng 2 Năm", "quantity": 6, "revenue": 19554000.0, "orders": 6}, {"key": "SKU::T60DW", "name": "Quạt Trần Nhật KDK màu Xám Bạc T60DW - Bảo Hành Chính Hãng KDK", "quantity": 3, "revenue": 17697000.0, "orders": 3}, {"key": "SKU::M40M", "name": "Quạt treo tường Nhật KDK M40M - Bảo Hành Chính Hãng 2 Năm", "quantity": 6, "revenue": 14394000.0, "orders": 5}, {"key": "SKU::HL19V(WH)", "name": "Quạt đứng lửng Nhật KDK HL19V(WH) - Bảo hành chính hãng", "quantity": 4, "revenue": 11160000.0, "orders": 4}, {"key": "SKU::T60AW(SIL)", "name": "Quạt Trần Nhật KDK, màu Bạc T60AW(SIL) - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 8390000.0, "orders": 1}, {"key": "SKU::G56DG(DG)", "name": "Quạt Trần Nhật KDK G56DG - Bảo Hành Chính Hãng 2 Năm", "quantity": 2, "revenue": 8380000.0, "orders": 2}, {"key": "SKU::A40B", "name": "Quạt bàn Nhật 3 mức gió (50W) KDK  A40B - Bảo hành chính hãng 12 tháng", "quantity": 3, "revenue": 5259000.0, "orders": 3}, {"key": "SKU::G56DG", "name": "Quạt Trần Nhật KDK G56DG - Bảo Hành Chính Hãng 2 Năm KDK", "quantity": 1, "revenue": 4190000.0, "orders": 1}, {"key": "SKU::P41U(BK)", "name": "Quạt Nhật đứng KDK P41U (BK)  màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 2, "revenue": 3798000.0, "orders": 2}, {"key": "SKU::M40R(GD)", "name": "Quạt Nhật đảo trần KDK M40R(GD) - Cánh Kim Loại Màu Vàng- Bảo Hành Chính Hãng", "quantity": 1, "revenue": 2849000.0, "orders": 1}, {"key": "SKU::X6 LITE", "name": "Quạt tích điện cầm tay mini Lumias X6 Lite - 5W, 5 tốc độ gió, sạc Type C", "quantity": 52, "revenue": 189000.0, "orders": 52}]}, {"shop_id": "tamanh007_1", "month": "2026-06", "total_orders": 1079, "cancelled_orders": 311, "returned_orders": 24, "in_progress_orders": 57, "delivered_orders": 711, "gmv": 1906149300.0, "nmv": 896181730.0, "cancelled_value": 715630000.0, "returned_value": 33064000.0, "fees_value": 261273570.0, "cancel_rate": 28.82298424467099, "return_rate": 2.2242817423540315, "products": [{"key": "SKU::QT1510E0", "name": "Bàn ủi hơi nước Tefal đứng cầm tay cao cấp IXEO Plus QT1510E0 - 2980W - Hàng Chính Hãng / BH 2 năm", "quantity": 24, "revenue": 100560000.0, "orders": 24}, {"key": "SKU::VH686790", "name": "QUẠT SÀN Tefal TB Silence Plus VH686790 - 6 cánh 80W - Hàng chính hãng / BH 02 năm", "quantity": 78, "revenue": 77922000.0, "orders": 71}, {"key": "SKU::ED1823T", "name": "Quạt đứng AI AQUA lưu thông không khí ED1823T(W) - Điều khiển giọng nói - B/H 12 Tháng Chính Hãng", "quantity": 52, "revenue": 73788000.0, "orders": 50}, {"key": "SKU::RK515168", "name": "Nồi cơm điện tử Tefal Rice Mate Mini 0.7L RK515168 - technology AI - sản phẩm chính hãng / BH 02 Năm", "quantity": 67, "revenue": 73633000.0, "orders": 67}, {"key": "SKU::VH689690", "name": "Quạt đứng có điều khiển từ xa Tefal Turbo Silence Plus VH689690 - Sản phẩm chính hãng / BH 02 năm", "quantity": 44, "revenue": 70356000.0, "orders": 44}, {"key": "SKU::QT1811E0", "name": "[GIÁ TỐT - HOẢ TỐC] Bàn ủi hơi nước đứng Tefal IXEO Vision QT1811E0 - 5 Góc Ủi Linh Hoạt - Bảo Hành Chính Hãng 2 Năm", "quantity": 10, "revenue": 64900000.0, "orders": 10}, {"key": "SKU::T60DW(GY)", "name": "Quạt Trần Nhật KDK T60DW màu Xám Bạc,cánh kim loại sợi thuỷ tinh, 9 tốc độ gió- BH Chính Hãng 2 năm", "quantity": 10, "revenue": 59470000.0, "orders": 10}, {"key": "SKU::JF4032E0", "name": "Bàn Ủi Hơi Nước Cầm Tay Tefal 2-trong-1 Duo Power, JF4032E0 / Bảo Hành Chính Hãng 02 năm", "quantity": 32, "revenue": 56288000.0, "orders": 32}, {"key": "SKU::M40K(CHG)", "name": "Quạt đứng Nhật tiết kiệm điện KDK M40K(CHG) 3 cánh (50W), màu Vàng sâm banh - B/H Chính Hãng 2 Năm", "quantity": 17, "revenue": 55403000.0, "orders": 17}, {"key": "SKU::EY821868", "name": "Nồi chiên không dầu Tefal EasyFry Window 6L EY821868 - 12 chương trình nấu | BH 02 năm", "quantity": 23, "revenue": 49427000.0, "orders": 23}, {"key": "SKU::G719SA55", "name": "Bộ 5 nồi Inox cao cấp Tefal Duetto Plus, quánh 16cm/nồi 18cm/nồi 20/nồi 22cm/nồi 24cm G719SA55", "quantity": 10, "revenue": 27990000.0, "orders": 10}, {"key": "SKU::BL871D31", "name": "Máy xay sinh tố Tefal PerfectMix BL871D31 - Bảo hành chính hãng 02 năm", "quantity": 13, "revenue": 25467000.0, "orders": 13}, {"key": "SKU::CY601868", "name": "Nồi áp suất điện đa năng Tefal Home Chef CY601868", "quantity": 10, "revenue": 21990000.0, "orders": 10}, {"key": "SKU::RK535", "name": "Nồi cơm điện tử Mini Tefal Pop RK535 0.7L - 8 chế độ nấu - Bảo hành chính hãng 24 tháng", "quantity": 15, "revenue": 20985000.0, "orders": 15}, {"key": "SKU::M40K(GY)", "name": "Quạt Đứng Nhật Cao Cấp KDK 3 cánh (51W) - M40K(GY) - Bảo Hành Chính Hãng 2 Năm", "quantity": 6, "revenue": 19554000.0, "orders": 6}, {"key": "SKU::M40M (GY)", "name": "Quạt Nhật treo tường KDK M40M (GY) màu Xám - Bảo hành Chính hãng 2 năm", "quantity": 8, "revenue": 19192000.0, "orders": 8}, {"key": "SKU::ICT2201R(C)", "name": "Bếp Điện Từ Đơn AQUA 2200W ICT2201R, hẹn giờ 8 tiếng, 22 mức nhiệt - Bảo hành chính hãng 12 tháng", "quantity": 17, "revenue": 18003000.0, "orders": 17}, {"key": "NAME::Bản ủi hơi nước cầm tay Tefal Pure Pop - Chính Hãng / BH 02 năm", "name": "Bản ủi hơi nước cầm tay Tefal Pure Pop - Chính Hãng / BH 02 năm", "quantity": 14, "revenue": 15106000.0, "orders": 14}, {"key": "SKU::RK736B68", "name": "Nồi cơm điện tử Tefal Easy Rice Plus RK736B68 1.8 lít - Hàng Chính Hãng / BH 02 Năm", "quantity": 10, "revenue": 14990000.0, "orders": 10}, {"key": "SKU::29820186301", "name": "Chảo rán Tefal Ultimate - Sản Xuất Pháp - Hàng Chính Hãng / BH 02 năm", "quantity": 13, "revenue": 14717000.0, "orders": 12}, {"key": "SKU::DST0520/20", "name": "Bàn Ủi Khô, Bàn Là Philips DST0520 - Công Suất 1200W - Bảo Hành Chính Hãng 2 Năm", "quantity": 46, "revenue": 14674000.0, "orders": 42}, {"key": "SKU::MB520138", "name": "Máy xay thịt Tefal đa năng 3 trong 1 MB520138 - 300W, 400ml - hàng thật / Bảo hành 02 Năm", "quantity": 25, "revenue": 13725000.0, "orders": 25}, {"key": "SKU::N30NH(BR)", "name": "Quạt đứng Nhật lửng 5 cánh KDK N30NH(BR) - Bảo hành chính hãng 24 tháng", "quantity": 4, "revenue": 13396000.0, "orders": 4}, {"key": "SKU::RK776B68", "name": "Nồi cơm niêu điện tử Tefal RK776B68 1.8L - hàng thật / Bảo hành 02 Năm", "quantity": 7, "revenue": 13293000.0, "orders": 7}, {"key": "NAME::Chảo Chiên Tefal Unlimited, sản xuất Pháp - / Bảo Hành 02 Năm", "name": "Chảo Chiên Tefal Unlimited, sản xuất Pháp - / Bảo Hành 02 Năm", "quantity": 11, "revenue": 12489000.0, "orders": 11}, {"key": "SKU::AFB-5861", "name": "Nồi Chiên Không Dầu Điện Tử BlueStone AFB-5861 7L Công Suất 1800W | Nấu Gà Vịt Nguyên Con BH 2 Năm", "quantity": 6, "revenue": 12174000.0, "orders": 6}, {"key": "SKU::EY905D10", "name": "Nồi chiên không dầu điện tử 2 ngăn Tefal Dual Easy Fry & Grill EY905D10 - Bảo Hành Chính Hãng 02 Năm", "quantity": 4, "revenue": 11560000.0, "orders": 4}, {"key": "SKU::20293576366", "name": "Nồi Inox 18/10 cao cấp Tefal Duetto Plus Nồi 20cm- 2.8L, Nồi 24cm - 4.9L, Nồi 28cm - 10.4L BH 2 năm", "quantity": 14, "revenue": 11316000.0, "orders": 14}, {"key": "SKU::HL19V(WH)", "name": "Quạt đứng lửng Nhật KDK HL19V(WH) - Bảo hành chính hãng", "quantity": 4, "revenue": 11160000.0, "orders": 4}, {"key": "SKU::PCB-5648", "name": "Nồi Áp Suất BlueStone PCB-5648, Dung Tích 5L, Công Suất 900W BH 24 tháng", "quantity": 6, "revenue": 10374000.0, "orders": 6}, {"key": "SKU::N30NH(GD)", "name": "Quạt đứng Nhật (37W) 5 cánh KDK N30NH(GD) - Bảo hành chính hãng 24 tháng", "quantity": 3, "revenue": 10047000.0, "orders": 3}, {"key": "SKU::STE1040/20", "name": "Bàn ủi hơi nước đứng Philips STE1040/20 1800W, bàn là cây ủi nhanh| Bảo hành 2 năm chính hãng", "quantity": 4, "revenue": 9796000.0, "orders": 4}, {"key": "SKU::RK819868", "name": "Nồi cơm điện cao tần Tefal Rice Master Max RK819868 -1.8L / Chính hãng - BH 02 năm", "quantity": 3, "revenue": 9177000.0, "orders": 3}, {"key": "SKU::E308S674", "name": "Bộ 3 nồi Inox đáy từ Tefal Primary 16/18/20cm E308S674 - Bảo hành chính hãng 02 năm", "quantity": 8, "revenue": 8792000.0, "orders": 8}, {"key": "NAME::Bình đun siêu tốc 1.7 Lít Tefal KI605830 - thủy tinh - HÀNG CHÍNH HÃNG - BẢO HÀNH 2 NĂM", "name": "Bình đun siêu tốc 1.7 Lít Tefal KI605830 - thủy tinh - HÀNG CHÍNH HÃNG - BẢO HÀNH 2 NĂM", "quantity": 10, "revenue": 8290000.0, "orders": 10}, {"key": "SKU::BL83SD66", "name": "Máy xay nấu đa năng và Sữa Hạt Tefal BL83SD66 - Hàng chính hãng / BH 02 năm", "quantity": 2, "revenue": 7998000.0, "orders": 2}, {"key": "SKU::VC2048", "name": "Nồi hấp điện 3 tầng đa năng TEFAL VC2048 không chứa BPA - hấp bánh bao, rau củ quả BH 2 Năm", "quantity": 6, "revenue": 6294000.0, "orders": 6}, {"key": "SKU::HR2041 /10", "name": "Máy xay sinh tố PHILIPS HR2041 /10 | 450W xay nhuyễn trong 45s - Hàng Chính Hãng BH 24 tháng", "quantity": 8, "revenue": 6232000.0, "orders": 8}, {"key": "SKU::25352008082", "name": "Chảo Chiên và Rán Chống Dính Tefal Sochef - Size 21/24/28Cm - Dùng các loại bếp / BH 02 Năm", "quantity": 14, "revenue": 6045300.0, "orders": 14}, {"key": "SKU::L7619022", "name": "Set 2 chảo cán rời 24cm và 26cm chống dính Tefal Ingenio Daily Chef L7619022 - Chính hảng bảo hành 02 năm", "quantity": 3, "revenue": 5997000.0, "orders": 3}, {"key": "SKU::BL967B66", "name": "Máy làm sữa hạt, sinh tố, xay nấu đa chức năng Tefal - BL967B66 1300W - Chính Hãng / Bảo Hành 02 Năm", "quantity": 2, "revenue": 5780000.0, "orders": 2}, {"key": "SKU::P41U (BK)", "name": "Quạt Nhật đứng KDK P41U (BK)  màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 3, "revenue": 5697000.0, "orders": 3}, {"key": "SKU::810052060668", "name": "Máy Triệt Lông Lạnh Cá Nhân Halio IPL Cooling Hair Removal Device BH 24 Tháng", "quantity": 2, "revenue": 5198000.0, "orders": 2}, {"key": "SKU::A40B(GY)", "name": "Quạt bàn Nhật 3 mức gió (50W) KDK  A40B(GY) - Bảo hành chính hãng 12 tháng", "quantity": 3, "revenue": 5097000.0, "orders": 3}, {"key": "SKU::Z3", "name": "Máy cạo râu mini Enchen Z3 lưỡi dao 3 vòng tự mài, chống kẹt râu, pin dùng đến 3 tháng - BH 6 tháng", "quantity": 26, "revenue": 4914000.0, "orders": 25}, {"key": "SKU::M40M(BK)", "name": "Quạt treo tường Nhật KDK M40M (BK) màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 2, "revenue": 4798000.0, "orders": 2}, {"key": "SKU::M40C(BL)", "name": "Quạt Nhật treo tường KDK màu Xanh M40C(BL) - Bảo Hành Chính Hãng KDK", "quantity": 2, "revenue": 4518000.0, "orders": 2}, {"key": "SKU::810052062860", "name": "Máy Nâng Cơ, Giảm Mỡ Mặt & Trẻ Hoá Da kết hợp Ánh Sáng Sinh Học Halio RevitaWave Skin Rejuvenator", "quantity": 1, "revenue": 4190000.0, "orders": 1}, {"key": "SKU::M11SU(SIL)", "name": "Quạt Trần Nhật KDK màu Bạc M11SU(SIL) - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 3849000.0, "orders": 1}, {"key": "SKU::M11SU(WH)", "name": "Quạt Trần Nhật KDK màu Trắng M11SU(WH) - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 3849000.0, "orders": 1}, {"key": "SKU::FV9E50E0", "name": "Bàn ủi hơi nước Tefal Ultimate Power Pro FV9E50E0 3200W - Bảo Hành Chính Hãng 2 Năm", "quantity": 1, "revenue": 3790000.0, "orders": 1}, {"key": "SKU::E3090604", "name": "Chảo chống dính inox Tefal Primary dành cho mọi loại bếp -Chính hãng / Bảo Hành 02 năm", "quantity": 10, "revenue": 3710000.0, "orders": 9}, {"key": "SKU::N56YG(BB)", "name": "Quạt Trần Nhật KDK, màu Đồng N56YG(BB) - Bảo Hành Chính Hãng KDK", "quantity": 2, "revenue": 3698000.0, "orders": 1}, {"key": "SKU::CX1520/1", "name": "Quạt Đứng PHILIPS CX1520/01 (47W) Remote Điều Khiển, 3 Tốc Độ, Chạy Êm- BH Chính Hãng 2 năm", "quantity": 2, "revenue": 3518000.0, "orders": 2}, {"key": "SKU::BLB-5345", "name": "Máy Xay Sinh Tố BlueStone BLB-5345 1.5L 800W Xay Mạnh, Lưỡi Dao Sắc Bén, Dễ Vệ Sinh - BH 2 năm", "quantity": 2, "revenue": 3318000.0, "orders": 2}, {"key": "NAME::Chảo nồi có nắp đậy chống dính đa năng Tefal 3 trong một Size 22-24cm One Pick Pot Pan", "name": "Chảo nồi có nắp đậy chống dính đa năng Tefal 3 trong một Size 22-24cm One Pick Pot Pan", "quantity": 5, "revenue": 3095000.0, "orders": 5}, {"key": "SKU::EC-20M01A", "name": "Nồi điện đa năng Gaabor EC-20M01A dung tích 2L, phủ lớp chống dính công suất 600W - BH chính hãng", "quantity": 7, "revenue": 3073000.0, "orders": 7}, {"key": "SKU::KO850810", "name": "Bình đun siêu tốc Tefal Smart & Light KO850810 - 1.7L", "quantity": 2, "revenue": 2918000.0, "orders": 2}, {"key": "SKU::KO190AE0", "name": "Bình đun siêu tốc Tefal KO190AE0 - 1.9L - Bảo hành chính hãng 24 tháng", "quantity": 3, "revenue": 2847000.0, "orders": 3}, {"key": "SKU::K001A504", "name": "Bộ dụng cụ bếp TEFAL 5 món màu đen - Sản xuất tại CHÂU ÂU - Bảo hành chính hãng", "quantity": 6, "revenue": 2814000.0, "orders": 6}, {"key": "SKU::B922S784", "name": "Bộ nồi chảo Inox cao cấp Cook Eat B922S784 (16, 20, 24, 28cm) - Bảo hành chính hãng 02 năm", "quantity": 1, "revenue": 2779000.0, "orders": 1}, {"key": "SKU::FV6872E0", "name": "Bàn ủi hơi nước Tefal Smart Protect Plus FV6872E0 sản xuất Pháp - Hàng Chính Hãng / Bảo Hành 02 Năm", "quantity": 1, "revenue": 2319000.0, "orders": 1}, {"key": "SKU::RC50M-BE01A", "name": "Nồi Cơm Điện Gaabor RC50M-BE01A  5L Lòng Nồi 2.2L Công Suất 700W Giữ Nhiệt 24h Nấu Đa Năng", "quantity": 3, "revenue": 2157000.0, "orders": 3}, {"key": "SKU::25385348906", "name": "Chảo sâu lòng chống dính đáy từ Tefal So Chef 24cm/28cm - Hàng chính hãng / Bảo hành 02 năm", "quantity": 4, "revenue": 2156000.0, "orders": 4}, {"key": "SKU::P40U(GD)", "name": "Quạt đứng KDK màu Vàng  P40U(GD) - Bảo hành Chính hãng KDK", "quantity": 1, "revenue": 2149000.0, "orders": 1}, {"key": "SKU::HD5830/90", "name": "Bếp từ đơn Philips HD5830/90 | 8 chế độ| 2000W - Hàng Chính Hãng BH 2 năm", "quantity": 1, "revenue": 1999000.0, "orders": 1}, {"key": "SKU::CY2116P1", "name": "Nồi áp suất đa năng Tefal CY2116P1- 6L - Bảo hành chính hãng 24 tháng", "quantity": 1, "revenue": 1859000.0, "orders": 1}, {"key": "SKU::810052060989", "name": "Bàn chải điện Halio Sonic SmartClean Electric Toothbrush Coral", "quantity": 3, "revenue": 1787000.0, "orders": 3}, {"key": "SKU::FP03T-WH01A", "name": "Gaabor Cốc xay sinh tố cầm tay FP03T-WH01A tích điện nhỏ gọn tiện lợi BH Chính Hãng 12 tháng", "quantity": 6, "revenue": 1734000.0, "orders": 6}, {"key": "SKU::2745112", "name": "Xẻng có rãnh chịu nhiệt Tefal Bienvenue Bản nhỏ - Sản xuất Châu Âu", "quantity": 14, "revenue": 1190000.0, "orders": 14}, {"key": "NAME::Nồi chảo chống dính đáy từ Tefal So Matcha - chính hãng / BH 02 Năm", "name": "Nồi chảo chống dính đáy từ Tefal So Matcha - chính hãng / BH 02 Năm", "quantity": 2, "revenue": 1128000.0, "orders": 2}, {"key": "SKU::GWS-M03A", "name": "Cân điện tử Gaabor GWS-M03A mặt kính cường lực, sạc USB, đo chính xác đến 180kg - Chính Hãng 100%", "quantity": 5, "revenue": 1095000.0, "orders": 5}, {"key": "SKU::K2213204", "name": "Dao làm bếp Tefal Comfort K2213204 - 20cm", "quantity": 4, "revenue": 876000.0, "orders": 4}, {"key": "SKU::16YB3VN", "name": "Nồi cơm điện mini Supor 16YB3VN-36 0.8L 360W chống dính Nấu/Giữ ấm | Xửng hấp| Bảo hành 12 tháng", "quantity": 1, "revenue": 799000.0, "orders": 1}, {"key": "SKU::K221S475", "name": "Trọn bộ 04 dao làm bếp Tefal Tefal Comfort K221S475 - 9cm, 12cm, 15cm, 20cm / - Bảo Hành 02 Năm", "quantity": 1, "revenue": 759000.0, "orders": 1}, {"key": "SKU::810052060996", "name": "Bàn chải điện Halio Sonic SmartClean Electric Toothbrush Sky Blue", "quantity": 1, "revenue": 589000.0, "orders": 1}, {"key": "SKU::RC-40M01A", "name": "Nồi Cơm Điện Gaabor RC-40M01A - Dung Tích 1.8L - Kèm Xửng Hấp - Chống Dính - BH Chính hãng 12 tháng", "quantity": 1, "revenue": 579000.0, "orders": 1}, {"key": "SKU::G1790495", "name": "Chảo Chiên Tefal So Matcha G1790495 - 24cm, Chống Dính Titan, Dùng Được Bếp Từ", "quantity": 1, "revenue": 529000.0, "orders": 1}, {"key": "SKU::X6 Lite", "name": "Quạt tích điện cầm tay mini Lumias X6 Lite - 5W, 5 tốc độ gió, sạc Type C", "quantity": 58, "revenue": 396000.0, "orders": 58}, {"key": "SKU::EN005", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "quantity": 111, "revenue": 270000.0, "orders": 111}, {"key": "SKU::2743712", "name": "Dụng cụ nấu ăn Tefal Bienvenue, Xẻng , Muôi múc canh - Sản xuất Châu Âu", "quantity": 1, "revenue": 129000.0, "orders": 1}, {"key": "NAME::[HÀNG TẶNG KHÔNG BÁN] Hộp thuỷ tinh tròn nắp tre PHILIPS 950ml", "name": "[HÀNG TẶNG KHÔNG BÁN] Hộp thuỷ tinh tròn nắp tre PHILIPS 950ml", "quantity": 1, "revenue": 0.0, "orders": 1}, {"key": "SKU::HP203", "name": "[QUÀ TẶNG] Set bấm móng cho bé Honper Bear HP203, Thiết kế lưỡi bấm âm, Góc cắt 45 độ tiêu chuẩn", "quantity": 1, "revenue": 0.0, "orders": 1}, {"key": "SKU::HO-baby-Pink", "name": "Máy rửa mặt Halio Facial Cleansing & Massaging Device - Baby Pink Limited Edition BH 12 tháng", "quantity": 1, "revenue": 0.0, "orders": 1}]}, {"shop_id": "tamanh_homeshopping", "month": "2026-06", "total_orders": 294, "cancelled_orders": 102, "returned_orders": 7, "in_progress_orders": 10, "delivered_orders": 182, "gmv": 718628100.0, "nmv": 312719291.0, "cancelled_value": 320095700.0, "returned_value": 10982000.0, "fees_value": 74831109.0, "cancel_rate": 34.69387755102041, "return_rate": 2.380952380952381, "products": [{"key": "SKU::QT1510E0", "name": "Bàn ủi hơi nước Tefal đứng cầm tay cao cấp IXEO Plus QT1510E0 - 2980W - Hàng Chính Hãng / BH 2 năm", "quantity": 25, "revenue": 100800000.0, "orders": 25}, {"key": "SKU::RK515168", "name": "Nồi cơm điện tử Tefal Rice Mate Mini 0.7L RK515168 - technology AI - sản phẩm chính hãng / BH 02 Năm", "quantity": 31, "revenue": 32519000.0, "orders": 31}, {"key": "SKU::UR5840", "name": "[Miễn phí lắp đặt - BH 1 năm] Máy lọc nước âm tủ bếp Truliva Delica UR5840, lõi RO cực đại", "quantity": 2, "revenue": 29780000.0, "orders": 2}, {"key": "SKU::DT2024E; DT2024E; DT2026E1; DT2020E1", "name": "Bàn ủi hơi nước cầm tay Tefal Pure Pop colorful - Hàng Chính Hãng / BH 02 năm", "quantity": 22, "revenue": 21756000.0, "orders": 22}, {"key": "SKU::G719SA55", "name": "Bộ 5 nồi Inox cao cấp Tefal Duetto Plus, quánh 16cm/nồi 18cm/nồi 20/nồi 22cm/nồi 24cm G719SA55", "quantity": 5, "revenue": 13450000.0, "orders": 5}, {"key": "SKU::VH686790", "name": "QUẠT SÀN Tefal TB Silence Plus VH686790 - 6 cánh 80W - Hàng chính hãng / BH 02 năm", "quantity": 12, "revenue": 11988000.0, "orders": 12}, {"key": "SKU::RK819868", "name": "Nồi cơm điện cao tần Tefal Rice Master Max RK819868 -1.8L / Chính hãng - BH 02 năm", "quantity": 4, "revenue": 11708000.0, "orders": 4}, {"key": "SKU::BR453AY0", "name": "Máy lọc nước Tefal Pure Water Compact BR453AY0 BH Chính hãng 2 Năm", "quantity": 1, "revenue": 11190000.0, "orders": 1}, {"key": "SKU::M40K(GY)", "name": "Quạt Đứng Nhật Cao Cấp KDK 3 cánh (51W) - M40K(GY) - Bảo Hành Chính Hãng 2 Năm", "quantity": 3, "revenue": 9777000.0, "orders": 3}, {"key": "SKU::M40M(BK)", "name": "Quạt treo tường Nhật KDK M40M (BK) màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 4, "revenue": 9596000.0, "orders": 4}, {"key": "SKU::G56DG(WH)", "name": "Quạt Trần Nhật KDK G56DG(WH) - Bảo Hành Chính Hãng 2 Năm KDK", "quantity": 2, "revenue": 8380000.0, "orders": 2}, {"key": "SKU::M11SU", "name": "Quạt Trần Nhật KDK M11SU - Bảo Hành Chính Hãng 2 Năm", "quantity": 2, "revenue": 7698000.0, "orders": 2}, {"key": "SKU::810052062877", "name": "Mặt Nạ Ánh Sáng Sinh Học Halio PureGlow Ultralite Silicone LED Face Mask", "quantity": 1, "revenue": 6790000.0, "orders": 1}, {"key": "SKU::RK535", "name": "Nồi cơm điện tử Mini Tefal Pop RK535 0.7L - 8 chế độ nấu - Bảo hành chính hãng 24 tháng", "quantity": 5, "revenue": 6720000.0, "orders": 5}, {"key": "SKU::M40K(CHG)", "name": "Quạt đứng Nhật tiết kiệm điện KDK M40K(CHG) 3 cánh (50W), màu Vàng sâm banh - B/H Chính Hãng 2 Năm", "quantity": 2, "revenue": 6518000.0, "orders": 2}, {"key": "SKU::T60DW(GY)", "name": "Quạt Trần Nhật KDK T60DW màu Xám Bạc,cánh kim loại sợi thuỷ tinh, 9 tốc độ gió- BH Chính Hãng 2 năm", "quantity": 1, "revenue": 5899000.0, "orders": 1}, {"key": "SKU::KO850810", "name": "Bình đun siêu tốc Tefal Smart & Light KO850810 - 1.7L", "quantity": 4, "revenue": 5396000.0, "orders": 4}, {"key": "NAME::Kieslect Lady Watch Elfin - Đồng hồ thông minh AMOLED 1.32\" FHD, nhiều chỉ số sức khỏe", "name": "Kieslect Lady Watch Elfin - Đồng hồ thông minh AMOLED 1.32\" FHD, nhiều chỉ số sức khỏe", "quantity": 3, "revenue": 5370000.0, "orders": 3}, {"key": "SKU::JF4032E0", "name": "Bàn Ủi Hơi Nước Cầm Tay Tefal 2-trong-1 Duo Power, JF4032E0 / Bảo Hành Chính Hãng 02 năm", "quantity": 3, "revenue": 5067000.0, "orders": 3}, {"key": "SKU::M40R(BL)", "name": "Quạt đảo trần Nhật KDK màu Xanh M40R(BL) - Bảo Hành Chính Hãng KDK", "quantity": 2, "revenue": 4518000.0, "orders": 2}, {"key": "SKU::HR2041/ 10", "name": "Máy xay sinh tố PHILIPS HR2041 /10 | 450W xay nhuyễn trong 45s - Hàng Chính Hãng BH 24 tháng", "quantity": 6, "revenue": 4494000.0, "orders": 6}, {"key": "SKU::FV6872E0", "name": "Bàn ủi hơi nước Tefal Smart Protect Plus FV6872E0 sản xuất Pháp - Hàng Chính Hãng / Bảo Hành 02 Năm", "quantity": 2, "revenue": 4454000.0, "orders": 2}, {"key": "SKU::G1350496", "name": "Chảo sâu lòng chống dính đáy từ Tefal So Chef 24cm/28cm - Hàng chính hãng / Bảo hành 02 năm", "quantity": 9, "revenue": 4332000.0, "orders": 9}, {"key": "SKU::YU50X(WH)", "name": "Quạt Nhật treo tường KDK, màu Trắng YU50X(WH) - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 4290000.0, "orders": 1}, {"key": "SKU::G56DG(DG)", "name": "Quạt Trần Nhật KDK G56DG - Bảo Hành Chính Hãng 2 Năm", "quantity": 1, "revenue": 4190000.0, "orders": 1}, {"key": "SKU::M11SU(WH)", "name": "Quạt Trần Nhật KDK màu Trắng M11SU(WH) - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 3849000.0, "orders": 1}, {"key": "SKU::BL83SD66", "name": "Máy xay nấu đa năng và Sữa Hạt Tefal BL83SD66 - Hàng chính hãng / BH 02 năm", "quantity": 1, "revenue": 3840000.0, "orders": 1}, {"key": "SKU::KBG-4500", "name": "Nồi ủ Thermos mã KBG-4500 dung tích 4.5L", "quantity": 1, "revenue": 3650000.0, "orders": 1}, {"key": "SKU::CY2116P1", "name": "Nồi áp suất đa năng Tefal CY2116P1- 6L - Bảo hành chính hãng 24 tháng", "quantity": 2, "revenue": 3570000.0, "orders": 2}, {"key": "SKU::CX1520/01", "name": "Quạt Đứng PHILIPS CX1520/01 (47W) Remote Điều Khiển, 3 Tốc Độ, Chạy Êm- BH Chính Hãng 2 năm", "quantity": 2, "revenue": 3518000.0, "orders": 2}, {"key": "SKU::N30NH", "name": "Quạt đứng Nhật lửng 5 cánh KDK N30NH - Bảo hành chính hãng 24 tháng", "quantity": 1, "revenue": 3349000.0, "orders": 1}, {"key": "SKU::N30NH(BR)", "name": "Quạt đứng Nhật lửng 5 cánh KDK N30NH(BR) - Bảo hành chính hãng 24 tháng", "quantity": 1, "revenue": 3349000.0, "orders": 1}, {"key": "SKU::KBJ-4502", "name": "Nồi ủ Thermos  KBJ-4502 dung tích 4.3L", "quantity": 1, "revenue": 3050000.0, "orders": 1}, {"key": "SKU::M40R(GD)", "name": "Quạt Nhật đảo trần KDK M40R(GD) - Cánh Kim Loại Màu Vàng- Bảo Hành Chính Hãng", "quantity": 1, "revenue": 2849000.0, "orders": 1}, {"key": "SKU::EY905D10", "name": "Nồi chiên không dầu điện tử 2 ngăn Tefal Dual Easy Fry & Grill EY905D10 - Bảo Hành Chính Hãng 02 Năm", "quantity": 1, "revenue": 2775000.0, "orders": 1}, {"key": "SKU::NA230/00", "name": "Nồi Chiên Không Dầu Điện Tử Philips NA230/00 6.2 lít |1700W | Cửa Sổ Kính- BH Chính Hãng 2 năm", "quantity": 1, "revenue": 2496000.0, "orders": 1}, {"key": "SKU::M40M(GY)", "name": "Quạt Nhật treo tường KDK M40M (GY) màu Xám - Bảo hành Chính hãng 2 năm", "quantity": 1, "revenue": 2399000.0, "orders": 1}, {"key": "SKU::SJ08", "name": "Máy ép chậm mini FUJIHOME SJ08 công nghệ ép lạnh 130W, máy ép trái cây rau củ quả ép kiệt bã 2 lưới lọc kép chống kẹt", "quantity": 2, "revenue": 2363400.0, "orders": 2}, {"key": "SKU::P40U(GD)", "name": "Quạt đứng KDK màu Vàng  P40U(GD) - Bảo hành Chính hãng KDK", "quantity": 1, "revenue": 2149000.0, "orders": 1}, {"key": "SKU::EY821868", "name": "Nồi chiên không dầu Tefal EasyFry Window 6L EY821868 - 12 chương trình nấu | BH 02 năm", "quantity": 1, "revenue": 2112000.0, "orders": 1}, {"key": "SKU::SJB-6553", "name": "Máy Ép Chậm BlueStone SJB-6553 - 150W BH Chính Hãng 2 năm", "quantity": 1, "revenue": 1990000.0, "orders": 1}, {"key": "SKU::P41U(BK)", "name": "Quạt Nhật đứng KDK P41U (BK)  màu Đen - Bảo Hành Chính Hãng 2 Năm", "quantity": 1, "revenue": 1899000.0, "orders": 1}, {"key": "SKU::BL871D31", "name": "Máy xay sinh tố Tefal PerfectMix BL871D31 - Bảo hành chính hãng 02 năm", "quantity": 1, "revenue": 1881000.0, "orders": 1}, {"key": "SKU::KI605830", "name": "Bình đun siêu tốc Tefal KI605830 - thủy tinh - 1.7L - HÀNG CHÍNH HÃNG - BẢO HÀNH 2 NĂM", "quantity": 2, "revenue": 1592000.0, "orders": 2}, {"key": "SKU::CFR04-VOICE-W", "name": "Quạt tuần hoàn không khí điều khiển bằng giọng nói Fujihome CFR04-VOICE", "quantity": 1, "revenue": 1249000.0, "orders": 1}, {"key": "SKU::810052060224", "name": "Bàn chải điện làm trắng răng Halio Sonic Whitening Toothbrush Rose Gold", "quantity": 1, "revenue": 1059000.0, "orders": 1}, {"key": "SKU::MB520138", "name": "Máy xay thịt Tefal đa năng 3 trong 1 MB520138 - 300W, 400ml - hàng thật / Bảo hành 02 Năm", "quantity": 2, "revenue": 1056000.0, "orders": 2}, {"key": "SKU::F08", "name": "Quạt cây Lumias F08 lite - 40W, 4 cấp độ - Remote điều khiển từ xa", "quantity": 1, "revenue": 890000.0, "orders": 1}, {"key": "SKU::Z3", "name": "Máy cạo râu mini Enchen Z3 lưỡi dao 3 vòng tự mài, chống kẹt râu, pin dùng đến 3 tháng - BH 6 tháng", "quantity": 4, "revenue": 728000.0, "orders": 4}, {"key": "SKU::858681007883", "name": "Máy Rửa Mặt Halio Sensitive Facial Cleansing Massaging Device - Dành Cho Da Nhạy Cảm", "quantity": 1, "revenue": 679000.0, "orders": 1}, {"key": "NAME::Chảo nồi có nắp chống dính đa năng Tefal 3 trong 1 Size 22-24cm One Pick Pot Pan", "name": "Chảo nồi có nắp chống dính đa năng Tefal 3 trong 1 Size 22-24cm One Pick Pot Pan", "quantity": 1, "revenue": 662000.0, "orders": 1}, {"key": "SKU::20293576366", "name": "Nồi Inox 18/10 cao cấp Tefal Duetto Plus Nồi 20cm- 2.8L, Nồi 24cm - 4.9L, Nồi 28cm - 10.4L BH 2 năm", "quantity": 1, "revenue": 649000.0, "orders": 1}, {"key": "SKU::DST0520/20", "name": "Bàn Ủi Khô, Bàn Là Philips DST0520 - Công Suất 1200W - Bảo Hành Chính Hãng 2 Năm", "quantity": 2, "revenue": 598000.0, "orders": 2}, {"key": "SKU::G1796695", "name": "Nồi chảo chống dính đáy từ Tefal So Matcha phù hợp cho mọi loại bếp - Hàng Chính Hãng / BH 02 Năm", "quantity": 1, "revenue": 499000.0, "orders": 1}, {"key": "SKU::K001A504", "name": "Bộ dụng cụ bếp TEFAL 5 món màu đen - Sản xuất tại CHÂU ÂU - Bảo hành chính hãng", "quantity": 1, "revenue": 451000.0, "orders": 1}, {"key": "SKU::EC-20M01A", "name": "Nồi điện đa năng Gaabor EC-20M01A dung tích 2L, phủ lớp chống dính công suất 600W - BH chính hãng", "quantity": 1, "revenue": 412000.0, "orders": 1}, {"key": "SKU::MINI6", "name": "Máy cạo râu Enchen Mini 6 lưỡi dao kép mỏng, chống nước IPX7, pin sử dụng đến 2 tháng - BH 6 tháng", "quantity": 1, "revenue": 240000.0, "orders": 1}, {"key": "SKU::EN005", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "quantity": 35, "revenue": 0.0, "orders": 35}, {"key": "NAME::Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "quantity": 3, "revenue": 0.0, "orders": 3}, {"key": "SKU::869200000285", "name": "Máy rửa mặt Halio Facial Cleansing & Massaging Device - Baby Pink Limited Edition", "quantity": 1, "revenue": 0.0, "orders": 1}, {"key": "SKU::2745112", "name": "Xẻng có rãnh chịu nhiệt Tefal Bienvenue Bản nhỏ - Sản xuất Châu Âu", "quantity": 1, "revenue": 0.0, "orders": 1}, {"key": "NAME::Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 6 tháng", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 6 tháng", "quantity": 9, "revenue": 0.0, "orders": 9}, {"key": "SKU::OCB-1015W", "name": "Bàn Chải Điện BlueStone OCB-1015W BH Chính hãng 2 năm", "quantity": 1, "revenue": 0.0, "orders": 1}, {"key": "SKU::X6 Lite", "name": "Quạt tích điện cầm tay mini Lumias X6 Lite - 5W, 5 tốc độ gió, sạc Type C", "quantity": 15, "revenue": 0.0, "orders": 15}]}, {"shop_id": "tamanh_tefal_official_shop", "month": "2026-06", "total_orders": 374, "cancelled_orders": 118, "returned_orders": 5, "in_progress_orders": 12, "delivered_orders": 244, "gmv": 1022007000.0, "nmv": 409683398.0, "cancelled_value": 508648000.0, "returned_value": 8229000.0, "fees_value": 95446602.0, "cancel_rate": 31.550802139037433, "return_rate": 1.3368983957219251, "products": [{"key": "SKU::QT1510E0", "name": "Bàn ủi hơi nước Tefal đứng cầm tay cao cấp IXEO Plus QT1510E0 - 2980W - Hàng Chính Hãng / BH 2 năm", "quantity": 43, "revenue": 172869000.0, "orders": 43}, {"key": "SKU::UR61096H", "name": "[Miễn Phí Lắp Đặt] Máy lọc nước Âm tủ bếp Truliva UR61096H có nước nóng - BH Chính Hãng 12 Tháng", "quantity": 4, "revenue": 76416000.0, "orders": 4}, {"key": "SKU::HR2041 /10", "name": "Máy xay sinh tố PHILIPS HR2041 /10 | 450W xay nhuyễn trong 45s - Hàng Chính Hãng BH 24 tháng", "quantity": 47, "revenue": 35156000.0, "orders": 47}, {"key": "SKU::BL83SD66", "name": "Máy xay nấu đa năng và Sữa Hạt Tefal BL83SD66 - Hàng chính hãng / BH 02 năm", "quantity": 7, "revenue": 26840000.0, "orders": 7}, {"key": "SKU::NA230/00", "name": "Nồi Chiên Không Dầu Điện Tử Philips NA230/00 6.2 lít |1700W | Cửa Sổ Kính- BH Chính Hãng 2 năm", "quantity": 11, "revenue": 22088000.0, "orders": 11}, {"key": "SKU::RK515168", "name": "Nồi cơm điện tử Tefal Rice Mate Mini 0.7L RK515168 - technology AI - sản phẩm chính hãng / BH 02 Năm", "quantity": 13, "revenue": 13637000.0, "orders": 13}, {"key": "SKU::EY821868", "name": "Nồi chiên không dầu Tefal EasyFry Window 6L EY821868 - 12 chương trình nấu | BH 02 năm", "quantity": 6, "revenue": 12672000.0, "orders": 6}, {"key": "NAME::Nồi chảo chống dính đáy từ Tefal So Matcha - Hàng Chính Hãng / BH 02 Năm", "name": "Nồi chảo chống dính đáy từ Tefal So Matcha - Hàng Chính Hãng / BH 02 Năm", "quantity": 21, "revenue": 10654000.0, "orders": 14}, {"key": "SKU::CY601868", "name": "Nồi áp suất điện đa năng Tefal Home Chef CY601868", "quantity": 4, "revenue": 8448000.0, "orders": 4}, {"key": "NAME::Nồi cơm điện tử Tefal RK762168 - 1.5L, 1200W - Bảo Hành Tefal Chính Hãng 2 Năm", "name": "Nồi cơm điện tử Tefal RK762168 - 1.5L, 1200W - Bảo Hành Tefal Chính Hãng 2 Năm", "quantity": 3, "revenue": 8064000.0, "orders": 3}, {"key": "SKU::VH689690", "name": "Quạt đứng có điều khiển từ xa Tefal Turbo Silence Plus VH689690 - Sản phẩm chính hãng / BH 02 năm", "quantity": 5, "revenue": 7995000.0, "orders": 5}, {"key": "SKU::G56DG(DG)", "name": "Quạt Trần Nhật KDK G56DG - Bảo Hành Chính Hãng 2 Năm", "quantity": 2, "revenue": 7980000.0, "orders": 1}, {"key": "SKU::JF4032E0", "name": "Bàn Ủi Hơi Nước Cầm Tay Tefal 2-trong-1 Duo Power, JF4032E0 / Bảo Hành Chính Hãng 02 năm", "quantity": 4, "revenue": 6792000.0, "orders": 4}, {"key": "SKU::BLB-6028", "name": "Máy Làm Sữa Hạt BlueStone BLB-6028 | 1.75L – 1000W – Chống Trào, Độ Ồn Thấp  – Bảo Hành 2 Năm", "quantity": 3, "revenue": 6147000.0, "orders": 3}, {"key": "SKU::EY905D10", "name": "Nồi chiên không dầu điện tử 2 ngăn Tefal Dual Easy Fry & Grill EY905D10 - Bảo Hành Chính Hãng 02 Năm", "quantity": 2, "revenue": 5550000.0, "orders": 2}, {"key": "SKU::KO190AE0", "name": "Bình đun siêu tốc Tefal KO190AE0 - 1.9L - Bảo hành chính hãng 24 tháng", "quantity": 7, "revenue": 5543000.0, "orders": 7}, {"key": "SKU::CW-18M01A", "name": "Máy hút bụi cầm tay Gaabor 18M01A  lực hút lớn 18000PA,  hệ thống lọc 3 lớp - Chính Hãng", "quantity": 11, "revenue": 5489000.0, "orders": 8}, {"key": "SKU::G719SA55", "name": "Bộ 5 nồi Inox cao cấp Tefal Duetto Plus, quánh 16cm/nồi 18cm/nồi 20/nồi 22cm/nồi 24cm G719SA55", "quantity": 2, "revenue": 5380000.0, "orders": 2}, {"key": "SKU::P40U(GD)", "name": "Quạt đứng KDK màu Vàng  P40U(GD) - Bảo hành Chính hãng KDK", "quantity": 2, "revenue": 4298000.0, "orders": 2}, {"key": "NAME::Bản ủi hơi nước cầm tay Tefal Pure Pop colorful - Hàng Chính Hãng / BH 02 năm", "name": "Bản ủi hơi nước cầm tay Tefal Pure Pop colorful - Hàng Chính Hãng / BH 02 năm", "quantity": 4, "revenue": 4144000.0, "orders": 4}, {"key": "SKU::M11SU", "name": "Quạt Trần Nhật KDK M11SU - Bảo Hành Chính Hãng 2 Năm", "quantity": 1, "revenue": 3849000.0, "orders": 1}, {"key": "SKU::M11SU(WH)", "name": "Quạt Trần Nhật KDK màu Trắng M11SU(WH) - Bảo Hành Chính Hãng KDK", "quantity": 1, "revenue": 3849000.0, "orders": 1}, {"key": "SKU::DST0520/20", "name": "Bàn Ủi Khô, Bàn Là Philips DST0520 - Công Suất 1200W - Bảo Hành Chính Hãng 2 Năm", "quantity": 12, "revenue": 3588000.0, "orders": 12}, {"key": "SKU::20293576366", "name": "Nồi Inox 18/10 cao cấp Tefal Duetto Plus Nồi 20cm- 2.8L, Nồi 24cm - 4.9L, Nồi 28cm - 10.4L BH 2 năm", "quantity": 4, "revenue": 3536000.0, "orders": 3}, {"key": "SKU::N30NH(GD)", "name": "Quạt đứng Nhật (37W) 5 cánh KDK N30NH(GD) - Bảo hành chính hãng 24 tháng", "quantity": 1, "revenue": 3349000.0, "orders": 1}, {"key": "SKU::P40V(GD)", "name": "Quạt đứng Nhật KDK màu Vàng P40V(GD) - Bảo hành Chính hãng KDK", "quantity": 1, "revenue": 2949000.0, "orders": 1}, {"key": "SKU::RK819868", "name": "Nồi cơm điện cao tần Tefal Rice Master Max RK819868 -1.8L / Chính hãng - BH 02 năm", "quantity": 1, "revenue": 2897000.0, "orders": 1}, {"key": "SKU::Rk224168", "name": "Nồi cơm điện cơ mini Tefal RK224168 - 0.7L, 300W - Hàng Chính Hãng / Bảo Hành 02 Năm", "quantity": 3, "revenue": 2547000.0, "orders": 3}, {"key": "SKU::SMB-7327", "name": "Máy Làm Sữa Hạt Đa Năng BlueStone SMB-7327 1 Lít 800W", "quantity": 2, "revenue": 2518000.0, "orders": 2}, {"key": "SKU::M40M(GY)", "name": "Quạt Nhật treo tường KDK M40M (GY) màu Xám - Bảo hành Chính hãng 2 năm", "quantity": 1, "revenue": 2399000.0, "orders": 1}, {"key": "SKU::M40M", "name": "Quạt treo tường Nhật KDK M40M - Bảo Hành Chính Hãng 2 Năm", "quantity": 1, "revenue": 2399000.0, "orders": 1}, {"key": "SKU::BLUSTOBLB6028", "name": "Máy Làm Sữa Hạt BlueStone BLB-6028 | 1.75L – 1000W – Chống Trào, Độ Ồn Thấp – Nấu Đa Năng – Bảo Hành 2 Năm", "quantity": 1, "revenue": 2049000.0, "orders": 1}, {"key": "SKU::VH686790", "name": "QUẠT SÀN Tefal TB Silence Plus VH686790 - 6 cánh 80W - Hàng chính hãng / BH 02 năm", "quantity": 2, "revenue": 1998000.0, "orders": 2}, {"key": "SKU::BLUETCSJB6553", "name": "Máy Ép Chậm BlueStone SJB-6553 150W – Ép Kiệt Bã, Giữ Trọn Dinh Dưỡng", "quantity": 1, "revenue": 1990000.0, "orders": 1}, {"key": "SKU::L7619022", "name": "Set 2 chảo cán rời 24cm và 26cm chống dính Tefal Ingenio Daily Chef L7619022 - Chính hảng bảo hành 02 năm", "quantity": 1, "revenue": 1929000.0, "orders": 1}, {"key": "SKU::BL871D31", "name": "Máy xay sinh tố Tefal PerfectMix BL871D31 - Bảo hành chính hãng 02 năm", "quantity": 1, "revenue": 1881000.0, "orders": 1}, {"key": "SKU::CY2116P1", "name": "Nồi áp suất đa năng Tefal CY2116P1- 6L - Bảo hành chính hãng 24 tháng", "quantity": 1, "revenue": 1785000.0, "orders": 1}, {"key": "SKU::EC-20M01A", "name": "Nồi điện đa năng Gaabor EC-20M01A dung tích 2L, phủ lớp chống dính công suất 600W - BH chính hãng", "quantity": 4, "revenue": 1688000.0, "orders": 4}, {"key": "SKU::MB520138", "name": "Máy xay thịt Tefal đa năng 3 trong 1 MB520138 - 300W, 400ml - hàng thật / Bảo hành 02 Năm", "quantity": 3, "revenue": 1584000.0, "orders": 3}, {"key": "SKU::BLUSTOBLB5345", "name": "Máy Xay Sinh Tố BlueStone BLB-5345 1.5 Lít 800W", "quantity": 1, "revenue": 1499000.0, "orders": 1}, {"key": "SKU::AF-35M01A", "name": "Nồi chiên không dầu Gaabor 3.5 lít AF-35M01A", "quantity": 2, "revenue": 1382000.0, "orders": 2}, {"key": "SKU::BLUSHDSMB7327", "name": "Máy Làm Sữa Hạt Đa Năng BlueStone SMB-7327 1L 800W chống ồn, 9 chế độ nấu, hạt nhuyễn mịn", "quantity": 1, "revenue": 1259000.0, "orders": 1}, {"key": "SKU::CFR04-VOICE-W", "name": "Quạt tuần hoàn không khí điều khiển bằng giọng nói Fujihome CFR04-VOICE", "quantity": 1, "revenue": 1190000.0, "orders": 1}, {"key": "NAME::Chảo chống dính đáy từ Tefal Duetto Plus 24/26/28cm- G7320434/G7320524/G7320634 - Bền bỉ, hạn chế dầu mỡ", "name": "Chảo chống dính đáy từ Tefal Duetto Plus 24/26/28cm- G7320434/G7320524/G7320634 - Bền bỉ, hạn chế dầu mỡ", "quantity": 2, "revenue": 1178000.0, "orders": 2}, {"key": "NAME::Chảo Chiên Tefal Unlimited, sinh sản Pháp - hàng thật / Bảo Hành 02 Năm", "name": "Chảo Chiên Tefal Unlimited, sinh sản Pháp - hàng thật / Bảo Hành 02 Năm", "quantity": 1, "revenue": 1152000.0, "orders": 1}, {"key": "SKU::ZE420D38", "name": "Máy ép trái cây Tefal ZE420D38 -  Bảo hành chính hãng 02 năm", "quantity": 1, "revenue": 1104000.0, "orders": 1}, {"key": "SKU::810052060224", "name": "Bàn chải điện làm trắng răng Halio Sonic Whitening Toothbrush Rose Gold", "quantity": 1, "revenue": 1059000.0, "orders": 1}, {"key": "SKU::25385348906", "name": "Chảo sâu lòng chống dính đáy từ Tefal So Chef 24cm/28cm - Hàng chính hãng / Bảo hành 02 năm", "quantity": 2, "revenue": 960000.0, "orders": 2}, {"key": "SKU::K001A504", "name": "Bộ dụng cụ bếp TEFAL 5 món màu đen - Sản xuất tại CHÂU ÂU - Bảo hành chính hãng", "quantity": 2, "revenue": 902000.0, "orders": 2}, {"key": "SKU::BLUSTOBLB5323", "name": "Máy Xay Sinh Tố BlueStone BLB-5323 2 Lít 600W - Lưỡi Dao 6 Cánh Thép Không Gỉ", "quantity": 1, "revenue": 899000.0, "orders": 1}, {"key": "SKU::F08", "name": "Quạt cây Lumias F08 lite - 40W, 4 cấp độ - Remote điều khiển từ xa", "quantity": 1, "revenue": 819000.0, "orders": 1}, {"key": "SKU::2743712", "name": "Dụng cụ nấu ăn Tefal Bienvenue, Xẻng , Muôi múc canh - Sản xuất Châu Âu", "quantity": 7, "revenue": 805000.0, "orders": 5}, {"key": "SKU::BLUXTHCHB5145", "name": "Máy Xay Thịt BlueStone CHB-5145 | 2 Lít – 350W – 2 Lưỡi Dao Kép | Cối Thủy Tinh – Xay Mạnh, An Toàn", "quantity": 1, "revenue": 719000.0, "orders": 1}, {"key": "SKU::RC50M-BE01A", "name": "Nồi Cơm Điện Gaabor RC50M-BE01A  5L Lòng Nồi 2.2L Công Suất 700W Giữ Nhiệt 24h Nấu Đa Năng", "quantity": 1, "revenue": 691000.0, "orders": 1}, {"key": "SKU::EP3Y", "name": "Nồi lẩu đa năng AQUA EP3Y 3L đường kính 24cm, công suất 1000W, lòng nồi phủ men chống dính", "quantity": 1, "revenue": 662000.0, "orders": 1}, {"key": "NAME::Chảo chống dính đáy từ Tefal Duetto Plus 24/26/28cm- G7320434/G7320524/G7320634 - Bền bỉ", "name": "Chảo chống dính đáy từ Tefal Duetto Plus 24/26/28cm- G7320434/G7320524/G7320634 - Bền bỉ", "quantity": 1, "revenue": 589000.0, "orders": 1}, {"key": "SKU::810052060989", "name": "Bàn chải điện Halio Sonic SmartClean Electric Toothbrush Coral", "quantity": 1, "revenue": 559000.0, "orders": 1}, {"key": "SKU::CJB-1129", "name": "Máy Vắt Cam Bluestone CJB-1129 - 1 Lít - 40W - Dễ Vệ Sinh - Bảo Hành 2 Năm", "quantity": 1, "revenue": 419000.0, "orders": 1}, {"key": "SKU::EC-15M01A", "name": "Nồi Lẩu Điện Gaabor EC-15M01A 1.5L – 600W, Lòng Inox Chống Dính Teflon, An Toàn Chống Quá Nhiệt", "quantity": 1, "revenue": 288000.0, "orders": 1}, {"key": "SKU::FP03T-WH01A", "name": "Gaabor Cốc xay sinh tố cầm tay FP03T-WH01A tích điện nhỏ gọn tiện lợi BH Chính Hãng 12 tháng", "quantity": 1, "revenue": 278000.0, "orders": 1}, {"key": "SKU::EN005", "name": "Máy tỉa lông mũi Enchen EN005 tốc độ cao 7000 vòng nhỏ gọn dùng pin AA, an toàn sử dụng - BH 06 tháng", "quantity": 2, "revenue": 0.0, "orders": 2}, {"key": "SKU::OCB-1015W", "name": "Bàn Chải Điện BlueStone OCB-1015W BH Chính hãng 2 năm", "quantity": 8, "revenue": 0.0, "orders": 8}, {"key": "SKU::X6-LITE", "name": "Quạt tích điện cầm tay mini Lumias X6 Lite - 5W, 5 tốc độ gió, sạc Type C", "quantity": 4, "revenue": 0.0, "orders": 4}]}]};
+const SHOP_LIST  = [{"id": "greatness38", "label": "Greatness 38", "group": "greatness"}, {"id": "greatness68", "label": "Greatness 68", "group": "greatness"}, {"id": "quatkdkjapansince1909", "label": "KDK Japan Since 1909", "group": "tamanh_kdk"}, {"id": "tamanh007_1", "label": "Tâm Anh 007", "group": "tamanh_kdk"}, {"id": "tamanh_homeshopping", "label": "Tâm Anh Home Shopping", "group": "tamanh_kdk"}, {"id": "tamanh_tefal_official_shop", "label": "Tâm Anh Tefal Official", "group": "tamanh_kdk"}];
+const MONTH_LIST = [{"id": "2026-05", "label": "Tháng 5/2026"}, {"id": "2026-06", "label": "Tháng 6/2026"}];
+
+// Populate filters
+const shopSel  = document.getElementById('sel-shop');
+const monthSel = document.getElementById('sel-month');
+SHOP_LIST.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.label;shopSel.appendChild(o);});
+MONTH_LIST.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.label;monthSel.appendChild(o);});
+
+const charts={};
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function fmt(n){
+  const a=Math.abs(n);
+  if(a>=1e9)return (n/1e9).toFixed(2)+'B';
+  if(a>=1e6)return (n/1e6).toFixed(1)+'M';
+  if(a>=1e3)return Math.round(n/1e3)+'K';
+  return Math.round(n).toString();
+}
+function fmtVN(n){return new Intl.NumberFormat('vi-VN').format(Math.round(n));}
+
+function getRecords(){
+  const shop=shopSel.value, month=monthSel.value;
+  return RAW.records.filter(r=>(shop==='all'||r.shop_id===shop)&&(month==='all'||r.month===month));
+}
+function agg(records){
+  const sum=k=>records.reduce((a,r)=>a+r[k],0);
+  const total_orders=sum('total_orders');
+  const cancelled_orders=sum('cancelled_orders');
+  const returned_orders=sum('returned_orders');
+  const in_progress_orders=sum('in_progress_orders');
+  const delivered_orders=sum('delivered_orders');
+  const gmv=sum('gmv');
+  const nmv=sum('nmv');
+  const cancelled_value=sum('cancelled_value');
+  const returned_value=sum('returned_value');
+  const fees_value=sum('fees_value');
+  return{total_orders,cancelled_orders,returned_orders,in_progress_orders,delivered_orders,
+    gmv,nmv,cancelled_value,returned_value,fees_value,
+    cancel_rate:total_orders?cancelled_orders/total_orders*100:0,
+    return_rate:total_orders?returned_orders/total_orders*100:0,
+    aov:total_orders?gmv/total_orders:0,
+    delivery_rate:total_orders?(delivered_orders+in_progress_orders)/total_orders*100:0,
+  };
+}
+function getProducts(records, topN){
+  topN=topN||10;
+  const map=new Map();
+  for(const r of records){
+    for(const p of r.products){
+      const cur=map.get(p.key)||{name:p.name,quantity:0,revenue:0,orders:0};
+      cur.quantity+=p.quantity; cur.revenue+=p.revenue; cur.orders+=p.orders;
+      map.set(p.key,cur);
+    }
+  }
+  const arr=Array.from(map.values()).sort((a,b)=>b.revenue-a.revenue);
+  const top=arr.slice(0,topN);
+  const rest=arr.slice(topN);
+  if(rest.length>0) top.push({name:'Khác ('+rest.length+' SP)',quantity:rest.reduce((a,p)=>a+p.quantity,0),revenue:rest.reduce((a,p)=>a+p.revenue,0),orders:rest.reduce((a,p)=>a+p.orders,0)});
+  return top;
+}
+
+function render(){
+  const recs=getRecords();
+  const k=agg(recs);
+  document.getElementById('badge-orders').textContent=fmtVN(k.total_orders)+' đơn';
+  document.getElementById('badge-gmv').textContent='GMV: ₫'+fmt(k.gmv);
+  renderKPI(k,recs);
+  renderRevFunnel(k);
+  renderConvFunnel(k);
+  renderMonth(recs);
+  renderShop(recs);
+  renderProduct(recs);
+  renderFee(k);
+  renderCancel(k,recs);
+  renderCancelRate(recs);
+}
+
+/* KPI */
+function renderKPI(k,recs){
+  const kpis=[
+    {l:'Tổng Đơn Đặt',          v:fmtVN(k.total_orders),                 s:fmtVN(k.delivered_orders)+' đã giao | '+fmtVN(k.in_progress_orders)+' đang xử lý', c:'c-blue',   i:'🛒'},
+    {l:'GMV (Tổng DT Đặt)',      v:'₫'+fmt(k.gmv),                        s:'Bao gồm cả hủy & hoàn', c:'c-yellow', i:'💵'},
+    {l:'NMV (DT Về Ví Thực)',    v:'₫'+fmt(k.nmv),                        s:'Sau phí sàn, không kể hủy/hoàn', c:'c-green',  i:'💰'},
+    {l:'DT Đã Hủy',             v:'₫'+fmt(k.cancelled_value),             s:fmtVN(k.cancelled_orders)+' đơn ('+k.cancel_rate.toFixed(1)+'%)', c:'c-red',    i:'❌'},
+    {l:'DT Đơn Hoàn',           v:'₫'+fmt(k.returned_value),              s:fmtVN(k.returned_orders)+' đơn hoàn ('+k.return_rate.toFixed(1)+'%)', c:'c-orange', i:'↩️'},
+    {l:'Tổng Phí Sàn',          v:'₫'+fmt(k.fees_value),                  s:(k.gmv>0?(k.fees_value/k.gmv*100).toFixed(2):0)+'% / GMV', c:'c-pink',   i:'🏷️'},
+    {l:'AOV (Giá Trị TB/Đơn)',  v:'₫'+fmt(k.aov),                         s:'Average Order Value', c:'c-purple', i:'📊'},
+    {l:'Tỷ Lệ Hủy',            v:k.cancel_rate.toFixed(1)+'%',           s:'Hoàn: '+k.return_rate.toFixed(1)+'% | Giao: '+k.delivery_rate.toFixed(1)+'%', c:'c-teal',   i:'🚫'},
+  ];
+  document.getElementById('kpi').innerHTML=kpis.map(x=>`
+    <div class="kpi-card ${x.c}" title="${x.l}">
+      <div class="kpi-icon">${x.i}</div>
+      <div class="kpi-label">${x.l}</div>
+      <div class="kpi-value">${x.v}</div>
+      <div class="kpi-sub">${x.s}</div>
+    </div>`).join('');
+}
+
+/* REVENUE FUNNEL */
+function renderRevFunnel(k){
+  const maxRev=k.gmv||1;
+  // Calculated tiers
+  const confirmed_value = k.gmv - k.cancelled_value;  // non-cancelled
+  const shipped_value   = k.nmv + k.fees_value + k.returned_value; // all shipped (delivered+returned), before fees
+  const delivered_value = k.nmv + k.fees_value; // successfully delivered, before fees
+  const steps=[
+    {label:'Tổng đã đặt',              n:k.total_orders,                                  rev:k.gmv,             color:'#58a6ff',
+     note:'GMV — Tất cả đơn kể cả hủy'},
+    {label:'Đã xác nhận',              n:k.total_orders-k.cancelled_orders,               rev:confirmed_value,   color:'#3fb950',
+     leak:{n:k.cancelled_orders, r:k.cancelled_value, label:'đơn hủy'},
+     note:'Đơn không bị hủy = GMV - DT hủy'},
+    {label:'Đang/Đã giao hàng',        n:k.delivered_orders+k.returned_orders+k.in_progress_orders, rev:shipped_value, color:'#14b8a6',
+     note:'Đơn đã lên đường (giao thành công + hoàn + đang xử lý)'},
+    {label:'Đơn hoàn trả',             n:k.returned_orders,                               rev:k.returned_value,  color:'#f97316',
+     note:'Hàng bị trả lại — rò rỉ doanh thu'},
+    {label:'DT ghi nhận (trước phí)',  n:k.delivered_orders,                              rev:delivered_value,   color:'#a371f7',
+     note:'NMV + Phí sàn — Doanh thu đơn giao thành công, chưa trừ phí'},
+    {label:'DT về ví (sau phí)',        n:null,                                            rev:k.nmv,             color:'#ec4899',
+     note:'NMV — Doanh thu thực nhận sau khi trừ toàn bộ phí sàn'},
+  ];
+  let html='';
+  steps.forEach((st,i)=>{
+    const barW=Math.max((st.rev/maxRev*100),.4).toFixed(1);
+    const pct=maxRev>0?(st.rev/maxRev*100):0;
+    html+=`
+      <div title="${st.note}">
+        <div class="rfs">
+          <div class="rfs-label">${st.label}</div>
+          <div class="rfs-track">
+            <div class="rfs-bar" style="width:${barW}%;background:linear-gradient(90deg,${st.color}44,${st.color}77);border-left:3px solid ${st.color}">
+              <span>₫${fmt(st.rev)}</span>
+            </div>
+          </div>
+          <div class="rfs-meta">
+            <span class="rfs-cnt">${st.n!==null?fmtVN(st.n)+' đơn':''}</span>
+            <span class="rfs-pct" style="color:${st.color}">${pct.toFixed(1)}%</span>
+          </div>
+        </div>
+        ${st.leak?`<div style="padding-left:170px;padding-top:2px"><span class="rf-leak">⬇ rò rỉ hủy: ${fmtVN(st.leak.n)} đơn — ₫${fmt(st.leak.r)} (${maxRev>0?(st.leak.r/maxRev*100).toFixed(1):0}%)</span></div>`:''}
+        ${i===3?'<div class="rf-sep"></div>':''}
+        ${i<steps.length-1&&i!==3?`<div class="rf-conn"><div class="rf-conn-line"></div></div>`:''}
+      </div>`;
+  });
+  // Fee note
+  html+=`<div class="note" style="margin-top:10px">
+    <span>📌 Phí sàn:</span> ₫${fmt(k.fees_value)} = ${k.gmv>0?(k.fees_value/k.gmv*100).toFixed(2):0}% GMV.
+    Rò rỉ tổng: hủy ₫${fmt(k.cancelled_value)} + hoàn ₫${fmt(k.returned_value)} + phí ₫${fmt(k.fees_value)} = ₫${fmt(k.cancelled_value+k.returned_value+k.fees_value)}.
+  </div>`;
+  document.getElementById('rfunnel').innerHTML=html;
+}
+
+/* CONVERSION FUNNEL */
+function renderConvFunnel(k){
+  const t=k.total_orders||1;
+  const steps=[
+    {l:'Tổng đặt hàng', n:k.total_orders,                                                c:'#58a6ff'},
+    {l:'Đã xác nhận',   n:k.total_orders-k.cancelled_orders,                             c:'#3fb950'},
+    {l:'Đang giao/XL',  n:k.delivered_orders+k.in_progress_orders+k.returned_orders,     c:'#14b8a6'},
+    {l:'Đã giao thành', n:k.delivered_orders,                                            c:'#a371f7'},
+  ];
+  const cancelSteps=[
+    {l:'Hủy đơn',  n:k.cancelled_orders,  c:'#ef4444'},
+    {l:'Hoàn hàng',n:k.returned_orders,   c:'#f97316'},
+  ];
+  let html='';
+  steps.forEach(st=>{
+    const pct=t?st.n/t*100:0;
+    html+=`<div class="cf-row">
+      <div class="cf-label">${st.l}</div>
+      <div class="cf-track"><div class="cf-bar" style="width:${pct.toFixed(1)}%;background:${st.c}66;border-left:3px solid ${st.c}">${st.n>0?fmtVN(st.n)+' đơn':''}</div></div>
+      <div class="cf-n">${fmtVN(st.n)}</div>
+      <div class="cf-pct">${pct.toFixed(1)}%</div>
+    </div>`;
+  });
+  html+='<div class="cf-sep"></div>';
+  cancelSteps.forEach(st=>{
+    const pct=t?st.n/t*100:0;
+    html+=`<div class="cf-row">
+      <div class="cf-label" style="color:${st.c}88">${st.l}</div>
+      <div class="cf-track"><div class="cf-bar" style="width:${pct.toFixed(1)}%;background:${st.c}44;border-left:3px solid ${st.c}88">${st.n>0?fmtVN(st.n)+' — ₫'+fmt(st.c==='#ef4444'?k.cancelled_value:k.returned_value):''}</div></div>
+      <div class="cf-n" style="color:${st.c}88">${fmtVN(st.n)}</div>
+      <div class="cf-pct" style="color:${st.c}">${pct.toFixed(1)}%</div>
+    </div>`;
+  });
+  document.getElementById('cfunnel').innerHTML=html;
+}
+
+/* MONTH COMPARISON */
+function renderMonth(recs){
+  const months=['2026-05','2026-06'];
+  const mLabels=['Tháng 5/2026','Tháng 6/2026'];
+  const shops=SHOP_LIST.map(s=>s.id);
+  const shopLabels=SHOP_LIST.map(s=>s.label.replace('Tâm Anh ','TA ').replace('Greatness','G').replace('KDK Japan Since 1909','KDK'));
+  const COLORS=['#58a6ff','#3fb950','#d29922','#a371f7','#ec4899','#14b8a6'];
+
+  // Total by month
+  const mGMV=months.map(m=>{
+    const mrs=recs.filter(r=>r.month===m);
+    return mrs.reduce((a,r)=>a+r.gmv,0)/1e6;
+  });
+  const mNMV=months.map(m=>{
+    const mrs=recs.filter(r=>r.month===m);
+    return mrs.reduce((a,r)=>a+r.nmv,0)/1e6;
+  });
+  const mCancel=months.map(m=>{
+    const mrs=recs.filter(r=>r.month===m);
+    return mrs.reduce((a,r)=>a+r.cancelled_value,0)/1e6;
+  });
+  const mOrders=months.map(m=>{
+    const mrs=recs.filter(r=>r.month===m);
+    return mrs.reduce((a,r)=>a+r.total_orders,0);
+  });
+
+  dc('month');
+  charts['month']=new Chart(document.getElementById('cMonth'),{
+    type:'bar',
+    data:{
+      labels:mLabels,
+      datasets:[
+        {label:'GMV (M₫)',   data:mGMV,    backgroundColor:'#58a6ff44',borderColor:'#58a6ff',borderWidth:2,yAxisID:'y'},
+        {label:'NMV (M₫)',   data:mNMV,    backgroundColor:'#3fb95044',borderColor:'#3fb950',borderWidth:2,yAxisID:'y'},
+        {label:'DT Hủy (M₫)',data:mCancel, backgroundColor:'#ef444433',borderColor:'#ef4444',borderWidth:2,yAxisID:'y'},
+        {label:'Số đơn',     data:mOrders, type:'line',borderColor:'#d29922',backgroundColor:'#d2992222',pointRadius:5,pointBackgroundColor:'#d29922',yAxisID:'y1',tension:0},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8b949e',font:{size:10},boxWidth:10}}},
+      scales:{
+        x:{ticks:{color:'#8b949e',font:{size:11}},grid:{color:'#21262d'}},
+        y:{position:'left',ticks:{color:'#484f58',font:{size:9},callback:v=>v+'M'},grid:{color:'#21262d44'},title:{display:true,text:'Triệu ₫',color:'#484f58',font:{size:9}}},
+        y1:{position:'right',ticks:{color:'#d29922',font:{size:9}},grid:{display:false},title:{display:true,text:'Số đơn',color:'#d29922',font:{size:9}}},
+      }}
+  });
+}
+
+/* SHOP CHART */
+function renderShop(recs){
+  const shopMap={};
+  SHOP_LIST.forEach(s=>{shopMap[s.id]={label:s.label,gmv:0,nmv:0,cancelled:0,fees:0,orders:0};});
+  recs.forEach(r=>{
+    if(shopMap[r.shop_id]){
+      shopMap[r.shop_id].gmv+=r.gmv;
+      shopMap[r.shop_id].nmv+=r.nmv;
+      shopMap[r.shop_id].cancelled+=r.cancelled_value;
+      shopMap[r.shop_id].fees+=r.fees_value;
+      shopMap[r.shop_id].orders+=r.total_orders;
+    }
+  });
+  const entries=Object.values(shopMap).filter(s=>s.gmv>0).sort((a,b)=>b.gmv-a.gmv);
+  const labels=entries.map(e=>e.label.replace('Tâm Anh ','TA ').replace('Greatness ','G').replace('KDK Japan Since 1909','KDK'));
+  const COLORS=['#58a6ff','#3fb950','#d29922','#a371f7','#ec4899','#14b8a6'];
+  dc('shop');
+  charts['shop']=new Chart(document.getElementById('cShop'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'GMV (M₫)',    data:entries.map(e=>+(e.gmv/1e6).toFixed(1)),    backgroundColor:COLORS.map(c=>c+'44'),borderColor:COLORS,borderWidth:2},
+      {label:'NMV (M₫)',   data:entries.map(e=>+(e.nmv/1e6).toFixed(1)),    backgroundColor:'#3fb95033',borderColor:'#3fb950',borderWidth:1,borderDash:[4,3]},
+      {label:'DT Hủy (M₫)',data:entries.map(e=>+(e.cancelled/1e6).toFixed(1)),backgroundColor:'#ef444422',borderColor:'#ef4444',borderWidth:1},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8b949e',font:{size:10},boxWidth:10}}},
+      scales:{
+        x:{ticks:{color:'#8b949e',font:{size:9}},grid:{color:'#21262d'}},
+        y:{ticks:{color:'#484f58',font:{size:9},callback:v=>v+'M'},grid:{color:'#21262d44'},title:{display:true,text:'M₫',color:'#484f58',font:{size:9}}},
+      }}
+  });
+}
+
+/* PRODUCT */
+function renderProduct(recs){
+  const prods=getProducts(recs,10);
+  const COLORS=['#58a6ff','#3fb950','#d29922','#a371f7','#ec4899','#14b8a6','#f97316','#ef4444','#84cc16','#06b6d4','#8b949e'];
+  dc('prod');
+  charts['prod']=new Chart(document.getElementById('cProd'),{
+    type:'doughnut',
+    data:{
+      labels:prods.map(p=>p.name.length>35?p.name.slice(0,33)+'…':p.name),
+      datasets:[{data:prods.map(p=>p.revenue),backgroundColor:COLORS,borderColor:'#161b22',borderWidth:2}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'right',labels:{color:'#8b949e',font:{size:8.5},boxWidth:10,padding:5}},
+        tooltip:{callbacks:{label:ctx=>{
+          const p=prods[ctx.dataIndex];
+          return[` ₫${fmt(p.revenue)} (${p.orders} đơn)`,` SL: ${fmtVN(p.quantity)} sản phẩm`];
+        }}}
+      }}
+  });
+}
+
+/* FEE */
+function renderFee(k){
+  const gmv=k.gmv||1;
+  // Estimate fee breakdown (total fees = fees_value; breakdown based on Shopee typical ratios)
+  // From actual data: fees_value is total. We show what we know.
+  const rows_data=[
+    {n:'Phí thanh toán (TT)',  v:k.fees_value*0.267, c:'#58a6ff', note:'~5% NMV'},
+    {n:'Phí cố định (CĐ)',     v:k.fees_value*0.548, c:'#3fb950', note:'~10-12% NMV'},
+    {n:'Phí dịch vụ (DV)',     v:k.fees_value*0.139, c:'#d29922', note:'~2-3% NMV'},
+    {n:'Shop giảm giá & khác', v:k.fees_value*0.046, c:'#a371f7', note:''},
+  ];
+  const maxV=Math.max(...rows_data.map(f=>f.v),1);
+  let rows=rows_data.map(f=>`<tr>
+    <td>${f.n}</td>
+    <td style="text-align:right">₫${fmtVN(f.v)}</td>
+    <td style="text-align:right;color:#484f58">${(f.v/gmv*100).toFixed(2)}%</td>
+    <td style="width:70px"><div class="fbar"><div class="fbar-fill" style="width:${(f.v/maxV*100).toFixed(0)}%;background:${f.c}"></div></div></td>
+  </tr>`).join('');
+  rows+=`<tr>
+    <td>TỔNG PHÍ SÀN</td>
+    <td style="text-align:right">₫${fmtVN(k.fees_value)}</td>
+    <td style="text-align:right">${(k.fees_value/gmv*100).toFixed(2)}%</td>
+    <td></td>
+  </tr>`;
+  document.getElementById('fee-tbl').innerHTML=`<thead><tr><th>Loại phí</th><th>Ước tính</th><th>% GMV</th><th></th></tr></thead><tbody>${rows}</tbody>
+  <tfoot><tr><td colspan="4" style="font-size:.63rem;color:#484f58;padding:6px 8px 0">* Ước tính dựa trên tỷ lệ phí Shopee thông thường — dữ liệu gốc không tách riêng từng loại phí</td></tr></tfoot>`;
+}
+
+/* CANCEL CHART */
+function renderCancel(k,recs){
+  const active=k.total_orders-k.cancelled_orders-k.returned_orders;
+  dc('cancel');
+  charts['cancel']=new Chart(document.getElementById('cCancel'),{
+    type:'doughnut',
+    data:{
+      labels:['Giao thành công','Đang xử lý','Đơn hoàn','Đơn hủy'],
+      datasets:[{
+        data:[k.delivered_orders, k.in_progress_orders, k.returned_orders, k.cancelled_orders],
+        backgroundColor:['#3fb95066','#58a6ff55','#f9731666','#ef444488'],
+        borderColor:['#3fb950','#58a6ff','#f97316','#ef4444'],
+        borderWidth:1
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{color:'#8b949e',font:{size:9},boxWidth:10,padding:4}}}}
+  });
+  const boxes=[
+    {v:k.cancelled_orders, rev:k.cancelled_value, l:'Đơn hủy',    pct:k.cancel_rate, c:'#ef4444'},
+    {v:k.returned_orders,  rev:k.returned_value,  l:'Đơn hoàn',   pct:k.return_rate, c:'#f97316'},
+    {v:k.delivered_orders, rev:k.nmv+k.fees_value,l:'Đã giao',    pct:k.total_orders?(k.delivered_orders/k.total_orders*100):0, c:'#3fb950'},
+    {v:k.in_progress_orders,rev:0,                l:'Đang xử lý', pct:k.total_orders?(k.in_progress_orders/k.total_orders*100):0, c:'#58a6ff'},
+  ];
+  document.getElementById('cboxes').innerHTML=boxes.map(b=>`
+    <div class="c-box">
+      <div class="v" style="color:${b.c}">${fmtVN(b.v)}</div>
+      <div class="l">${b.l}</div>
+      <div class="r" style="color:${b.c}88">${b.pct.toFixed(1)}%${b.rev>0?' · ₫'+fmt(b.rev):''}</div>
+    </div>`).join('');
+}
+
+/* CANCEL RATE BY SHOP */
+function renderCancelRate(recs){
+  // Per-shop cancel rate (both months combined)
+  const shopMap={};
+  SHOP_LIST.forEach(s=>{shopMap[s.id]={label:s.label.replace('Tâm Anh ','TA ').replace('Greatness ','G').replace('KDK Japan Since 1909','KDK'),
+    may:{orders:0,cancel:0,return:0}, jun:{orders:0,cancel:0,return:0}};});
+  recs.forEach(r=>{
+    if(!shopMap[r.shop_id]) return;
+    const m=r.month==='2026-05'?'may':'jun';
+    shopMap[r.shop_id][m].orders+=r.total_orders;
+    shopMap[r.shop_id][m].cancel+=r.cancelled_orders;
+    shopMap[r.shop_id][m].return+=r.returned_orders;
+  });
+  const entries=Object.values(shopMap).filter(s=>s.may.orders+s.jun.orders>0);
+  const labels=entries.map(e=>e.label);
+  const COLORS=['#58a6ff','#3fb950'];
+  dc('cancelRate');
+  charts['cancelRate']=new Chart(document.getElementById('cCancelRate'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Tỷ lệ hủy T5 (%)', data:entries.map(e=>e.may.orders?+(e.may.cancel/e.may.orders*100).toFixed(1):0),
+        backgroundColor:'#ef444444',borderColor:'#ef4444',borderWidth:2},
+      {label:'Tỷ lệ hủy T6 (%)', data:entries.map(e=>e.jun.orders?+(e.jun.cancel/e.jun.orders*100).toFixed(1):0),
+        backgroundColor:'#f9731644',borderColor:'#f97316',borderWidth:2},
+      {label:'Tỷ lệ hoàn T5 (%)',data:entries.map(e=>e.may.orders?+(e.may.return/e.may.orders*100).toFixed(1):0),
+        backgroundColor:'#d2922244',borderColor:'#d29922',borderWidth:1,borderDash:[4,3]},
+      {label:'Tỷ lệ hoàn T6 (%)',data:entries.map(e=>e.jun.orders?+(e.jun.return/e.jun.orders*100).toFixed(1):0),
+        backgroundColor:'#a371f744',borderColor:'#a371f7',borderWidth:1,borderDash:[4,3]},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8b949e',font:{size:9},boxWidth:10}}},
+      scales:{
+        x:{ticks:{color:'#8b949e',font:{size:9}},grid:{color:'#21262d'}},
+        y:{ticks:{color:'#484f58',font:{size:9},callback:v=>v+'%'},grid:{color:'#21262d44'},
+          title:{display:true,text:'Tỷ lệ (%)',color:'#484f58',font:{size:9}},
+          max:55},
+      }}
+  });
+}
+
+render();
+</script>
+</body>
+</html>
