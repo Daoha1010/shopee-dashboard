@@ -197,7 +197,7 @@ app.get('/api/stats', (_, res) => {
 });
 
 // Xóa dữ liệu
-app.delete('/api/clear', requireKey, (req, res) => {
+app.delete('/api/clear', (req, res) => {
   const { shopId } = req.query;
   if (shopId && shopId !== 'all') {
     PAGE_TYPES.forEach(t => {
