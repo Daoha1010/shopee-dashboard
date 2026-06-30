@@ -364,6 +364,7 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
   
   <button class="tab" data-tab="timeline">📢 Quảng cáo</button>
   <button class="tab" data-tab="raw">🔧 Raw Data</button>
+  <button class="tab" data-tab="report">📊Report order</button>
 </div>
 
 <div class="content">
@@ -511,7 +512,14 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
     </div>
   </div>
 
-  
+  <!-- ═══ REPORT ORDER PANE ══════════════════════════════════════════════ -->
+  <div class="pane" id="pane-report" style="padding:0;height:calc(100vh - 110px);box-sizing:border-box;">
+    <iframe id="report-iframe" src="/dashboard_6shop.html"
+      style="width:100%;height:100%;border:none;display:block;"
+      loading="lazy">
+    </iframe>
+  </div>
+
 </div>
 
 <script>
@@ -2036,135 +2044,4 @@ async function restoreDriveImported() {
     // Hiện loading banner
     const loadBar = document.createElement('div');
     loadBar.id = 'drive-restore-loading';
-    loadBar.style.cssText = 'background:#eff6ff;border-bottom:2px solid #3b82f6;padding:8px 20px;font-size:12px;color:#1e40af;';
-    loadBar.textContent = `⏳ Đang khôi phục ${keys.length} file từ Drive...`;
-    document.querySelector('.tabs')?.parentNode?.insertBefore(loadBar, document.querySelector('.tabs'));
-
-    // Tải lại từng file từ Drive và parse
-    let done = 0;
-    for (const [key, m] of Object.entries(meta)) {
-      try {
-        loadBar.textContent = `⏳ Khôi phục ${done}/${keys.length}: ${m.fileName}`;
-        const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${m.fileId}?fields=mimeType`, {
-          headers: { Authorization: `Bearer ${gToken}` }
-        });
-        const fileMeta = await metaRes.json();
-        let dlUrl;
-        if (fileMeta.mimeType === 'application/vnd.google-apps.spreadsheet') {
-          dlUrl = `https://www.googleapis.com/drive/v3/files/${m.fileId}/export?mimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`;
-        } else {
-          dlUrl = `https://www.googleapis.com/drive/v3/files/${m.fileId}?alt=media`;
-        }
-        const dlRes = await fetch(dlUrl, { headers: { Authorization: `Bearer ${gToken}` } });
-        if (!dlRes.ok) throw new Error(`HTTP ${dlRes.status}`);
-        const buf = await dlRes.arrayBuffer();
-        const wb = XLSX.read(buf, { type: 'array', cellDates: true });
-        const ws = wb.Sheets[m.sheetName] || wb.Sheets[wb.SheetNames[0]];
-        if (ws) {
-          const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-          driveImported[key] = { ...m, rows };
-        }
-        done++;
-      } catch(e) { console.warn('Restore file lỗi:', m.fileName, e); done++; }
-    }
-
-    loadBar.remove();
-    renderDriveData();
-    console.log(`✅ Restored ${done}/${keys.length} files from Drive`);
-  } catch(e) {
-    document.getElementById('drive-restore-loading')?.remove();
-    console.warn('restoreDriveImported error', e);
-  }
-}
-
-function showDriveRestorePrompt(errDetail) {
-  // Hiện banner nhắc re-login để lấy quyền Firestore
-  const existing = document.getElementById('drive-restore-prompt');
-  if (existing) existing.remove(); // refresh nội dung
-  const bar = document.createElement('div');
-  bar.id = 'drive-restore-prompt';
-  bar.style.cssText = 'background:#fef3c7;border-bottom:2px solid #f59e0b;padding:8px 20px;font-size:12px;color:#92400e;';
-  const detail = errDetail ? `<div style="margin-top:4px;font-size:11px;opacity:0.8;word-break:break-all;">Chi tiết lỗi: ${escHtml(errDetail.substring(0,300))}</div>` : '';
-  bar.innerHTML = `<div style="display:flex;align-items:center;gap:10px;">
-    📂 <b>Drive data chưa được khôi phục (403).</b> Cần đăng nhập lại để cấp quyền Firestore.
-    <button onclick="disconnectDrive();connectDrive();this.closest('#drive-restore-prompt').remove();"
-      style="background:#f59e0b;color:#fff;border:none;border-radius:5px;padding:4px 12px;font-size:11px;cursor:pointer;font-weight:700;">
-      🔑 Đăng nhập lại
-    </button>
-    <button onclick="this.closest('#drive-restore-prompt').remove()" style="background:none;border:none;cursor:pointer;color:#92400e;font-size:16px;margin-left:auto;">✕</button>
-  </div>${detail}`;
-  const tabs = document.querySelector('.tabs');
-  if (tabs) tabs.parentNode.insertBefore(bar, tabs);
-}
-
-function showFirestoreError(op, status, errText) {
-  const id = 'drive-save-error';
-  const existing = document.getElementById(id);
-  if (existing) existing.remove();
-  const bar = document.createElement('div');
-  bar.id = id;
-  bar.style.cssText = 'background:#fee2e2;border-bottom:2px solid #ef4444;padding:8px 20px;font-size:12px;color:#991b1b;';
-  // Thử parse JSON để lấy message rõ hơn
-  let msg = errText;
-  try { const j = JSON.parse(errText); msg = j.error?.message || errText; } catch(e) {}
-  bar.innerHTML = `<div style="display:flex;align-items:center;gap:10px;">
-    ❌ <b>Firestore ${op} lỗi ${status}:</b> ${escHtml(msg.substring(0,300))}
-    <button onclick="this.closest('#drive-save-error').remove()" style="background:none;border:none;cursor:pointer;color:#991b1b;font-size:16px;margin-left:auto;">✕</button>
-  </div>`;
-  const tabs = document.querySelector('.tabs');
-  if (tabs) tabs.parentNode.insertBefore(bar, tabs);
-}
-
-function renderDriveData() {
-  // Nhóm theo type
-  const byType = {};
-  Object.values(driveImported).forEach(d => {
-    if (!byType[d.type]) byType[d.type] = [];
-    byType[d.type].push(d);
-  });
-
-  // Orders: render 1 view tổng hợp thay vì nhiều pane
-  renderOrdersUnified(byType['orders'] || []);
-
-  // Các type khác: giữ nguyên từng pane riêng
-  ['ads','performance','traffic','raw'].forEach(type => {
-    const paneId = type === 'raw' ? 'pane-raw' : `pane-${type}`;
-    const pane = document.getElementById(paneId);
-    if (!pane) return;
-
-    pane.querySelectorAll('.drive-pane').forEach(el => el.remove());
-
-    const items = byType[type];
-    if (!items || !items.length) return;
-
-    items.forEach(item => {
-      const dp = document.createElement('div');
-      dp.className = 'drive-pane';
-      dp.innerHTML = `
-        <div class="drive-pane-title">📂 ${escHtml(item.fileName)} — ${escHtml(item.sheetName)} (${item.rows.length} dòng)</div>
-        ${buildDriveTable(item.rows)}
-      `;
-      pane.insertBefore(dp, pane.firstChild);
-    });
-  });
-}
-
-function buildDriveTable(rows) {
-  if (!rows.length) return '<p style="font-size:12px;color:var(--mu)">Không có dữ liệu.</p>';
-  const cols = Object.keys(rows[0]);
-  const preview = rows.slice(0, 200);
-  return `<div class="tw" style="max-height:400px">
-    <table>
-      <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-      <tbody>${preview.map(r=>`<tr>${cols.map(c=>`<td>${r[c]??''}</td>`).join('')}</tr>`).join('')}</tbody>
-    </table>
-  </div>
-  ${rows.length > 200 ? `<div style="font-size:11px;color:var(--mu);padding:6px 0">Hiển thị 200/${rows.length} dòng</div>` : ''}`;
-}
-
-/* ── INIT ── */
-loadData();
-setInterval(loadData, 5000);
-</script>
-</body>
-</html>
+    loadBar.style.cssText = 'background:#eff6ff;border-bottom:2px solid #3b82f6;padding:8px 20px;font-
