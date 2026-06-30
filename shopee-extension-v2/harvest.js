@@ -49,26 +49,27 @@ function buildShopPages(dateRange) {
       wait:  6000,
       label: '📊 GMV Max'
     },
-    {
-      url:       `/portal/sale/order`,
-      match:     /\/sale\/order/,
-      wait:      6000,
-      multiPage: 8,     // click next page tối đa 8 lần → ~320 đơn
-      pageWait:  3500,  // chờ mỗi trang load
-      label:     '📦 Đơn hàng'
-    },
-    {
-      url:   `/portal/datacenter/product/performance`,
-      match: /datacenter.*performance/,
-      wait:  5000,
-      label: '📈 Hiệu quả SP'
-    },
-    {
-      url:   `/portal/datacenter/product/traffic`,
-      match: /datacenter.*traffic/,
-      wait:  5000,
-      label: '🔍 Traffic'
-    }
+    // Tạm thời tắt — bật lại khi cần
+    // {
+    //   url:       `/portal/sale/order`,
+    //   match:     /\/sale\/order/,
+    //   wait:      6000,
+    //   multiPage: 8,
+    //   pageWait:  3500,
+    //   label:     '📦 Đơn hàng'
+    // },
+    // {
+    //   url:   `/portal/datacenter/product/performance`,
+    //   match: /datacenter.*performance/,
+    //   wait:  5000,
+    //   label: '📈 Hiệu quả SP'
+    // },
+    // {
+    //   url:   `/portal/datacenter/product/traffic`,
+    //   match: /datacenter.*traffic/,
+    //   wait:  5000,
+    //   label: '🔍 Traffic'
+    // }
   ];
 }
 
