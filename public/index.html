@@ -363,150 +363,18 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
 </div>
 
 <div class="tabs">
-  <button class="tab active" data-tab="ads">📊 DASHBOARD <span class="badge" id="b-ads">0</span></button>
-  <button class="tab" data-tab="orders">📦 Đơn hàng <span class="badge" id="b-orders">0</span></button>
-  <button class="tab" data-tab="performance">📈 Hiệu quả SP <span class="badge" id="b-performance">0</span></button>
-  <button class="tab" data-tab="traffic">🔍 Nguồn truy cập <span class="badge" id="b-traffic">0</span></button>
+  
+  
+  
+  
   <button class="tab" data-tab="timeline">📢 Quảng cáo</button>
   <button class="tab" data-tab="raw">🔧 Raw Data</button>
 </div>
 
 <div class="content">
-  <div class="pane active" id="pane-ads">
-    <div class="cards" id="c-ads"></div>
-    <div class="panel" id="cp-ads" style="display:none">
-      <div class="ph"><span class="ph-title">Chi phí & Doanh thu (Top 15 sản phẩm)</span></div>
-      <div class="chart-wrap"><canvas id="ch-ads"></canvas></div>
-    </div>
-    <div class="panel">
-      <div class="tb-row2">
-        <span class="f-label">🏪 Shop:</span>
-        <div class="ms-wrap" id="ms-ads">
-          <button class="ms-btn" type="button" onclick="toggleMs('ads')">
-            <span class="ms-label" id="ms-label-ads">Tất cả shop</span>
-            <span class="ms-caret">▼</span>
-          </button>
-          <div class="ms-panel" id="ms-panel-ads">
-            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('ads',this.value)">
-            <div class="ms-list" id="ms-list-ads"><div class="ms-empty">Đang tải…</div></div>
-            <div class="ms-footer">
-              <button onclick="selectAllMs('ads')">☑ Tất cả</button>
-              <button onclick="clearMs('ads')">✕ Bỏ chọn</button>
-            </div>
-          </div>
-        </div>
-        <span class="f-label">📢 Loại:</span>
-        <select class="f-sel" id="ft-ads" onchange="setFilter('ads','campaignType',this.value)" style="max-width:180px">
-          <option value="all">Tất cả loại</option>
-          <option value="Chiến dịch SP">Chiến dịch SP (CPC)</option>
-          <option value="Chiến dịch Shop">Chiến dịch Shop (GMV Max)</option>
-        </select>
-        <span class="f-label">📅 Từ:</span>
-        <input type="date" class="f-date" id="fd-from-ads" onchange="setFilter('ads','from',this.value)">
-        <span class="f-sep">→</span>
-        <input type="date" class="f-date" id="fd-to-ads" onchange="setFilter('ads','to',this.value)">
-        <button class="btn btn-clr" onclick="clearFilter('ads')">✕ Bỏ lọc</button>
-        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;margin-left:6px;padding:5px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;">
-          <input type="checkbox" id="ads-group-toggle" onchange="onFilterChange('ads')">
-          <span>📊 Gộp theo tên chiến dịch</span>
-        </label>
-      </div>
-      <div class="tb">
-        <input class="srch" id="s-ads" placeholder="🔍 Tìm tên chiến dịch...">
-        <span class="cnt" id="cnt-ads"></span>
-        <button class="btn btn-exp" onclick="exportSheet('ads')">⬇ Excel</button>
-      </div>
-      <div class="tw"><table id="t-ads"><thead></thead><tbody></tbody></table></div>
-    </div>
-  </div>
-  <div class="pane" id="pane-orders">
-    <div class="cards" id="c-orders"></div>
-    <div class="panel" id="cp-orders" style="display:none">
-      <div class="ph"><span class="ph-title">Phân bố trạng thái đơn</span></div>
-      <div class="chart-wrap" style="height:240px"><canvas id="ch-orders"></canvas></div>
-    </div>
-    <div class="panel">
-      <div class="tb-row2">
-        <span class="f-label">🏪 Shop:</span>
-        <div class="ms-wrap" id="ms-orders">
-          <button class="ms-btn" type="button" onclick="toggleMs('orders')">
-            <span class="ms-label" id="ms-label-orders">Tất cả shop</span>
-            <span class="ms-caret">▼</span>
-          </button>
-          <div class="ms-panel" id="ms-panel-orders">
-            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('orders',this.value)">
-            <div class="ms-list" id="ms-list-orders"><div class="ms-empty">Đang tải…</div></div>
-            <div class="ms-footer">
-              <button onclick="selectAllMs('orders')">☑ Tất cả</button>
-              <button onclick="clearMs('orders')">✕ Bỏ chọn</button>
-            </div>
-          </div>
-        </div>
-        <span class="f-label">📦 Trạng thái:</span>
-        <select class="f-sel" id="ft-orders" onchange="setFilter('orders','orderStatus',this.value)" style="max-width:200px">
-          <option value="all">Tất cả trạng thái</option>
-          <option value="Đã giao">✅ Đã giao</option>
-          <option value="Đã giao cho ĐVVC">🚚 Đã giao cho ĐVVC</option>
-          <option value="Chờ xác nhận">⏳ Chờ xác nhận</option>
-          <option value="Chờ lấy hàng">📦 Chờ lấy hàng</option>
-          <option value="Đã hủy">❌ Đã hủy</option>
-        </select>
-        <span class="f-label">📅 Từ:</span>
-        <input type="date" class="f-date" id="fd-from-orders" onchange="setFilter('orders','from',this.value)">
-        <span class="f-sep">→</span>
-        <input type="date" class="f-date" id="fd-to-orders" onchange="setFilter('orders','to',this.value)">
-        <button class="btn btn-clr" onclick="clearFilter('orders')">✕ Bỏ lọc</button>
-      </div>
-      <div class="tb">
-        <input class="srch" id="s-orders" placeholder="🔍 Tìm mã đơn, sản phẩm...">
-        <span class="cnt" id="cnt-orders"></span>
-        <span id="ord-import-info" style="font-size:11px;color:var(--mu);"></span>
-        <label class="btn" style="background:#7c3aed;color:#fff;cursor:pointer;margin-left:auto;" title="Import file Excel xuất từ Shopee">
-          📥 Import Excel
-          <input type="file" id="ord-xlsx-inp" accept=".xlsx,.xls" style="display:none" onchange="importOrderExcel(this)">
-        </label>
-        <button class="btn btn-exp" onclick="exportSheet('orders')">⬇ Excel</button>
-      </div>
-      <div class="tw"><table id="t-orders"><thead></thead><tbody></tbody></table></div>
-    </div>
-  </div>
-  <div class="pane" id="pane-performance">
-    <div class="cards" id="c-performance"></div>
-    <div class="panel" id="cp-performance" style="display:none">
-      <div class="ph"><span class="ph-title">Top sản phẩm theo lượt xem</span></div>
-      <div class="chart-wrap"><canvas id="ch-performance"></canvas></div>
-    </div>
-    <div class="panel">
-      <div class="tb-row2">
-        <span class="f-label">🏪 Shop:</span>
-        <div class="ms-wrap" id="ms-performance">
-          <button class="ms-btn" type="button" onclick="toggleMs('performance')">
-            <span class="ms-label" id="ms-label-performance">Tất cả shop</span>
-            <span class="ms-caret">▼</span>
-          </button>
-          <div class="ms-panel" id="ms-panel-performance">
-            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('performance',this.value)">
-            <div class="ms-list" id="ms-list-performance"><div class="ms-empty">Đang tải…</div></div>
-            <div class="ms-footer">
-              <button onclick="selectAllMs('performance')">☑ Tất cả</button>
-              <button onclick="clearMs('performance')">✕ Bỏ chọn</button>
-            </div>
-          </div>
-        </div>
-        <span class="f-label">📅 Từ:</span>
-        <input type="date" class="f-date" id="fd-from-performance" onchange="setFilter('performance','from',this.value)">
-        <span class="f-sep">→</span>
-        <input type="date" class="f-date" id="fd-to-performance" onchange="setFilter('performance','to',this.value)">
-        <button class="btn btn-clr" onclick="clearFilter('performance')">✕ Bỏ lọc</button>
-      </div>
-      <div class="tb">
-        <input class="srch" id="s-performance" placeholder="🔍 Tìm tên sản phẩm...">
-        <span class="cnt" id="cnt-performance"></span>
-        <button class="btn btn-exp" onclick="exportSheet('performance')">⬇ Excel</button>
-      </div>
-      <div class="tw"><table id="t-performance"><thead></thead><tbody></tbody></table></div>
-    </div>
-  </div>
+  
+  
+  
   <div class="pane" id="pane-raw">
     <div class="panel">
       <div class="ph" style="flex-wrap:wrap;gap:8px;">
@@ -642,43 +510,7 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
     </div>
   </div>
 
-  <div class="pane" id="pane-traffic">
-    <div class="cards" id="c-traffic"></div>
-    <div class="panel" id="cp-traffic" style="display:none">
-      <div class="ph"><span class="ph-title">Phân bố nguồn truy cập</span></div>
-      <div class="chart-wrap" style="height:260px"><canvas id="ch-traffic"></canvas></div>
-    </div>
-    <div class="panel">
-      <div class="tb-row2">
-        <span class="f-label">🏪 Shop:</span>
-        <div class="ms-wrap" id="ms-traffic">
-          <button class="ms-btn" type="button" onclick="toggleMs('traffic')">
-            <span class="ms-label" id="ms-label-traffic">Tất cả shop</span>
-            <span class="ms-caret">▼</span>
-          </button>
-          <div class="ms-panel" id="ms-panel-traffic">
-            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('traffic',this.value)">
-            <div class="ms-list" id="ms-list-traffic"><div class="ms-empty">Đang tải…</div></div>
-            <div class="ms-footer">
-              <button onclick="selectAllMs('traffic')">☑ Tất cả</button>
-              <button onclick="clearMs('traffic')">✕ Bỏ chọn</button>
-            </div>
-          </div>
-        </div>
-        <span class="f-label">📅 Từ:</span>
-        <input type="date" class="f-date" id="fd-from-traffic" onchange="setFilter('traffic','from',this.value)">
-        <span class="f-sep">→</span>
-        <input type="date" class="f-date" id="fd-to-traffic" onchange="setFilter('traffic','to',this.value)">
-        <button class="btn btn-clr" onclick="clearFilter('traffic')">✕ Bỏ lọc</button>
-      </div>
-      <div class="tb">
-        <input class="srch" id="s-traffic" placeholder="🔍 Tìm nguồn traffic...">
-        <span class="cnt" id="cnt-traffic"></span>
-        <button class="btn btn-exp" onclick="exportSheet('traffic')">⬇ Excel</button>
-      </div>
-      <div class="tw"><table id="t-traffic"><thead></thead><tbody></tbody></table></div>
-    </div>
-  </div>
+  
 </div>
 
 <script>
