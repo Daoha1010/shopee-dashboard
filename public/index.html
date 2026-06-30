@@ -995,11 +995,6 @@ document.querySelectorAll('.tab').forEach(btn=>{
   });
 });
 
-/* ── SHOP SELECTOR ── */
-document.getElementById('shopSel').addEventListener('change',e=>{
-  currentShop=e.target.value; loadData();
-});
-
 /* ── SHOP NAME MODAL ── */
 function openShopNames() {
   const shops = Object.values(allData.shops || {}).filter(s => s.shopId !== 'unknown');
