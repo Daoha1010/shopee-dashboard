@@ -2765,7 +2765,7 @@ function removeDriveImport(key) {
 
 // ── Firestore save/load ────────────────────────────────────────────
 async function saveDriveToFirestore() {
-  if (!gToken) return;
+  if (!gToken) { console.warn('saveDriveToFirestore: no token'); return; }
   try {
     const body = {
       fields: {
@@ -2778,7 +2778,15 @@ async function saveDriveToFirestore() {
       headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    if (!res.ok) console.warn('Firestore save error', await res.text());
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('❌ Firestore SAVE error', res.status, errText);
+      showFirestoreError('SAVE', res.status, errText);
+    } else {
+      console.log('✅ Firestore SAVE OK');
+      // Xóa thông báo lỗi cũ nếu có
+      document.getElementById('drive-save-error')?.remove();
+    }
   } catch(e) { console.warn('saveDriveToFirestore error', e); }
 }
 
@@ -2788,13 +2796,14 @@ async function restoreDriveImported() {
     const res = await fetch(FS_DOC, {
       headers: { 'Authorization': `Bearer ${gToken}` }
     });
-    if (res.status === 404) return; // chưa có data, bình thường
-    if (res.status === 403) {
-      // Token chưa có quyền datastore → cần re-login
-      showDriveRestorePrompt();
+    if (res.status === 404) { console.log('Firestore: chưa có data (404) - bình thường'); return; }
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('❌ Firestore LOAD error', res.status, errText);
+      if (res.status === 403) showDriveRestorePrompt(errText);
+      else showFirestoreError('LOAD', res.status, errText);
       return;
     }
-    if (!res.ok) { console.warn('Firestore load error', res.status, await res.text()); return; }
     const doc = await res.json();
     const dataStr = doc.fields?.data?.stringValue;
     if (!dataStr) return;
@@ -2806,19 +2815,40 @@ async function restoreDriveImported() {
   } catch(e) { console.warn('restoreDriveImported error', e); }
 }
 
-function showDriveRestorePrompt() {
+function showDriveRestorePrompt(errDetail) {
   // Hiện banner nhắc re-login để lấy quyền Firestore
   const existing = document.getElementById('drive-restore-prompt');
-  if (existing) return;
+  if (existing) existing.remove(); // refresh nội dung
   const bar = document.createElement('div');
   bar.id = 'drive-restore-prompt';
-  bar.style.cssText = 'background:#fef3c7;border-bottom:2px solid #f59e0b;padding:8px 20px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:10px;';
-  bar.innerHTML = `📂 <b>Drive data chưa được khôi phục.</b> Cần đăng nhập lại Google để cấp quyền lưu trữ.
+  bar.style.cssText = 'background:#fef3c7;border-bottom:2px solid #f59e0b;padding:8px 20px;font-size:12px;color:#92400e;';
+  const detail = errDetail ? `<div style="margin-top:4px;font-size:11px;opacity:0.8;word-break:break-all;">Chi tiết lỗi: ${escHtml(errDetail.substring(0,300))}</div>` : '';
+  bar.innerHTML = `<div style="display:flex;align-items:center;gap:10px;">
+    📂 <b>Drive data chưa được khôi phục (403).</b> Cần đăng nhập lại để cấp quyền Firestore.
     <button onclick="disconnectDrive();connectDrive();this.closest('#drive-restore-prompt').remove();"
       style="background:#f59e0b;color:#fff;border:none;border-radius:5px;padding:4px 12px;font-size:11px;cursor:pointer;font-weight:700;">
       🔑 Đăng nhập lại
     </button>
-    <button onclick="this.closest('#drive-restore-prompt').remove()" style="background:none;border:none;cursor:pointer;color:#92400e;font-size:16px;margin-left:auto;">✕</button>`;
+    <button onclick="this.closest('#drive-restore-prompt').remove()" style="background:none;border:none;cursor:pointer;color:#92400e;font-size:16px;margin-left:auto;">✕</button>
+  </div>${detail}`;
+  const tabs = document.querySelector('.tabs');
+  if (tabs) tabs.parentNode.insertBefore(bar, tabs);
+}
+
+function showFirestoreError(op, status, errText) {
+  const id = 'drive-save-error';
+  const existing = document.getElementById(id);
+  if (existing) existing.remove();
+  const bar = document.createElement('div');
+  bar.id = id;
+  bar.style.cssText = 'background:#fee2e2;border-bottom:2px solid #ef4444;padding:8px 20px;font-size:12px;color:#991b1b;';
+  // Thử parse JSON để lấy message rõ hơn
+  let msg = errText;
+  try { const j = JSON.parse(errText); msg = j.error?.message || errText; } catch(e) {}
+  bar.innerHTML = `<div style="display:flex;align-items:center;gap:10px;">
+    ❌ <b>Firestore ${op} lỗi ${status}:</b> ${escHtml(msg.substring(0,300))}
+    <button onclick="this.closest('#drive-save-error').remove()" style="background:none;border:none;cursor:pointer;color:#991b1b;font-size:16px;margin-left:auto;">✕</button>
+  </div>`;
   const tabs = document.querySelector('.tabs');
   if (tabs) tabs.parentNode.insertBefore(bar, tabs);
 }
