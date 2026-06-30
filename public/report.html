@@ -97,6 +97,15 @@
     font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
   }
   .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .ads-input-wrap{display:flex;align-items:center;gap:8px;margin-top:2px;}
+  .ads-input{
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+    font-family:var(--font-mono);font-size:13px;font-weight:500;
+    padding:7px 12px;border-radius:8px;width:160px;outline:none;
+    transition:border-color .15s;
+  }
+  .ads-input:focus{border-color:var(--violet);}
+  .ads-input::placeholder{color:var(--faint);}
   .chip{
     appearance:none;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);
     font-size:13px;font-weight:500;padding:7px 13px;border-radius:999px;cursor:pointer;
@@ -123,6 +132,8 @@
   .kpi-card--teal{border-top-color:var(--teal);}
   .kpi-card--slate{border-top-color:var(--slate);}
   .kpi-card--coral{border-top-color:var(--coral);}
+  .kpi-card--violet{border-top-color:var(--violet);}
+  .kpi-card--green{border-top-color:#16a34a;}
   .kpi-label{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:10px;}
   .kpi-value{font-family:var(--font-mono);font-size:25px;font-weight:600;letter-spacing:-0.01em;color:var(--text);}
   .kpi-sub{font-size:12px;color:var(--faint);margin-top:7px;font-family:var(--font-mono);}
@@ -198,6 +209,16 @@
     .kpi-grid{grid-template-columns:repeat(2,1fr);}
     .hero-title{font-size:26px;}
   }
+  /* NAV LINK */
+  .nav-app-link{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12px;font-weight:500;color:var(--muted);
+    text-decoration:none;padding:6px 12px;border:1px solid var(--border);
+    border-radius:999px;background:var(--surface-2);transition:all .15s;
+    position:absolute;top:20px;right:20px;
+  }
+  .nav-app-link:hover{color:var(--text);border-color:var(--amber);}
+  .hero{position:relative;}
 </style>
 </head>
 <body>
@@ -218,6 +239,9 @@
     </div>
     <h1 class="hero-title">Từ đơn đặt đến doanh thu thực</h1>
     <p class="hero-sub" id="heroSummary">Đang tải dữ liệu…</p>
+    <a href="/app.html" class="nav-app-link" title="Công cụ import dữ liệu">
+      ⚙ Nhập dữ liệu
+    </a>
   </header>
 
   <nav class="filterbar" id="filterbar">
@@ -228,6 +252,13 @@
     <div class="filter-group">
       <span class="filter-label">Tháng</span>
       <div class="chips" id="monthChips"></div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Chi phí Ads (VNĐ)</span>
+      <div class="ads-input-wrap">
+        <input type="text" class="ads-input" id="adsCostInput" placeholder="VD: 5.000.000" 
+               oninput="handleAdsCostInput(this.value)" />
+      </div>
     </div>
   </nav>
 
@@ -322,6 +353,17 @@
     return DATA.records.filter(r => (shop==='all'||r.shop_id===shop) && (month==='all'||r.month===month));
   }
 
+  // ---- Chi phí ads (user input) ----
+  let _adsCostRaw = 0;
+  function handleAdsCostInput(val){
+    _adsCostRaw = parseFloat(val.replace(/[^\d.]/g,'')) || 0;
+    // re-render KPI only
+    renderKPICards(aggregateKPI(currentRecords()));
+  }
+  function currentRecords(){
+    return filterRecords(state.shop, state.month);
+  }
+
   function aggregateKPI(records){
     const sum = k => records.reduce((a,r)=>a+r[k],0);
     const total_orders = sum('total_orders');
@@ -340,6 +382,8 @@
       cancel_rate: total_orders ? cancelled_orders/total_orders*100 : 0,
       return_rate: total_orders ? returned_orders/total_orders*100 : 0,
       aov: total_orders ? gmv/total_orders : 0,
+      ads_cost: _adsCostRaw,
+      roi_pct: nmv > 0 ? _adsCostRaw/nmv*100 : null,
     };
   }
 
@@ -408,9 +452,16 @@
   }
 
   function renderKPICards(kpi){
+    const roiVal = kpi.roi_pct === null
+      ? (kpi.ads_cost > 0 ? 'NMV = 0' : '— nhập chi phí ads')
+      : fmtPct(kpi.roi_pct);
+    const roiSub = kpi.ads_cost > 0
+      ? 'Chi phí ads: '+fmtVNDCompact(kpi.ads_cost)+' / NMV: '+fmtVNDCompact(kpi.nmv)
+      : 'Nhập chi phí ads ở bộ lọc bên trên';
     const cards = [
       {label:'Tổng GMV (giá bán sản phẩm)', value:fmtVNDCompact(kpi.gmv), sub:fmtVNDFull(kpi.gmv), accent:'amber'},
       {label:'NMV — Doanh thu thực (sau phí sàn)', value:fmtVNDCompact(kpi.nmv), sub:fmtVNDFull(kpi.nmv), accent:'teal'},
+      {label:'ROI — Chi phí Ads / NMV', value:roiVal, sub:roiSub, accent:'violet'},
       {label:'Tổng đơn đã đặt', value:fmtInt(kpi.total_orders), sub:'Giá trị TB/đơn (AOV) '+fmtVNDCompact(kpi.aov), accent:'slate'},
       {label:'% Đơn hủy / Đơn đã đặt', value:fmtPct(kpi.cancel_rate), sub:fmtInt(kpi.cancelled_orders)+' đơn hủy', accent:'coral'},
       {label:'% Đơn hoàn / Đơn đã đặt', value:fmtPct(kpi.return_rate), sub:fmtInt(kpi.returned_orders)+' đơn có yêu cầu hoàn', accent:'coral'},

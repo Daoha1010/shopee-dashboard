@@ -1,0 +1,2346 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shopee Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<style>
+:root{--or:#EE4D2D;--or2:#ff7337;--g:#22c55e;--b:#3b82f6;--p:#8b5cf6;--am:#f59e0b;--bg:#f3f4f6;--card:#fff;--bd:#e5e7eb;--tx:#111827;--mu:#6b7280;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}
+/* TOP BAR */
+.top{background:linear-gradient(135deg,var(--or),var(--or2));color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.top h1{font-size:16px;font-weight:700;flex:1;}
+.server-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;}
+.server-dot.off{background:#f87171;}
+select.shop-sel{padding:6px 12px;border-radius:7px;border:none;font-size:13px;font-weight:600;background:rgba(255,255,255,.2);color:#fff;cursor:pointer;outline:none;}
+select.shop-sel option{background:#333;color:#fff;}
+/* TABS */
+.tabs{background:#fff;border-bottom:1px solid var(--bd);padding:0 24px;display:flex;position:sticky;top:56px;z-index:99;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.tab{padding:13px 18px;font-size:13px;font-weight:600;color:var(--mu);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;}
+.tab.active{color:var(--or);border-bottom-color:var(--or);}
+.badge{background:var(--or);color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;margin-left:5px;}
+/* CONTENT */
+.content{padding:20px 24px;max-width:1440px;margin:0 auto;}
+.pane{display:none;}.pane.active{display:block;}
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:20px;}
+.card{background:var(--card);border-radius:10px;padding:14px 16px;border:1px solid var(--bd);}
+.card-label{font-size:11px;color:var(--mu);margin-bottom:4px;}
+.card-val{font-size:22px;font-weight:700;}
+.card-sub{font-size:10px;color:var(--mu);margin-top:2px;}
+/* PANEL */
+.panel{background:var(--card);border-radius:10px;border:1px solid var(--bd);margin-bottom:16px;overflow:hidden;}
+.ph{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.ph-title{font-size:13px;font-weight:700;}
+.chart-wrap{padding:16px;height:260px;position:relative;}
+/* TOOLBAR */
+.tb{padding:8px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.tb-row2{padding:7px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:#fafafa;}
+.srch{flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--bd);border-radius:7px;font-size:12px;outline:none;}
+.srch:focus{border-color:var(--or);}
+.btn{padding:6px 13px;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;}
+.btn-exp{background:#16a34a;color:#fff;}
+.btn-clr{background:#fee2e2;color:#dc2626;}
+.cnt{font-size:11px;color:var(--mu);}
+/* FILTERS */
+.f-label{font-size:11px;color:var(--mu);white-space:nowrap;font-weight:600;}
+.f-sel{padding:5px 9px;border:1px solid var(--bd);border-radius:6px;font-size:12px;outline:none;background:#fff;cursor:pointer;max-width:160px;}
+.f-sel:focus{border-color:var(--or);}
+.f-date{padding:5px 8px;border:1px solid var(--bd);border-radius:6px;font-size:12px;outline:none;width:128px;}
+.f-date:focus{border-color:var(--or);}
+.f-sep{color:var(--mu);font-size:11px;}
+.f-active{border-color:var(--or)!important;background:#fff3f0!important;}
+/* TABLE */
+.tw{overflow-x:auto;max-height:65vh;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{background:#fafafa;padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;color:var(--mu);border-bottom:2px solid var(--bd);position:sticky;top:0;cursor:pointer;white-space:nowrap;user-select:none;}
+thead th:hover{background:#f3f4f6;}
+thead th.asc::after{content:' ▲';font-size:9px;}
+thead th.desc::after{content:' ▼';font-size:9px;}
+tbody tr:hover{background:#fff8f6;}
+tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* BADGES */
+.bk{display:inline-block;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;}
+.bk-g{background:#dcfce7;color:#166534;}.bk-r{background:#fee2e2;color:#991b1b;}
+.bk-o{background:#fff7ed;color:#c2410c;}.bk-b{background:#eff6ff;color:#1e40af;}
+.bk-gr{background:#f3f4f6;color:#4b5563;}
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:var(--mu);}
+.empty-ico{font-size:40px;margin-bottom:10px;}
+/* SERVER OFFLINE */
+.offline-bar{background:#fef3c7;border-bottom:2px solid #f59e0b;padding:10px 24px;font-size:13px;font-weight:600;color:#92400e;display:none;}
+/* LAST SYNC */
+.sync-info{font-size:11px;color:var(--mu);}
+/* SHOP PILL */
+.shop-pill{display:inline-block;background:#fff3f0;border:1px solid #fed7aa;border-radius:5px;padding:1px 7px;font-size:10px;color:var(--or);font-weight:600;}
+/* MULTI-SELECT CHIP SHOP WIDGET */
+.ms-wrap{position:relative;display:inline-block;}
+.ms-btn{display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;min-width:130px;max-width:230px;height:32px;text-align:left;}
+.ms-btn:hover{border-color:var(--or);}
+.ms-btn.ms-active{border-color:var(--or);background:#fff3f0;}
+.ms-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx);font-size:12px;}
+.ms-caret{flex-shrink:0;color:var(--mu);font-size:9px;transition:transform .15s;}
+.ms-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:#fff;border:1px solid var(--bd);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);min-width:230px;max-width:320px;overflow:hidden;}
+.ms-panel.open{display:block;}
+.ms-search{width:100%;padding:9px 12px;border:none;border-bottom:1px solid var(--bd);font-size:12px;outline:none;color:var(--tx);}
+.ms-list{max-height:230px;overflow-y:auto;}
+.ms-item{display:flex;align-items:center;gap:9px;padding:8px 12px;cursor:pointer;font-size:12px;user-select:none;}
+.ms-item:hover{background:#fff8f6;}
+.ms-item input[type=checkbox]{accent-color:var(--or);cursor:pointer;width:14px;height:14px;flex-shrink:0;}
+.ms-item-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ms-item-rename{flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--mu);font-size:11px;padding:1px 3px;border-radius:3px;opacity:0;}
+.ms-item:hover .ms-item-rename{opacity:1;}
+.ms-item-rename:hover{color:var(--or);background:#fff0eb;}
+.ms-empty{padding:18px;text-align:center;color:var(--mu);font-size:12px;}
+.ms-footer{padding:7px 12px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;gap:6px;}
+.ms-footer button{font-size:11px;padding:4px 10px;border:1px solid var(--bd);border-radius:5px;cursor:pointer;background:#fff;color:var(--tx);font-weight:600;}
+.ms-footer button:hover{background:#f3f4f6;}
+/* SHOP NAME MODAL */
+.sn-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;}
+.sn-modal.open{display:flex;}
+.sn-box{background:#fff;border-radius:12px;width:420px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.sn-hdr{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.sn-hdr h3{font-size:14px;font-weight:700;}
+.sn-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--mu);}
+.sn-body{overflow-y:auto;padding:12px 20px;flex:1;}
+.sn-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.sn-id{font-size:11px;color:var(--mu);font-family:monospace;min-width:96px;background:#f3f4f6;padding:4px 8px;border-radius:5px;}
+.sn-inp{flex:1;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:12px;outline:none;}
+.sn-inp:focus{border-color:var(--or);}
+.sn-footer{padding:12px 20px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:8px;}
+/* CLEAR MODAL */
+.cl-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;}
+.cl-modal.open{display:flex;}
+.cl-box{background:#fff;border-radius:12px;width:460px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+.cl-hdr{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;}
+.cl-hdr h3{font-size:14px;font-weight:700;flex:1;}
+.cl-body{padding:20px;}
+.cl-opt{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.cl-opt label{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:2px solid var(--bd);border-radius:8px;cursor:pointer;font-size:13px;}
+.cl-opt label:hover{border-color:var(--or);background:#fff8f6;}
+.cl-opt label.selected{border-color:var(--or);background:#fff3f0;}
+.cl-opt input[type=radio]{margin-top:2px;accent-color:var(--or);}
+.cl-opt-text{flex:1;}
+.cl-opt-title{font-weight:600;color:var(--tx);display:block;}
+.cl-opt-desc{font-size:11px;color:var(--mu);margin-top:2px;display:block;}
+.cl-shop-select{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:7px;font-size:12px;margin-top:8px;display:none;}
+.cl-footer{padding:12px 20px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:8px;}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-danger:hover{background:#b91c1c;}
+/* TIMELINE */
+.tl-preset{padding:5px 12px;border:1px solid var(--bd);border-radius:16px;font-size:12px;font-weight:600;background:#fff;color:var(--mu);cursor:pointer;transition:all .15s;}
+.tl-preset:hover{border-color:var(--or);color:var(--or);}
+.tl-preset.active{background:var(--or);color:#fff;border-color:var(--or);}
+/* RAW */
+.raw-wrap{overflow-x:auto;max-height:78vh;overflow-y:auto;}
+.raw-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.raw-tbl thead th{background:#f9fafb;padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;border-bottom:2px solid var(--bd);position:sticky;top:0;white-space:nowrap;cursor:pointer;}
+.raw-tbl thead th:hover{background:#f3f4f6;}
+.raw-tbl tbody tr{cursor:pointer;}
+.raw-tbl tbody tr:hover{background:#fff8f6;}
+.raw-tbl tbody td{padding:7px 12px;border-bottom:1px solid var(--bd);vertical-align:top;}
+.raw-tbl .td-url{max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#2563eb;font-size:11px;}
+.raw-tbl .td-keys{color:#6b7280;font-size:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.raw-tbl .td-method{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap;}
+.td-get{background:#dbeafe;color:#1e40af;}.td-post{background:#fce7f3;color:#9d174d;}
+.raw-tbl .td-datekey{font-size:10px;color:#6b7280;white-space:nowrap;font-family:monospace;}
+.json-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;}
+.json-modal.open{display:flex;}
+.json-box{background:#1e1e2e;border-radius:10px;width:95vw;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.json-box-hdr{background:#2d2d3f;padding:10px 16px;display:flex;flex-direction:column;gap:6px;color:#e2e8f0;}
+.json-box-hdr-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.json-box-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.json-box-close{background:none;border:none;color:#e2e8f0;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;}
+.json-box-url{font-size:10px;word-break:break-all;color:#94a3b8;flex:1;}
+.json-box-body-wrap{display:flex;flex:1;overflow:hidden;border-top:1px solid #3d3d5c;}
+.json-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #3d3d5c;}
+.json-pane:last-child{border-right:none;}
+.json-pane-hdr{background:#252535;padding:6px 12px;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;}
+.json-pane-body{overflow:auto;padding:12px;font-family:monospace;font-size:11px;color:#a8ff78;white-space:pre;flex:1;}
+.json-pane-body.req{color:#fbbf24;}
+.json-box-copy{background:#3b82f6;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;}
+.json-box-copy:hover{background:#2563eb;}
+.meta-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;}
+.meta-get{background:#3b5bdb;color:#fff;}.meta-post{background:#be185d;color:#fff;}
+.meta-day{font-size:10px;color:#94a3b8;background:#363654;border-radius:4px;padding:2px 8px;}
+.raw-empty{text-align:center;padding:40px;color:#6b7280;}
+
+/* ─── GOOGLE DRIVE MODAL ─── */
+.drive-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;}
+.drive-modal.open{display:flex;}
+.drive-box{background:#fff;border-radius:12px;width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.drive-hdr{padding:14px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:#f8fafc;}
+.drive-hdr h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.drive-body{padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px;}
+.drive-auth-btn{display:flex;align-items:center;gap:10px;padding:12px 18px;background:#fff;border:2px solid var(--bd);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;width:100%;justify-content:center;transition:border-color .15s;}
+.drive-auth-btn:hover{border-color:#4285f4;color:#4285f4;}
+.drive-folder-row{display:flex;gap:8px;}
+.drive-folder-inp{flex:1;padding:8px 12px;border:1px solid var(--bd);border-radius:7px;font-size:12px;outline:none;}
+.drive-folder-inp:focus{border-color:var(--or);}
+.drive-scan-btn{padding:8px 14px;background:var(--or);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.drive-hint{font-size:11px;color:var(--mu);}
+.drive-files{display:flex;flex-direction:column;gap:6px;}
+.drive-file{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;background:#fafafa;}
+.drive-file-name{flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.drive-file-date{font-size:10px;color:var(--mu);white-space:nowrap;}
+.drive-file-import{padding:5px 12px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;}
+.drive-file-import:hover{background:#15803d;}
+.drive-status{font-size:12px;color:var(--mu);text-align:center;padding:16px;}
+.drive-connected-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#16a34a;font-weight:600;}
+/* DRIVE IMPORT PANE */
+.drive-pane{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:16px;}
+.drive-pane-title{font-size:12px;font-weight:700;color:#166534;margin-bottom:8px;}
+.drive-imported-files{display:flex;flex-wrap:wrap;gap:6px;}
+.drive-tag{display:inline-flex;align-items:center;gap:5px;background:#dcfce7;border:1px solid #86efac;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:600;color:#166534;}
+.drive-tag .drive-tag-x{cursor:pointer;color:#16a34a;font-size:13px;line-height:1;}
+
+/* ─── MOBILE RESPONSIVE ─── */
+@media (max-width: 767px) {
+  /* TOP BAR */
+  .top{height:auto;min-height:50px;flex-wrap:wrap;padding:10px 14px;gap:8px;}
+  .top h1{font-size:14px;}
+  select.shop-sel{font-size:12px;max-width:130px;padding:5px 8px;}
+  .top input[type=date]{width:106px!important;font-size:11px!important;padding:4px 6px!important;}
+  .sync-info{display:none;}
+  .top .btn{font-size:11px;padding:5px 9px;}
+  .top-btn-secondary{display:none!important;}
+  /* TABS: horizontal scroll */
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding:0 12px;scrollbar-width:none;top:auto;position:static;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{padding:11px 12px;font-size:12px;}
+  /* CONTENT */
+  .content{padding:12px 14px;}
+  /* CARDS: 2 columns */
+  .cards{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+  .card{padding:12px 12px;}
+  .card-val{font-size:18px;}
+  .card-label{font-size:10px;}
+  /* CHART */
+  .chart-wrap{height:200px;padding:10px;}
+  /* TABLE */
+  thead th{font-size:10px;padding:7px 8px;}
+  tbody td{font-size:11px;padding:7px 8px;}
+  /* FILTERS */
+  .f-date{width:106px;}
+  .f-sel{font-size:11px;max-width:140px;}
+  .tb-row2{gap:5px;padding:7px 10px;}
+  .tb{gap:5px;padding:6px 10px;}
+  .srch{min-width:110px;}
+  /* MULTI-SELECT */
+  .ms-btn{min-width:110px;max-width:170px;font-size:11px;}
+  .ms-panel{min-width:200px;max-width:90vw;}
+  /* MODALS */
+  .sn-box{width:95vw!important;}
+  .cl-box{width:95vw!important;}
+  .json-box{width:100vw;max-height:95vh;border-radius:0;}
+  /* OFFLINE BAR */
+  .offline-bar{padding:8px 14px;font-size:12px;}
+  /* RAW TABLE */
+  .raw-tbl thead th{font-size:10px;padding:6px 8px;}
+  .raw-tbl tbody td{font-size:11px;padding:6px 8px;}
+  .td-url{max-width:200px!important;}
+}
+@media (max-width: 480px) {
+  /* Very small phones: hide secondary top buttons completely */
+  .top-btn-secondary{display:none!important;}
+  /* Stack card values nicely */
+  .card-val{font-size:16px;}
+  /* Shrink tab text */
+  .tab{font-size:11px;padding:10px 10px;}
+}
+</style>
+</head>
+<body>
+<a href="/" style="position:fixed;top:12px;right:16px;z-index:9999;
+  display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;
+  color:#64748b;text-decoration:none;padding:6px 13px;border:1px solid #e2e8f0;
+  border-radius:999px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.08);
+  transition:all .15s;" onmouseover="this.style.color='#1a2234';this.style.borderColor='#d97706'"
+  onmouseout="this.style.color='#64748b';this.style.borderColor='#e2e8f0'">
+  ← Báo cáo chính
+</a>
+<div class="offline-bar" id="offlineBar">⚠️ Không kết nối được server. Hãy thử làm mới trang.</div>
+
+<div class="top">
+  <h1>🛒 Shopee Dashboard</h1>
+  <select class="shop-sel" id="shopSel"><option value="all">Tất cả shop</option></select>
+  <input type="date" id="dateFrom" style="padding:5px 8px;border:1px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;" title="Từ ngày" onchange="applyDateFilter()">
+  <span style="color:rgba(255,255,255,.7);font-size:12px;">→</span>
+  <input type="date" id="dateTo" style="padding:5px 8px;border:1px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;" title="Đến ngày" onchange="applyDateFilter()">
+  <button class="btn top-btn-secondary" style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;" onclick="clearDateFilter()">✕ Bỏ lọc ngày</button>
+  <span id="syncInfo" class="sync-info"></span>
+  <span id="serverDot" class="server-dot off" title="Trạng thái server"></span>
+  <button class="btn top-btn-secondary" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openShopNames()">⚙ Đặt tên shop</button>
+  <button class="btn top-btn-secondary" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openClearModal()">🗑 Xóa dữ liệu</button>
+  <button class="btn btn-exp" onclick="exportAll()">⬇ Excel tất cả</button>
+  <button class="btn" id="drivePillBtn" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openDriveModal()">📂 Drive</button>
+  <button class="btn" id="triggerHarvestBtn" style="background:#7c3aed;color:#fff;font-weight:700;" onclick="triggerHarvest()">🤖 Thu thập tất cả</button>
+</div>
+
+<!-- Google Drive Modal -->
+<div class="drive-modal" id="driveModal" onclick="if(event.target===this)closeDriveModal()">
+  <div class="drive-box">
+    <div class="drive-hdr">
+      <h3>📂 Google Drive Import</h3>
+      <button class="sn-close" onclick="closeDriveModal()">✕</button>
+    </div>
+    <div class="drive-body">
+      <div id="drive-auth-section">
+        <button class="drive-auth-btn" onclick="connectDrive()">
+          <img src="https://www.google.com/favicon.ico" width="16" height="16">
+          Đăng nhập Google để kết nối Drive
+        </button>
+      </div>
+      <div id="drive-connected-section" style="display:none">
+        <div class="drive-connected-row">✅ Đã kết nối Google Drive — <button style="background:none;border:none;font-size:11px;color:var(--mu);cursor:pointer;text-decoration:underline;" onclick="disconnectDrive()">Đăng xuất</button></div>
+        <div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">📁 Folder ID:</div>
+          <div class="drive-folder-row">
+            <input class="drive-folder-inp" id="driveFolderInp" placeholder="Paste Folder ID từ URL Drive...">
+            <button class="drive-scan-btn" onclick="scanDriveFolder()">🔍 Quét</button>
+          </div>
+          <div class="drive-hint" style="margin-top:5px;">Lấy Folder ID từ URL: drive.google.com/drive/folders/<b style="color:var(--or)">FOLDER_ID</b></div>
+        </div>
+        <div id="drive-files-list"><div class="drive-status">Nhập Folder ID và nhấn Quét để xem file.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Shop Name Modal -->
+<div class="sn-modal" id="snModal" onclick="if(event.target===this)closeShopNames()">
+  <div class="sn-box">
+    <div class="sn-hdr">
+      <h3>🏪 Đặt tên shop</h3>
+      <button class="sn-close" onclick="closeShopNames()">✕</button>
+    </div>
+    <div class="sn-body" id="snBody">
+      <p style="font-size:12px;color:var(--mu);margin-bottom:12px;">Nhập tên thật (username Shopee) cho từng shop ID. Tên được lưu vĩnh viễn.</p>
+    </div>
+    <div class="sn-footer">
+      <button class="btn" style="background:#f3f4f6;color:var(--tx);" onclick="closeShopNames()">Hủy</button>
+      <button class="btn btn-exp" onclick="saveAllShopNames()">💾 Lưu tất cả</button>
+    </div>
+  </div>
+</div>
+
+<!-- Clear Data Modal -->
+<div class="cl-modal" id="clModal" onclick="if(event.target===this)closeClearModal()">
+  <div class="cl-box">
+    <div class="cl-hdr">
+      <span style="font-size:20px">🗑</span>
+      <h3>Xóa dữ liệu</h3>
+      <button class="sn-close" onclick="closeClearModal()">✕</button>
+    </div>
+    <div class="cl-body">
+      <div class="cl-opt">
+        <label onclick="selectClearOpt('shop')">
+          <input type="radio" name="clearOpt" value="shop" id="clOptShop">
+          <span class="cl-opt-text">
+            <span class="cl-opt-title">🏪 Xóa 1 shop</span>
+            <span class="cl-opt-desc">Chỉ xóa dữ liệu của một shop cụ thể, giữ nguyên các shop khác</span>
+          </span>
+        </label>
+        <label onclick="selectClearOpt('all')">
+          <input type="radio" name="clearOpt" value="all" id="clOptAll">
+          <span class="cl-opt-text">
+            <span class="cl-opt-title">🔄 Xóa tất cả dữ liệu capture</span>
+            <span class="cl-opt-desc">Xóa toàn bộ ads/orders/performance/traffic. Tên shop vẫn được giữ lại.</span>
+          </span>
+        </label>
+        <label onclick="selectClearOpt('reset')">
+          <input type="radio" name="clearOpt" value="reset" id="clOptReset">
+          <span class="cl-opt-text">
+            <span class="cl-opt-title">💥 Reset hoàn toàn</span>
+            <span class="cl-opt-desc">Xóa toàn bộ dữ liệu + danh sách shop. Về trạng thái ban đầu.</span>
+          </span>
+        </label>
+      </div>
+      <select class="cl-shop-select" id="clShopSel">
+        <option value="">— Chọn shop cần xóa —</option>
+      </select>
+      <p style="font-size:11px;color:#dc2626;margin-top:12px;">⚠️ Thao tác này không thể hoàn tác. Sau khi xóa, hãy truy cập lại Shopee để extension thu thập dữ liệu mới.</p>
+    </div>
+    <div class="cl-footer">
+      <button class="btn" style="background:#f3f4f6;color:var(--tx);" onclick="closeClearModal()">Hủy</button>
+      <button class="btn btn-danger" onclick="confirmClear()">🗑 Xóa ngay</button>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="ads">📊 DASHBOARD <span class="badge" id="b-ads">0</span></button>
+  <button class="tab" data-tab="orders">📦 Đơn hàng <span class="badge" id="b-orders">0</span></button>
+  <button class="tab" data-tab="performance">📈 Hiệu quả SP <span class="badge" id="b-performance">0</span></button>
+  <button class="tab" data-tab="traffic">🔍 Nguồn truy cập <span class="badge" id="b-traffic">0</span></button>
+  <button class="tab" data-tab="timeline">📢 Quảng cáo</button>
+  <button class="tab" data-tab="raw">🔧 Raw Data</button>
+</div>
+
+<div class="content">
+  <div class="pane active" id="pane-ads">
+    <div class="cards" id="c-ads"></div>
+    <div class="panel" id="cp-ads" style="display:none">
+      <div class="ph"><span class="ph-title">Chi phí & Doanh thu (Top 15 sản phẩm)</span></div>
+      <div class="chart-wrap"><canvas id="ch-ads"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="tb-row2">
+        <span class="f-label">🏪 Shop:</span>
+        <div class="ms-wrap" id="ms-ads">
+          <button class="ms-btn" type="button" onclick="toggleMs('ads')">
+            <span class="ms-label" id="ms-label-ads">Tất cả shop</span>
+            <span class="ms-caret">▼</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-ads">
+            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('ads',this.value)">
+            <div class="ms-list" id="ms-list-ads"><div class="ms-empty">Đang tải…</div></div>
+            <div class="ms-footer">
+              <button onclick="selectAllMs('ads')">☑ Tất cả</button>
+              <button onclick="clearMs('ads')">✕ Bỏ chọn</button>
+            </div>
+          </div>
+        </div>
+        <span class="f-label">📢 Loại:</span>
+        <select class="f-sel" id="ft-ads" onchange="setFilter('ads','campaignType',this.value)" style="max-width:180px">
+          <option value="all">Tất cả loại</option>
+          <option value="Chiến dịch SP">Chiến dịch SP (CPC)</option>
+          <option value="Chiến dịch Shop">Chiến dịch Shop (GMV Max)</option>
+        </select>
+        <span class="f-label">📅 Từ:</span>
+        <input type="date" class="f-date" id="fd-from-ads" onchange="setFilter('ads','from',this.value)">
+        <span class="f-sep">→</span>
+        <input type="date" class="f-date" id="fd-to-ads" onchange="setFilter('ads','to',this.value)">
+        <button class="btn btn-clr" onclick="clearFilter('ads')">✕ Bỏ lọc</button>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;margin-left:6px;padding:5px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;">
+          <input type="checkbox" id="ads-group-toggle" onchange="onFilterChange('ads')">
+          <span>📊 Gộp theo tên chiến dịch</span>
+        </label>
+      </div>
+      <div class="tb">
+        <input class="srch" id="s-ads" placeholder="🔍 Tìm tên chiến dịch...">
+        <span class="cnt" id="cnt-ads"></span>
+        <button class="btn btn-exp" onclick="exportSheet('ads')">⬇ Excel</button>
+      </div>
+      <div class="tw"><table id="t-ads"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+  <div class="pane" id="pane-orders">
+    <div class="cards" id="c-orders"></div>
+    <div class="panel" id="cp-orders" style="display:none">
+      <div class="ph"><span class="ph-title">Phân bố trạng thái đơn</span></div>
+      <div class="chart-wrap" style="height:240px"><canvas id="ch-orders"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="tb-row2">
+        <span class="f-label">🏪 Shop:</span>
+        <div class="ms-wrap" id="ms-orders">
+          <button class="ms-btn" type="button" onclick="toggleMs('orders')">
+            <span class="ms-label" id="ms-label-orders">Tất cả shop</span>
+            <span class="ms-caret">▼</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-orders">
+            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('orders',this.value)">
+            <div class="ms-list" id="ms-list-orders"><div class="ms-empty">Đang tải…</div></div>
+            <div class="ms-footer">
+              <button onclick="selectAllMs('orders')">☑ Tất cả</button>
+              <button onclick="clearMs('orders')">✕ Bỏ chọn</button>
+            </div>
+          </div>
+        </div>
+        <span class="f-label">📦 Trạng thái:</span>
+        <select class="f-sel" id="ft-orders" onchange="setFilter('orders','orderStatus',this.value)" style="max-width:200px">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="Đã giao">✅ Đã giao</option>
+          <option value="Đã giao cho ĐVVC">🚚 Đã giao cho ĐVVC</option>
+          <option value="Chờ xác nhận">⏳ Chờ xác nhận</option>
+          <option value="Chờ lấy hàng">📦 Chờ lấy hàng</option>
+          <option value="Đã hủy">❌ Đã hủy</option>
+        </select>
+        <span class="f-label">📅 Từ:</span>
+        <input type="date" class="f-date" id="fd-from-orders" onchange="setFilter('orders','from',this.value)">
+        <span class="f-sep">→</span>
+        <input type="date" class="f-date" id="fd-to-orders" onchange="setFilter('orders','to',this.value)">
+        <button class="btn btn-clr" onclick="clearFilter('orders')">✕ Bỏ lọc</button>
+      </div>
+      <div class="tb">
+        <input class="srch" id="s-orders" placeholder="🔍 Tìm mã đơn, sản phẩm...">
+        <span class="cnt" id="cnt-orders"></span>
+        <span id="ord-import-info" style="font-size:11px;color:var(--mu);"></span>
+        <label class="btn" style="background:#7c3aed;color:#fff;cursor:pointer;margin-left:auto;" title="Import file Excel xuất từ Shopee">
+          📥 Import Excel
+          <input type="file" id="ord-xlsx-inp" accept=".xlsx,.xls" style="display:none" onchange="importOrderExcel(this)">
+        </label>
+        <button class="btn btn-exp" onclick="exportSheet('orders')">⬇ Excel</button>
+      </div>
+      <div class="tw"><table id="t-orders"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+  <div class="pane" id="pane-performance">
+    <div class="cards" id="c-performance"></div>
+    <div class="panel" id="cp-performance" style="display:none">
+      <div class="ph"><span class="ph-title">Top sản phẩm theo lượt xem</span></div>
+      <div class="chart-wrap"><canvas id="ch-performance"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="tb-row2">
+        <span class="f-label">🏪 Shop:</span>
+        <div class="ms-wrap" id="ms-performance">
+          <button class="ms-btn" type="button" onclick="toggleMs('performance')">
+            <span class="ms-label" id="ms-label-performance">Tất cả shop</span>
+            <span class="ms-caret">▼</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-performance">
+            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('performance',this.value)">
+            <div class="ms-list" id="ms-list-performance"><div class="ms-empty">Đang tải…</div></div>
+            <div class="ms-footer">
+              <button onclick="selectAllMs('performance')">☑ Tất cả</button>
+              <button onclick="clearMs('performance')">✕ Bỏ chọn</button>
+            </div>
+          </div>
+        </div>
+        <span class="f-label">📅 Từ:</span>
+        <input type="date" class="f-date" id="fd-from-performance" onchange="setFilter('performance','from',this.value)">
+        <span class="f-sep">→</span>
+        <input type="date" class="f-date" id="fd-to-performance" onchange="setFilter('performance','to',this.value)">
+        <button class="btn btn-clr" onclick="clearFilter('performance')">✕ Bỏ lọc</button>
+      </div>
+      <div class="tb">
+        <input class="srch" id="s-performance" placeholder="🔍 Tìm tên sản phẩm...">
+        <span class="cnt" id="cnt-performance"></span>
+        <button class="btn btn-exp" onclick="exportSheet('performance')">⬇ Excel</button>
+      </div>
+      <div class="tw"><table id="t-performance"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+  <div class="pane" id="pane-raw">
+    <div class="panel">
+      <div class="ph" style="flex-wrap:wrap;gap:8px;">
+        <span class="ph-title">🔧 API Inspector — bấm dòng để xem Request + Response đầy đủ</span>
+        <span id="raw-count" style="font-size:11px;color:var(--mu)"></span>
+        <label style="font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;margin-left:auto;">
+          <input type="checkbox" id="rawFilterChk" onchange="renderRawFilter()"> Chỉ hiện có data (&gt;1 items)
+        </label>
+        <input id="rawSearch" oninput="renderRawFilter()" placeholder="Lọc URL..." style="padding:4px 8px;border:1px solid var(--bd);border-radius:5px;font-size:12px;width:200px;">
+      </div>
+      <div class="raw-wrap">
+        <table class="raw-tbl">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>M</th>
+              <th>URL (click = Request+Response)</th>
+              <th>Date Range</th>
+              <th>Day</th>
+              <th>#</th>
+              <th>Keys chính</th>
+              <th>Shop</th>
+            </tr>
+          </thead>
+          <tbody id="raw-tbody"></tbody>
+        </table>
+        <div class="raw-empty" id="raw-empty" style="display:none">Chưa có dữ liệu. Hãy truy cập trang Shopee với extension đang bật.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TIMELINE QC PANE ════════════════════════════════════════════ -->
+  <div class="pane" id="pane-timeline">
+    <!-- Date range bar -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:700;color:var(--tx);">📅 Chọn khoảng thời gian</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="tl-preset active" data-days="7">7 ngày</button>
+          <button class="tl-preset" data-days="30">30 ngày</button>
+          <button class="tl-preset" data-days="90">90 ngày</button>
+          <button class="tl-preset" data-days="0">Tất cả</button>
+        </div>
+        <span style="font-size:12px;color:var(--mu);">hoặc chọn ngày:</span>
+        <input type="date" id="tl-from" class="f-date" onchange="onTlDateChange()" style="width:130px">
+        <span style="font-size:12px;color:var(--mu);">→</span>
+        <input type="date" id="tl-to" class="f-date" onchange="onTlDateChange()" style="width:130px">
+        <span style="font-size:12px;color:var(--mu);">🏪 Shop:</span>
+        <select id="tl-shop" class="f-sel" style="max-width:200px" onchange="renderTimeline()">
+          <option value="all">Tất cả shop</option>
+        </select>
+        <button class="btn" style="background:var(--or);color:#fff;font-weight:700;" onclick="renderTimeline()">🔄 Cập nhật</button>
+        <span id="tl-info" style="font-size:11px;color:var(--mu);margin-left:auto;"></span>
+      </div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="cards" id="tl-cards" style="margin-bottom:14px;"></div>
+
+    <!-- Chart -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="ph">
+        <span class="ph-title">📈 Chi phí & Doanh thu theo ngày</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="tl-show-spend" checked onchange="updateTlChart()"> <span style="color:#3b82f6;">■</span> Chi phí
+          </label>
+          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="tl-show-revenue" checked onchange="updateTlChart()"> <span style="color:#EE4D2D;">■</span> Doanh thu QC
+          </label>
+          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="tl-show-clicks" onchange="updateTlChart()"> <span style="color:#22c55e;">■</span> Click
+          </label>
+          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="tl-show-orders" onchange="updateTlChart()"> <span style="color:#f59e0b;">■</span> Đơn QC
+          </label>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:300px;"><canvas id="tl-chart"></canvas></div>
+    </div>
+
+    <!-- Daily table -->
+    <div class="panel">
+      <div class="ph" style="flex-wrap:wrap;gap:8px;">
+        <span class="ph-title">📋 Dữ liệu theo ngày</span>
+        <span id="tl-cnt" style="font-size:11px;color:var(--mu);"></span>
+        <button class="btn btn-exp" style="margin-left:auto;" onclick="exportTimeline()">⬇ Excel</button>
+      </div>
+      <div class="tw">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortTlTable('date')" id="tlh-date">Ngày ▼</th>
+              <th onclick="sortTlTable('spend')" id="tlh-spend">Số tiền</th>
+              <th onclick="sortTlTable('impressions')" id="tlh-impressions">Lượt xem</th>
+              <th onclick="sortTlTable('clicks')" id="tlh-clicks">Click</th>
+              <th onclick="sortTlTable('orders')" id="tlh-orders">Đơn hàng QC</th>
+              <th onclick="sortTlTable('revenue')" id="tlh-revenue">Doanh thu từ QC</th>
+              <th onclick="sortTlTable('roas')" id="tlh-roas">ROAS</th>
+              <th>Shop</th>
+            </tr>
+          </thead>
+          <tbody id="tl-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON Modal -->
+  <div class="json-modal" id="jsonModal" onclick="if(event.target===this)closeModal()">
+    <div class="json-box">
+      <div class="json-box-hdr">
+        <div class="json-box-hdr-top">
+          <span class="json-box-url" id="modalUrl"></span>
+          <button class="json-box-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="json-box-meta">
+          <span class="meta-badge" id="modalMethod"></span>
+          <span class="meta-day" id="modalDay"></span>
+          <button class="json-box-copy" onclick="copyFetch()">📋 Copy fetch()</button>
+        </div>
+      </div>
+      <div class="json-box-body-wrap">
+        <div class="json-pane">
+          <div class="json-pane-hdr">📤 Request Body / Params</div>
+          <div class="json-pane-body req" id="modalReq"></div>
+        </div>
+        <div class="json-pane">
+          <div class="json-pane-hdr">📥 Response JSON</div>
+          <div class="json-pane-body" id="modalBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" id="pane-traffic">
+    <div class="cards" id="c-traffic"></div>
+    <div class="panel" id="cp-traffic" style="display:none">
+      <div class="ph"><span class="ph-title">Phân bố nguồn truy cập</span></div>
+      <div class="chart-wrap" style="height:260px"><canvas id="ch-traffic"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="tb-row2">
+        <span class="f-label">🏪 Shop:</span>
+        <div class="ms-wrap" id="ms-traffic">
+          <button class="ms-btn" type="button" onclick="toggleMs('traffic')">
+            <span class="ms-label" id="ms-label-traffic">Tất cả shop</span>
+            <span class="ms-caret">▼</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-traffic">
+            <input class="ms-search" placeholder="🔍 Tìm shop..." oninput="filterMsList('traffic',this.value)">
+            <div class="ms-list" id="ms-list-traffic"><div class="ms-empty">Đang tải…</div></div>
+            <div class="ms-footer">
+              <button onclick="selectAllMs('traffic')">☑ Tất cả</button>
+              <button onclick="clearMs('traffic')">✕ Bỏ chọn</button>
+            </div>
+          </div>
+        </div>
+        <span class="f-label">📅 Từ:</span>
+        <input type="date" class="f-date" id="fd-from-traffic" onchange="setFilter('traffic','from',this.value)">
+        <span class="f-sep">→</span>
+        <input type="date" class="f-date" id="fd-to-traffic" onchange="setFilter('traffic','to',this.value)">
+        <button class="btn btn-clr" onclick="clearFilter('traffic')">✕ Bỏ lọc</button>
+      </div>
+      <div class="tb">
+        <input class="srch" id="s-traffic" placeholder="🔍 Tìm nguồn traffic...">
+        <span class="cnt" id="cnt-traffic"></span>
+        <button class="btn btn-exp" onclick="exportSheet('traffic')">⬇ Excel</button>
+      </div>
+      <div class="tw"><table id="t-traffic"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const TYPES = ['ads','orders','performance','traffic'];
+const COLORS = ['#EE4D2D','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#a855f7','#06b6d4'];
+let allData = {}, charts = {}, tblState = {}, currentShop = 'all';
+
+/* ── helpers ── */
+const fv = (v,t) => {
+  if(v===null||v===undefined||v==='') return '—';
+  if(t==='ts') { const n=Number(v); return n>1e9?new Date(n*1000).toLocaleString('vi-VN'):String(v); }
+  if(t==='pct') { const n=Number(v); return isNaN(n)?v:(n<1?(n*100).toFixed(1)+'%':n.toFixed(1)+'%'); }
+  if(t==='vnd') { const n=Number(v); return isNaN(n)?v:n.toLocaleString('vi-VN')+'đ'; }
+  if(t==='f2')  { const n=Number(v); return isNaN(n)?v:n.toFixed(2); }
+  const n=Number(v); return isNaN(n)?String(v):n.toLocaleString('vi-VN');
+};
+const gt = k => { const l=k.toLowerCase();
+  if(/time|date|create|ts$/.test(l)) return 'ts';
+  if(/rpt_(ctr|atc_rate|checkout_rate|cr|direct_cr|broad_cir|direct_cir|sov|product_ctr)$/.test(l)) return 'pct';
+  if(/rpt_(broad_gmv|direct_gmv|voucher_amount|voucher_sales|cost|cpc|cpdc|cpm)$/.test(l)) return 'vnd';
+  if(/rpt_(roi|broad_roi|direct_roi)/.test(l)) return 'f2';
+  if(/rate|pct|ctr|cvr|cr$|ratio/.test(l)) return 'pct';
+  if(/amount|spend|cost|revenue|gmv|fee|price|income|pay/.test(l)) return 'vnd';
+  if(/roas|roi/.test(l)) return 'f2';
+  return 'n'; };
+const statusBadge = v => { const s=String(v).toLowerCase();
+  if(/paid|success|complet|active|đã giao$/.test(s)) return `<span class="bk bk-g">${v}</span>`;
+  if(/ship|deliver|đã giao cho|đang giao|lấy hàng/.test(s)) return `<span class="bk bk-b">${v}</span>`;
+  if(/cancel|fail|reject|hủy|hoàn tiền/.test(s)) return `<span class="bk bk-r">${v}</span>`;
+  if(/pending|wait|process|chờ|xác nhận/.test(s)) return `<span class="bk bk-o">${v}</span>`;
+  return `<span class="bk bk-gr">${v}</span>`; };
+
+function flatten(obj,pre='',depth=0){
+  const o={};
+  for(const [k,v] of Object.entries(obj)){
+    const key=pre?pre+'_'+k:k;
+    if(depth<2&&v!==null&&typeof v==='object'&&!Array.isArray(v)) Object.assign(o,flatten(v,key,depth+1));
+    else if(!Array.isArray(v)) o[key]=v;
+  } return o;
+}
+
+// ── Shopee monetary field formatter ──
+// All VND fields in API = real VND × 100,000
+// broad_order_amount / direct_order_amount = số lượng sản phẩm bán (COUNT, không chia)
+const MONEY_VND = /rpt_(broad_gmv|direct_gmv|voucher_amount|voucher_sales|cost|cpc|cpdc|cpm)$/i;
+function shopeeNum(k, v) {
+  if(typeof v !== 'number') return v;
+  if(MONEY_VND.test(k)) return Math.round(v / 100000);
+  return v;
+}
+
+// ── Column display labels (Vietnamese) ──
+const COL_LABELS = {
+  __campaignType:'Loại chiến dịch', __campaignState:'Trạng thái', __totalProducts:'Số SP', __shopCount:'Số shop', __shopNames:'Các shop', __dateRange:'Khoảng ngày', title:'Tên chiến dịch', link:'Link', rpt_impression:'Lượt xem', rpt_click:'Lượt click',
+  rpt_ctr:'CTR', rpt_broad_gmv:'Doanh số (VND)', rpt_direct_gmv:'DS trực tiếp (VND)',
+  rpt_cost:'Chi phí (VND)', rpt_broad_roi:'ROAS', rpt_direct_roi:'ROAS trực tiếp',
+  rpt_broad_order:'Đơn hàng', rpt_direct_order:'Đơn trực tiếp', rpt_atc:'Add to Cart',
+  rpt_atc_rate:'ATC Rate', rpt_checkout:'Checkout', rpt_checkout_rate:'Checkout Rate',
+  rpt_cpc:'Chi phí/CV (VND)', rpt_cr:'Tỷ lệ CV', rpt_direct_cr:'Tỷ lệ CV trực tiếp',
+  rpt_avg_rank:'Rank TB', rpt_page_views:'Page Views', rpt_view:'Views',
+  rpt_voucher_amount:'Voucher Amount (VND)', rpt_voucher_sales:'Doanh số Voucher (VND)',
+  rpt_broad_order_amount:'SP đã bán (rộng)', rpt_direct_order_amount:'SP đã bán (trực tiếp)',
+  rpt_broad_cir:'ACOS (rộng)', rpt_direct_cir:'ACOS (trực tiếp)',
+  rpt_location_in_ads:'Vị trí hiển thị', rpt_sov:'SOV',
+  // Orders tab
+  order_sn:'Mã đơn', order_date:'Ngày đặt', status:'Trạng thái',
+  product_names:'Sản phẩm', qty:'SL', revenue:'Doanh thu (VND)',
+  payment_method:'Thanh toán', shipping:'Vận chuyển',
+  tracking:'Mã vận đơn', buyer:'Người mua', cancel_reason:'Lý do hủy'
+};
+// ── Score an array: higher = more likely to be real business data ──
+const BIZ_RE = /view|click|cost|spend|revenue|amount|order|impression|conversion|roas|ctr|acos|sale|traffic|visit|uv|pv|gmv|fee|price|stock|sold|item_id|itemid|campaign|advert|keyword|budget/i;
+const NAV_RE = /transify|icon_url|track_key|collapse|tab_key|route|menu|navigate|sidebar|export_id|file_name|progress|job_id|download|report_id|task_id/i;
+function scoreArr(arr){
+  if(!arr||arr.length===0) return -999;
+  const item=arr[0];
+  if(!item||typeof item!=='object') return -999;
+  // Flatten 1 level so nested report{} objects are visible for scoring
+  const flatItem = flatten(item,'',0);
+  const keys=Object.keys(flatItem);
+  let score=0;
+  score += Math.min(arr.length,100)*1;                                 // more rows = better
+  score += keys.filter(k=>typeof flatItem[k]==='number').length * 6;  // numeric fields = business data
+  score += keys.filter(k=>BIZ_RE.test(k)).length * 15;                // business-named fields
+  score -= keys.filter(k=>NAV_RE.test(k)).length * 20;                // nav/export fields = penalise hard
+  if(keys.length < 4) score -= 40;                                     // too few fields = noise
+  if(keys.some(k=>/export_id|file_name|progress/.test(k))) score -= 100;
+  if(arr.every(r=>r.status===1||r.status==='1'||r.status===undefined)) score -= 30;
+  return score;
+}
+
+// ── Parse Unix timestamp range from URL ──
+function extractDateRange(url) {
+  try {
+    const p = new URL(url);
+    const from = Number(p.searchParams.get('from'));
+    const to   = Number(p.searchParams.get('to'));
+    if(!from||!to) return null;
+    const fmt = ts => new Date(ts*1000).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
+    return { from: fmt(from), to: fmt(to), fromTs: from, toTs: to };
+  } catch(e){ return null; }
+}
+let adsDateRange = null; // stored globally so cards can show it
+
+// ── Detect campaign type from reqBody or entry structure ──
+function detectCampaignType(cap, entry) {
+  // From request body page_type field (captured after extension update)
+  const rb = cap?.reqBody;
+  if (rb) {
+    const pt = rb.page_type || rb.tab_type || rb.type || '';
+    if (/shop|smart|gmv_max/i.test(pt)) return 'Chiến dịch Shop';
+    if (/product|cpc|keyword/i.test(pt)) return 'Chiến dịch SP';
+  }
+  // Fallback: if entry has no image (product campaigns always have product image)
+  if (entry && !entry.image && !entry.group_image) return 'Chiến dịch Shop';
+  // Fallback: name patterns
+  const title = (entry?.title||'').toLowerCase();
+  if (/gmv max|shop gmv|auto|tự động/i.test(title)) return 'Chiến dịch Shop';
+  return 'Chiến dịch SP';
+}
+
+// ── Parser: product/get/ + report/get/ → campaign detail rows ──
+// product/get/ has: data.campaign{campaign_id, name, type, state, gms.total_ads}
+// report/get/  has: data[]{key=campaign_id, metrics{...}}
+function parseCampaignDetailReport(captures) {
+  // Build map: campaign_id → {name, type, state, totalAds, shopId, shopName, ts}
+  const campaignMeta = {};
+  for (const cap of captures) {
+    const campaign = cap?.json?.data?.campaign;
+    if (!campaign || !campaign.campaign_id) continue;
+    const id = String(campaign.campaign_id);
+    campaignMeta[id] = {
+      name: campaign.name || 'Chiến dịch ' + id,
+      type: campaign.type || '',        // 'product_gms' = Shop GMV Max
+      state: campaign.state || '',
+      totalAds: campaign.gms?.total_ads || campaign.group_image?.total_count || 0,
+      productSelection: campaign.product_selection || '',
+      shopId: cap.shopId || 'unknown',
+      shopName: cap.shopName || '',
+      ts: cap.ts || 0
+    };
+  }
+  if (!Object.keys(campaignMeta).length) return null;
+
+  // Build map: campaign_id → metrics from report/get/
+  const campaignMetrics = {};
+  for (const cap of captures) {
+    const dataArr = cap?.json?.data;
+    if (!Array.isArray(dataArr) || !dataArr.length) continue;
+    // report/get/ returns [{key, metrics, ratio}]
+    for (const item of dataArr) {
+      if (!item.key || !item.metrics) continue;
+      const id = String(item.key);
+      if (!campaignMetrics[id] || cap.ts > campaignMetrics[id].__ts) {
+        campaignMetrics[id] = { ...item.metrics, __ts: cap.ts || 0 };
+      }
+    }
+  }
+
+  // Build date info from report/get/ captures (reqBody has the date range)
+  const reportDateMap = {}; // campaign_id → date info
+  for (const cap of captures) {
+    const dataArr = cap?.json?.data;
+    if (!Array.isArray(dataArr) || !dataArr.length) continue;
+    const rb = cap.reqBody || {};
+    const stNum = Number(rb.start_time || rb.from_time)||0;
+    const etNum = Number(rb.end_time   || rb.to_time  )||0;
+    if (!stNum) continue;
+    const fmtD2 = ts => new Date(ts*1000).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'});
+    const dk = `${Math.floor(stNum/86400)}_${Math.floor(etNum/86400)}`;
+    for (const item of dataArr) {
+      if (!item.key) continue;
+      const iid = String(item.key);
+      if (!reportDateMap[iid]) reportDateMap[iid] = { dateKey:dk, dataFrom:fmtD2(stNum), dataTo:fmtD2(etNum), stNum, etNum };
+    }
+  }
+
+  // Combine: only include campaigns that have BOTH meta AND metrics
+  const rows = [];
+  for (const [id, meta] of Object.entries(campaignMeta)) {
+    const m = campaignMetrics[id];
+    if (!m) continue;
+    // Determine campaign type label
+    const isShopCampaign = /gms|product_gms|auto|gmv/i.test(meta.type) || meta.productSelection === 'auto';
+    const campaignType = isShopCampaign ? 'Chiến dịch Shop' : 'Chiến dịch SP';
+    const di = reportDateMap[id] || {};
+    const row = {
+      __campaignType: campaignType,
+      title: meta.name,
+      __campaignState: meta.state,
+      __totalProducts: meta.totalAds,
+      __shopId: meta.shopId,
+      __shopName: meta.shopName,
+      __captureTs: meta.ts,
+      __campaignId: id,
+      __dateKey:   di.dateKey   || 'detail',
+      __dataFrom:  di.dataFrom  || '',
+      __dataTo:    di.dataTo    || '',
+      __dataFromTs: di.stNum    || 0,
+      __dataToTs:   di.etNum    || 0
+    };
+    // Add metrics with monetary conversion
+    Object.entries(m).forEach(([k, v]) => {
+      if (k.startsWith('__')) return;
+      row['rpt_' + k] = shopeeNum('rpt_' + k, v);
+    });
+    rows.push(row);
+  }
+  return rows.length ? rows : null;
+}
+
+// ── Group rows by campaign title, summing metrics across shops ──
+const RATE_KEYS = new Set(['rpt_ctr','rpt_broad_roi','rpt_direct_roi','rpt_broad_cir',
+  'rpt_direct_cir','rpt_atc_rate','rpt_checkout_rate','rpt_cr','rpt_direct_cr',
+  'rpt_cpc','rpt_avg_rank','rpt_sov','rpt_cpdc','rpt_cpm']);
+function groupByTitle(rows) {
+  const groups = {};
+  for (const r of rows) {
+    const key = (r.__campaignType||'') + '||' + (r.title||'');
+    if (!groups[key]) {
+      groups[key] = { ...r, __shopCount: 1, _shopSet: new Set([r.__shopName||r.__shopId||'?']) };
+    } else {
+      const g = groups[key];
+      g.__shopCount++;
+      g._shopSet.add(r.__shopName||r.__shopId||'?');
+      // Sum all numeric metrics except rates (will recalculate)
+      for (const [k, v] of Object.entries(r)) {
+        if (k.startsWith('__') || k.startsWith('_') || typeof v !== 'number' || RATE_KEYS.has(k)) continue;
+        g[k] = (g[k]||0) + v;
+      }
+      // Also keep __totalProducts sum
+      if (typeof r.__totalProducts === 'number') g.__totalProducts = (g.__totalProducts||0) + r.__totalProducts;
+    }
+  }
+  return Object.values(groups).map(g => {
+    // Recalculate rate metrics from summed base values
+    if (g.rpt_impression > 0 && g.rpt_click != null)
+      g.rpt_ctr = g.rpt_click / g.rpt_impression;
+    if (g.rpt_cost > 0) {
+      if (g.rpt_broad_gmv > 0) g.rpt_broad_roi = g.rpt_broad_gmv / g.rpt_cost;
+      if (g.rpt_direct_gmv > 0) g.rpt_direct_roi = g.rpt_direct_gmv / g.rpt_cost;
+    }
+    if (g.rpt_click > 0 && g.rpt_cost > 0) g.rpt_cpc = g.rpt_cost / g.rpt_click;
+    g.__shopNames = [...g._shopSet].join(', ');
+    delete g._shopSet;
+    return g;
+  });
+}
+
+// ── Special parser for Shopee PAS homepage/query → entry_list ──
+function parsePasEntryList(cap) {
+  const el = cap?.json?.data?.entry_list;
+  if (!Array.isArray(el) || !el.length) return null;
+  adsDateRange = extractDateRange(cap.url||'');
+
+  // Extract actual data date range from reqBody (the Shopee date filter user selected)
+  const rb     = cap.reqBody || {};
+  const stRaw  = rb.start_time || rb.from_time || rb.start_date;
+  const etRaw  = rb.end_time   || rb.to_time   || rb.end_date;
+  const stNum  = Number(stRaw)||0, etNum = Number(etRaw)||0;
+  const fmtD   = ts => ts ? new Date(ts*1000).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}) : '';
+  const dateKey = stNum && etNum
+    ? `${Math.floor(stNum/86400)}_${Math.floor(etNum/86400)}`
+    : String(Math.floor((cap.ts||Date.now())/86400000));
+
+  return el.map(entry => {
+    const campaignType = detectCampaignType(cap, entry);
+    const row = {
+      __campaignType: campaignType,
+      title: entry.title,
+      link: entry.link||'',
+      __shopId: cap.shopId,
+      __shopName: cap.shopName,
+      __captureTs: cap.ts||0,
+      __campaignId: String(entry.id || entry.campaign_id || entry.adzone_id || ''),
+      __dateKey: dateKey,
+      __dataFrom: fmtD(stNum),
+      __dataTo:   fmtD(etNum),
+      __dataFromTs: stNum,
+      __dataToTs:   etNum
+    };
+    if (entry.report) {
+      Object.entries(entry.report).forEach(([k,v]) => { row['rpt_'+k] = shopeeNum('rpt_'+k, v); });
+    }
+    return row;
+  });
+}
+// ── Parser: get_order_list_card_list → normalized order rows ──
+function parseOrderCardList(captures) {
+  const orderMap = {};   // order_sn → row (de-duplicate)
+  for (const cap of captures) {
+    const cardList = cap?.json?.data?.card_list;
+    if (!Array.isArray(cardList) || !cardList.length) continue;
+    for (const item of cardList) {
+      const oc = item?.order_card;
+      if (!oc) continue;
+      const order_sn = oc.card_header?.order_sn || '';
+      if (!order_sn) continue;
+      // Date from order_sn first 6 chars: YYMMDD → 20YY-MM-DD
+      const order_date = order_sn.length >= 6
+        ? `20${order_sn.slice(0,2)}-${order_sn.slice(2,4)}-${order_sn.slice(4,6)}`
+        : cap.collectionDay || '';
+      // Product list
+      const itemInfoList = oc.item_info_group?.item_info_list || [];
+      const products = [], qtys = [];
+      for (const group of itemInfoList) {
+        for (const it of (group.item_list || [])) {
+          if (it.name) products.push(it.name);
+          qtys.push(Number(it.amount || 0));
+        }
+      }
+      const totalQty = qtys.reduce((s,v)=>s+v, 0);
+      // Price: VND stored ×100000
+      const revenue = Math.round(Number(oc.payment_info?.total_price || 0) / 100000);
+      const row = {
+        order_date,
+        order_sn,
+        status:         oc.status_info?.status || '—',
+        cancel_reason:  oc.status_info?.status_tooltip || '',
+        product_names:  products.join(' | '),
+        qty:            totalQty,
+        revenue,
+        payment_method: oc.payment_info?.payment_method || '—',
+        shipping:       oc.fulfilment_info?.masked_channel_name || '—',
+        tracking:       (oc.fulfilment_info?.tracking_number_list || [])[0] || '',
+        buyer:          oc.card_header?.buyer_info?.username || '—',
+        __shopId:       cap.shopId || '',
+        __shopName:     cap.shopName || '',
+        __captureTs:    cap.ts || 0,
+      };
+      // De-duplicate: keep latest capture per order_sn
+      if (!orderMap[order_sn] || (cap.ts||0) > (orderMap[order_sn].__captureTs||0)) {
+        orderMap[order_sn] = row;
+      }
+    }
+  }
+  return Object.values(orderMap);
+}
+
+function collectArrays(obj,depth=0,out=[]){
+  if(depth>7||!obj||typeof obj!=='object') return out;
+  if(Array.isArray(obj)){
+    if(obj.length>0&&typeof obj[0]==='object'&&obj[0]!==null) out.push(obj);
+    return out;
+  }
+  for(const v of Object.values(obj)) collectArrays(v,depth+1,out);
+  return out;
+}
+function findArr(obj){
+  const candidates=collectArrays(obj);
+  if(!candidates.length) return null;
+  candidates.sort((a,b)=>scoreArr(b)-scoreArr(a));
+  return candidates[0];
+}
+function mergeCaptures(captures, type){
+  // ── Orders: parse get_order_list_card_list ──
+  if(type === 'orders'){
+    const rows = parseOrderCardList(captures);
+    if(rows.length) return rows;
+  }
+  // ── Ads: SUMIF by campaign ID across shops and date ranges ──
+  if(type === 'ads'){
+    // Step 1 – collect every row from every capture
+    const rawRows = [];
+    for(const cap of captures){
+      const rows = parsePasEntryList(cap);
+      if(rows?.length) rawRows.push(...rows);
+    }
+    const detailRows = parseCampaignDetailReport(captures);
+    if(detailRows?.length) rawRows.push(...detailRows);
+    if(!rawRows.length) return [];
+
+    // Step 2 – for same campaign+shop+dateKey, keep ONLY latest capture
+    //          (prevents double-counting when same date range is re-captured)
+    const latestMap = {};
+    for(const r of rawRows){
+      const cid = r.__campaignId || (r.__campaignType + '||' + r.title);
+      const k   = cid + '|' + (r.__shopId||'') + '|' + (r.__dateKey||'0');
+      if(!latestMap[k] || (r.__captureTs||0) > (latestMap[k].__captureTs||0)) latestMap[k] = r;
+    }
+
+    // Step 3 – SUMIF across different date ranges for same campaign+shop
+    const sumMap = {};
+    for(const r of Object.values(latestMap)){
+      const cid  = r.__campaignId || (r.__campaignType + '||' + r.title);
+      const gkey = cid + '|' + (r.__shopId||'');
+      if(!sumMap[gkey]){
+        sumMap[gkey] = { ...r, _dateSet: new Set([r.__dateKey||'']) };
+      } else {
+        const g = sumMap[gkey];
+        if(!g._dateSet.has(r.__dateKey||'')){
+          g._dateSet.add(r.__dateKey||'');
+          // Sum numeric metrics — skip rate keys (will recalculate below)
+          for(const [k,v] of Object.entries(r)){
+            if(k.startsWith('__')||k.startsWith('_')||typeof v!=='number'||RATE_KEYS.has(k)) continue;
+            g[k] = (g[k]||0) + v;
+          }
+          // Widen date range span
+          if(r.__dataFromTs && (!g.__dataFromTs || r.__dataFromTs < g.__dataFromTs)){
+            g.__dataFrom = r.__dataFrom; g.__dataFromTs = r.__dataFromTs;
+          }
+          if(r.__dataToTs && (!g.__dataToTs || r.__dataToTs > g.__dataToTs)){
+            g.__dataTo = r.__dataTo; g.__dataToTs = r.__dataToTs;
+          }
+          if((r.__captureTs||0) > (g.__captureTs||0)) g.__captureTs = r.__captureTs;
+        }
+      }
+    }
+
+    // Step 4 – recalculate derived rate metrics, format date range display
+    const merged = Object.values(sumMap).map(g => {
+      if((g.rpt_impression||0) > 0) g.rpt_ctr = (g.rpt_click||0) / g.rpt_impression;
+      if((g.rpt_cost||0) > 0){
+        if((g.rpt_broad_gmv||0) > 0)  g.rpt_broad_roi  = g.rpt_broad_gmv / g.rpt_cost;
+        if((g.rpt_direct_gmv||0) > 0) g.rpt_direct_roi = g.rpt_direct_gmv / g.rpt_cost;
+      }
+      if((g.rpt_click||0) > 0 && (g.rpt_cost||0) > 0) g.rpt_cpc = g.rpt_cost / g.rpt_click;
+      g.__dateRange = g.__dataFrom && g.__dataTo
+        ? (g.__dataFrom === g.__dataTo ? g.__dataFrom : g.__dataFrom + '→' + g.__dataTo)
+        : '—';
+      delete g._dateSet;
+      return g;
+    });
+
+    if(merged.length) return merged;
+  }
+  // ── Generic: Group by url base, pick best scoring array per URL ──
+  const byUrl={};
+  for(const cap of captures){
+    const u=(cap.url||'').split('?')[0];
+    const newScore = (cap.priority?200:0) + scoreArr(findArr(cap.json));
+    const oldScore = byUrl[u] ? (byUrl[u].priority?200:0) + scoreArr(findArr(byUrl[u].json)) : -9999;
+    if(newScore > oldScore) byUrl[u]=cap;
+  }
+  const all=[], seen=new Set();
+  for(const cap of Object.values(byUrl)){
+    const arr=findArr(cap.json);
+    if(!arr||scoreArr(arr)<0) continue;
+    for(const row of arr){
+      const key=JSON.stringify(row);
+      if(!seen.has(key)){ seen.add(key); all.push({...row,__shopId:cap.shopId,__shopName:cap.shopName,__captureTs:cap.ts||0}); }
+    }
+  } return all;
+}
+function fk(obj,cands){ for(const k of cands) if(k in (obj||{})) return k; return null; }
+function sumNum(flat,keys){ const k=keys.find(k=>k in(flat[0]||{})); return k?flat.reduce((s,r)=>s+(Number(r[k])||0),0):null; }
+
+/* ── MULTI-SELECT SHOP WIDGET ── */
+const selectedShops = {};   // type → Set<shopId>
+const shopNameMap   = {};   // shopId → display name (across all tabs)
+TYPES.forEach(t => selectedShops[t] = new Set());
+
+// Open/close dropdown
+function toggleMs(type) {
+  const panel = document.getElementById('ms-panel-' + type);
+  const isOpen = panel.classList.contains('open');
+  TYPES.forEach(t => document.getElementById('ms-panel-'+t)?.classList.remove('open'));
+  if (!isOpen) panel.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ms-wrap'))
+    TYPES.forEach(t => document.getElementById('ms-panel-'+t)?.classList.remove('open'));
+}, true);
+
+// Filter items in dropdown by search text
+function filterMsList(type, q) {
+  document.querySelectorAll('#ms-list-'+type+' .ms-item').forEach(el => {
+    el.style.display = (el.dataset.name||'').toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+// Select all shops = clear filter
+function selectAllMs(type) {
+  selectedShops[type].clear();
+  document.querySelectorAll('#ms-list-'+type+' input[type=checkbox]').forEach(cb => cb.checked = false);
+  updateMsLabel(type);
+  onFilterChange(type);
+}
+function clearMs(type) { selectAllMs(type); }
+
+// Toggle a single shop checkbox
+function toggleShop(type, shopId, checked) {
+  if (checked) selectedShops[type].add(shopId);
+  else selectedShops[type].delete(shopId);
+  updateMsLabel(type);
+  onFilterChange(type);
+}
+
+// Update button label + active state
+function updateMsLabel(type) {
+  const sel = selectedShops[type];
+  const label = document.getElementById('ms-label-' + type);
+  const btn   = document.querySelector('#ms-'+type+' .ms-btn');
+  if (!label) return;
+  const total = document.querySelectorAll('#ms-list-'+type+' .ms-item').length;
+  if (!sel || sel.size === 0) {
+    label.textContent = total ? `Tất cả (${total} shop)` : 'Tất cả shop';
+    btn?.classList.remove('ms-active');
+  } else {
+    const names = [...sel].map(id => shopNameMap[id] || id);
+    const first = names[0].length > 16 ? names[0].slice(0,16)+'…' : names[0];
+    label.textContent = names.length === 1 ? first : `${first} +${names.length-1}`;
+    btn?.classList.add('ms-active');
+  }
+}
+
+// Build the checkbox list inside the panel
+function buildShopChipList(type, entries) {
+  const list = document.getElementById('ms-list-' + type);
+  if (!list) return;
+  const sel = selectedShops[type];
+  if (!entries.length) {
+    list.innerHTML = '<div class="ms-empty">Chưa có dữ liệu shop</div>';
+    return;
+  }
+  list.innerHTML = entries.map(({shopId: id, name}) => {
+    shopNameMap[id] = name;
+    const chk = sel.has(id) ? 'checked' : '';
+    const dn  = name.replace(/"/g,'&quot;');
+    return `<label class="ms-item" data-name="${dn}">
+      <input type="checkbox" value="${id}" ${chk} onchange="toggleShop('${type}','${id}',this.checked)" onclick="event.stopPropagation()">
+      <span class="ms-item-name" title="${dn}">${name}</span>
+      <button class="ms-item-rename" title="Đổi tên" onclick="event.preventDefault();event.stopPropagation();startRename('${type}','${id}',this)">✏️</button>
+    </label>`;
+  }).join('');
+  updateMsLabel(type);
+}
+
+// Inline rename
+function startRename(type, shopId, btn) {
+  const item    = btn.closest('.ms-item');
+  const nameEl  = item.querySelector('.ms-item-name');
+  const cur     = shopNameMap[shopId] || shopId;
+  const inp     = document.createElement('input');
+  inp.value     = cur;
+  inp.style.cssText = 'flex:1;font-size:12px;padding:2px 6px;border:1px solid var(--or);border-radius:4px;outline:none;';
+  inp.onclick   = e => e.stopPropagation();
+  inp.onkeydown = async e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const newName = inp.value.trim();
+      if (newName && newName !== cur) await saveRename(shopId, newName, type);
+      else { nameEl.style.display=''; inp.remove(); btn.style.display=''; }
+    }
+    if (e.key === 'Escape') { nameEl.style.display=''; inp.remove(); btn.style.display=''; }
+  };
+  nameEl.style.display = 'none';
+  btn.style.display    = 'none';
+  item.insertBefore(inp, btn);
+  inp.focus(); inp.select();
+}
+
+async function saveRename(shopId, newName, type) {
+  try {
+    await fetch(`${API}/shops/${shopId}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name: newName })
+    });
+    shopNameMap[shopId] = newName;
+    // Update allData.shops
+    if (allData.shops?.[shopId]) allData.shops[shopId].name = newName;
+    // Re-render chip list (preserving selection)
+    TYPES.forEach(t => populateShopFilter(t, allRows[t]||[]));
+  } catch(e) { console.error(e); }
+}
+
+/* ── SHOP SELECTOR ── */
+const GENERIC_RE = /kênh người bán|shopee seller|portal/i;
+function shopDisplayName(s) {
+  // Prefer shopNameMap (custom rename) > server name if real > shopId
+  const mapped = shopNameMap[s.shopId];
+  if (mapped && !GENERIC_RE.test(mapped)) return mapped;
+  if (s.name && !GENERIC_RE.test(s.name)) return s.name;
+  return s.shopId; // fall back to numeric ID — still unique
+}
+function updateShopSel(shops){
+  const sel=document.getElementById('shopSel');
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">Tất cả shop ('+Object.keys(shops).length+')</option>';
+  Object.values(shops).sort((a,b)=>b.lastSeen-a.lastSeen).forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.shopId; o.textContent=shopDisplayName(s);
+    if(s.shopId===cur) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+/* ── TABLE ── */
+// Preferred column order for each tab type
+const PREF_COLS = {
+  ads: ['__campaignType','title','__dateRange','__shopCount','__campaignState','__totalProducts','rpt_impression','rpt_click','rpt_ctr','rpt_cost','rpt_broad_gmv','rpt_broad_roi','rpt_broad_order','rpt_direct_order','rpt_atc','rpt_checkout','rpt_cpc','rpt_avg_rank','rpt_direct_gmv','rpt_direct_roi'],
+  orders: ['order_date','order_sn','status','product_names','qty','revenue','payment_method','shipping','tracking','buyer','cancel_reason']
+};
+function sortCols(type, allCols){
+  const pref = PREF_COLS[type]||[];
+  const pset = new Set(pref);
+  const rest = allCols.filter(c=>!pset.has(c));
+  return [...pref.filter(c=>allCols.includes(c)), ...rest].slice(0,22);
+}
+
+function renderTable(type, rows){
+  const tbl=document.getElementById('t-'+type);
+  if(!rows.length){ tbl.innerHTML=`<tr><td colspan="99"><div class="empty"><div class="empty-ico">📭</div><p>Chưa có dữ liệu — hãy truy cập trang Shopee để extension thu thập.</p></div></td></tr>`; document.getElementById('cnt-'+type).textContent=''; return; }
+  const flat=rows.map(r=>flatten(r));
+  const rawCols=Object.keys(flat[0]||{}).filter(k=>!k.startsWith('__')&&String(flat[0][k]||'').length<250);
+  let cols = sortCols(type, rawCols);
+  const showShop = currentShop==='all';
+  // Default sort: ads → sort by rpt_cost desc; others → no sort
+  if(!tblState[type]) tblState[type]={
+    sortCol: type==='ads' ? 'rpt_cost' : null,
+    sortDir: -1
+  };
+  const st=tblState[type];
+  const q=(document.getElementById('s-'+type)||{}).value?.toLowerCase()||'';
+  let data=[...flat];
+  if(q) data=data.filter(r=>cols.some(c=>String(r[c]||'').toLowerCase().includes(q)));
+  if(st.sortCol) data.sort((a,b)=>{
+    const av=a[st.sortCol],bv=b[st.sortCol];
+    const an=Number(av),bn=Number(bv);
+    return st.sortDir*(isNaN(an)||isNaN(bn)?String(av||'').localeCompare(String(bv||'')):an-bn);
+  });
+  document.getElementById('cnt-'+type).textContent=data.length.toLocaleString()+' dòng';
+  const isS=c=>/status|state/.test(c.toLowerCase());
+  const thead=tbl.querySelector('thead');
+  thead.innerHTML='<tr>'+(showShop?'<th>Shop</th>':'')+cols.map(c=>{
+    const cls=st.sortCol===c?(st.sortDir>0?'asc':'desc'):'';
+    const label = COL_LABELS[c]||c.replace(/_/g,' ');
+    return `<th class="${cls}" data-col="${c}">${label}</th>`;
+  }).join('')+'</tr>';
+  thead.querySelectorAll('th[data-col]').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const col=th.dataset.col;
+      st.sortCol===col?st.sortDir*=-1:(st.sortCol=col,st.sortDir=-1);
+      renderTable(type,rows);
+    });
+  });
+  tbl.querySelector('tbody').innerHTML=data.slice(0,600).map(r=>'<tr>'+(showShop?`<td><span class="shop-pill">${r.__shopName||r.__shopId||''}</span></td>`:'')+cols.map(c=>{
+    const v=r[c];
+    let cell;
+    if(c==='__campaignType'){
+      const isShop = (v||'').includes('Shop');
+      cell=`<span class="bk ${isShop?'bk-b':'bk-o'}">${v||'—'}</span>`;
+    } else if(c==='__campaignState'){
+      const s=(v||'').toLowerCase();
+      const cls=s==='ongoing'?'bk-g':s==='paused'?'bk-gr':'bk-r';
+      const label=s==='ongoing'?'Đang chạy':s==='paused'?'Tạm dừng':v||'—';
+      cell=`<span class="bk ${cls}">${label}</span>`;
+    } else if(c==='__shopCount'){
+      const n=Number(v)||0;
+      cell = n > 1 ? `<span class="bk bk-b" title="${r.__shopNames||''}">${n} shop</span>`
+                   : n === 1 ? `<span style="font-size:11px;color:var(--mu)">1</span>` : '—';
+    } else {
+      cell=isS(c)?statusBadge(v):fv(v,gt(c));
+    }
+    return `<td title="${String(v||'')}">${cell}</td>`;
+  }).join('')+'</tr>').join('');
+}
+
+/* ── CARDS ── */
+function buildCards(type,rows){
+  const flat=rows.map(r=>flatten(r));
+  let html=`<div class="card"><div class="card-label">Tổng records</div><div class="card-val" style="color:var(--b)">${rows.length.toLocaleString()}</div><div class="card-sub">từ tất cả captures</div></div>`;
+  if(type==='ads'){
+    // Date range card (most important!)
+    if(adsDateRange) {
+      html=`<div class="card" style="border:2px solid var(--or);grid-column:1/-1;background:#fff3f0;">
+        <div class="card-label">📅 Khoảng thời gian dữ liệu</div>
+        <div class="card-val" style="color:var(--or);font-size:17px">${adsDateRange.from} → ${adsDateRange.to}</div>
+        <div class="card-sub">Từ Shopee Seller Portal · Quảng cáo CPC</div>
+      </div>`+html;
+    }
+    const sp=sumNum(flat,['rpt_cost']);
+    const rv=sumNum(flat,['rpt_broad_gmv']);
+    const cl=sumNum(flat,['rpt_click','click','click_count']);
+    const im=sumNum(flat,['rpt_impression','impression']);
+    const or=sumNum(flat,['rpt_broad_order','order','order_count']);
+    if(sp!=null)html+=`<div class="card"><div class="card-label">Tổng chi phí QC</div><div class="card-val" style="color:var(--or)">${fv(sp,'vnd')}</div></div>`;
+    if(rv!=null)html+=`<div class="card"><div class="card-label">Tổng doanh số QC</div><div class="card-val" style="color:var(--b)">${fv(rv,'vnd')}</div></div>`;
+    if(sp&&rv&&sp>0)html+=`<div class="card"><div class="card-label">ROAS TB</div><div class="card-val" style="color:var(--g)">${(rv/sp).toFixed(2)}x</div></div>`;
+    if(im!=null)html+=`<div class="card"><div class="card-label">Tổng lượt xem</div><div class="card-val" style="color:var(--mu)">${im.toLocaleString()}</div></div>`;
+    if(cl!=null)html+=`<div class="card"><div class="card-label">Tổng clicks</div><div class="card-val" style="color:var(--p)">${cl.toLocaleString()}</div></div>`;
+    if(or!=null)html+=`<div class="card"><div class="card-label">Đơn từ QC</div><div class="card-val" style="color:var(--am)">${or.toLocaleString()}</div></div>`;
+  }
+  if(type==='orders'){
+    const total = rows.length;
+    const cancelled  = rows.filter(r=>(r.status||'').includes('hủy')).length;
+    const delivered  = rows.filter(r=>/đã giao$|đã giao\b/i.test(r.status||'')).length;
+    const shipping   = rows.filter(r=>/giao cho|đang giao|lấy hàng/i.test(r.status||'')).length;
+    const pending    = rows.filter(r=>/chờ/i.test(r.status||'')).length;
+    const revenue    = rows.filter(r=>!(r.status||'').includes('hủy'))
+                           .reduce((s,r)=>s+(Number(r.revenue)||0),0);
+    const cancelRate = total>0?(cancelled/total*100).toFixed(1):0;
+    html+=`<div class="card"><div class="card-label">Tổng đơn (đã tải)</div><div class="card-val" style="color:var(--b)">${total.toLocaleString()}</div></div>`;
+    html+=`<div class="card"><div class="card-label">Doanh thu (trừ hủy)</div><div class="card-val" style="color:var(--g)">${fv(revenue,'vnd')}</div></div>`;
+    if(delivered)html+=`<div class="card"><div class="card-label">✅ Đã giao</div><div class="card-val" style="color:#22c55e">${delivered.toLocaleString()}</div></div>`;
+    if(shipping) html+=`<div class="card"><div class="card-label">🚚 Đang giao/chờ</div><div class="card-val" style="color:var(--b)">${shipping.toLocaleString()}</div></div>`;
+    if(pending)  html+=`<div class="card"><div class="card-label">⏳ Chờ xác nhận</div><div class="card-val" style="color:var(--am)">${pending.toLocaleString()}</div></div>`;
+    html+=`<div class="card"><div class="card-label">❌ Đã hủy</div><div class="card-val" style="color:var(--or)">${cancelled.toLocaleString()}</div><div class="card-sub">Tỉ lệ hủy: ${cancelRate}%</div></div>`;
+  }
+  if(type==='performance'){
+    const pv=sumNum(flat,['view_count','pv','page_view','impression']);
+    const uv=sumNum(flat,['uv','visitor','visitor_count']);
+    if(pv!=null)html+=`<div class="card"><div class="card-label">Tổng lượt xem</div><div class="card-val" style="color:var(--b)">${pv.toLocaleString()}</div></div>`;
+    if(uv!=null)html+=`<div class="card"><div class="card-label">Unique Visitors</div><div class="card-val" style="color:var(--g)">${uv.toLocaleString()}</div></div>`;
+  }
+  if(type==='traffic'){
+    const uv=sumNum(flat,['uv','visitor','visitor_count','unique_visitor']);
+    if(uv!=null)html+=`<div class="card"><div class="card-label">Tổng Visitors</div><div class="card-val" style="color:var(--b)">${uv.toLocaleString()}</div></div>`;
+  }
+  document.getElementById('c-'+type).innerHTML=html;
+}
+
+/* ── CHARTS ── */
+function destroyChart(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+function buildChart(type,rows){
+  destroyChart(type);
+  const flat=rows.map(r=>flatten(r)).slice(0,15);
+  const cp=document.getElementById('cp-'+type);
+  if(type==='ads'){
+    const nk=fk(flat[0],['title','item_name','name','product_name','ad_name','itemid','item_id']);
+    const sk=fk(flat[0],['rpt_cost','spend','cost','total_spend','fee']);
+    const rk=fk(flat[0],['rpt_broad_gmv','revenue','gmv','income','total_revenue']);
+    if(!sk&&!rk) return; cp.style.display='';
+    const labels=flat.map(r=>String(r[nk]||'?').substring(0,22));
+    const ds=[];
+    if(sk) ds.push({label:'Chi phí (VND)',data:flat.map(r=>Number(r[sk])||0),backgroundColor:COLORS[0],borderRadius:4});
+    if(rk) ds.push({label:'Doanh số (VND)',data:flat.map(r=>Number(r[rk])||0),backgroundColor:COLORS[1],borderRadius:4});
+    charts[type]=new Chart(document.getElementById('ch-'+type).getContext('2d'),{type:'bar',data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v.toLocaleString('vi-VN')}}}}});
+  }
+  if(type==='orders'){
+    if(!rows.length) return; cp.style.display='';
+    const cnt={};
+    rows.forEach(r=>{const s=String(r.status||r.order_status||'unknown');cnt[s]=(cnt[s]||0)+1;});
+    const STATUS_COLORS={'Đã giao':'#22c55e','Đã giao cho ĐVVC':'#3b82f6','Đang giao':'#3b82f6',
+      'Chờ xác nhận':'#f59e0b','Chờ lấy hàng':'#8b5cf6',
+      'Đã hủy':'#EE4D2D','Trả hàng/Hoàn tiền':'#f97316','Đang giao hàng':'#06b6d4'};
+    const bgColors=Object.keys(cnt).map(s=>STATUS_COLORS[s]||'#9ca3af');
+    charts[type]=new Chart(document.getElementById('ch-orders').getContext('2d'),{
+      type:'doughnut',
+      data:{labels:Object.keys(cnt),datasets:[{data:Object.values(cnt),backgroundColor:bgColors,borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.parsed} đơn`}}}}
+    });
+  }
+  if(type==='performance'){
+    const nk=fk(flat[0],['item_name','name','product_name','title']);
+    const vk=fk(flat[0],['view_count','pv','page_view','impression','uv','visitor']);
+    if(!vk) return; cp.style.display='';
+    charts[type]=new Chart(document.getElementById('ch-'+type).getContext('2d'),{type:'bar',data:{labels:flat.map(r=>String(r[nk]||r.itemid||'?').substring(0,16)),datasets:[{label:'Lượt xem',data:flat.map(r=>Number(r[vk])||0),backgroundColor:COLORS[2],borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}});
+  }
+  if(type==='traffic'){
+    const sk=fk(flat[0],['traffic_source','source','channel','name','source_type']);
+    const uk=fk(flat[0],['uv','visitor','visitor_count','unique_visitor','session']);
+    if(!sk||!uk) return; cp.style.display='';
+    charts[type]=new Chart(document.getElementById('ch-'+type).getContext('2d'),{type:'pie',data:{labels:flat.map(r=>String(r[sk]||'?')),datasets:[{data:flat.map(r=>Number(r[uk])||0),backgroundColor:COLORS,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}}});
+  }
+}
+
+/* ── RAW DATA VIEW ── */
+const rawJsonStore = {};
+let rawDeduped = [];
+
+function openModal(i) {
+  const s = rawJsonStore[i] || {};
+  document.getElementById('modalUrl').textContent = s.__url || '';
+  const m = (s.__method || 'GET').toUpperCase();
+  document.getElementById('modalMethod').textContent = m;
+  document.getElementById('modalMethod').className = 'meta-badge ' + (m==='POST'?'meta-post':'meta-get');
+  document.getElementById('modalDay').textContent = s.__collectionDay ? '📅 ' + s.__collectionDay : '';
+  // Request pane: show query params for GET, body for POST
+  let reqText = '';
+  if (s.__reqBody && Object.keys(s.__reqBody).length) {
+    reqText = JSON.stringify(s.__reqBody, null, 2);
+  } else {
+    // Extract query string from URL
+    const qIdx = (s.__url||'').indexOf('?');
+    if (qIdx >= 0) {
+      const qs = (s.__url||'').slice(qIdx+1);
+      const params = {};
+      qs.split('&').forEach(p => { const [k,v]=p.split('='); if(k) params[decodeURIComponent(k)]=decodeURIComponent(v||''); });
+      reqText = JSON.stringify(params, null, 2);
+    } else {
+      reqText = '(no params)';
+    }
+  }
+  document.getElementById('modalReq').textContent = reqText;
+  document.getElementById('modalBody').textContent = JSON.stringify(s.__json || {}, null, 2).substring(0, 60000);
+  document.getElementById('jsonModal').classList.add('open');
+}
+function closeModal() { document.getElementById('jsonModal').classList.remove('open'); }
+function copyFetch() {
+  const s = rawJsonStore[document.getElementById('jsonModal').__curIdx || 0] || {};
+  const m = (s.__method || 'GET').toUpperCase();
+  let code = '';
+  if (m === 'POST') {
+    const urlBase = (s.__url||'').split('?')[0];
+    code = `// Paste in browser console on banhang.shopee.vn:\nawait fetch('${urlBase}', {\n  method: 'POST',\n  credentials: 'include',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify(${JSON.stringify(s.__reqBody||{}, null, 2)})\n}).then(r => r.json()).then(console.log)`;
+  } else {
+    code = `// Paste in browser console on banhang.shopee.vn:\nawait fetch('${s.__url||''}', {\n  method: 'GET',\n  credentials: 'include'\n}).then(r => r.json()).then(console.log)`;
+  }
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.querySelector('.json-box-copy');
+    btn.textContent = '✅ Đã copy!'; setTimeout(() => btn.textContent='📋 Copy fetch()', 2000);
+  });
+}
+
+function renderRawFilter() {
+  const onlyData = document.getElementById('rawFilterChk').checked;
+  const q = (document.getElementById('rawSearch').value||'').toLowerCase();
+  let rows = rawDeduped;
+  if(onlyData) rows = rows.filter(r=>r.__itemCount > 1);
+  if(q) rows = rows.filter(r=>r.__urlPath.toLowerCase().includes(q));
+  const typeColors = {ads:'#EE4D2D',orders:'#3b82f6',performance:'#22c55e',traffic:'#8b5cf6'};
+  document.getElementById('raw-tbody').innerHTML = rows.map(r => {
+    const bg = typeColors[r.__type]||'#6b7280';
+    const m = (r.__method||'GET').toUpperCase();
+    const mClass = m==='POST'?'td-post':'td-get';
+    const dateRange = r.__dateRange || '—';
+    const day = r.collectionDay || '—';
+    return `<tr onclick="openModalByIdx(${r.__idx})">
+      <td><span style="background:${bg};color:#fff;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">${r.__type}</span></td>
+      <td><span class="raw-tbl td-method ${mClass}">${m}</span></td>
+      <td class="td-url" title="${r.url||''}">${r.__urlPath}</td>
+      <td class="td-datekey">${dateRange}</td>
+      <td style="font-size:10px;color:#6b7280">${day}</td>
+      <td style="text-align:center;font-weight:700;color:${r.__itemCount>1?'#16a34a':'#9ca3af'};font-size:12px">${r.__itemCount}</td>
+      <td class="td-keys">${r.__keys}</td>
+      <td style="font-size:10px;color:#6b7280">${r.shopName||r.shopId||''}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('raw-count').textContent = rows.length + ' / ' + rawDeduped.length + ' captures';
+}
+
+function openModalByIdx(i) {
+  document.getElementById('jsonModal').__curIdx = i;
+  openModal(i);
+}
+
+function renderRaw(data) {
+  const all = [];
+  TYPES.forEach(t => {
+    (data[t] || []).forEach(cap => { all.push({ ...cap, __type: t }); });
+  });
+
+  if (!all.length) {
+    document.getElementById('raw-empty').style.display = 'block';
+    document.getElementById('raw-count').textContent = '0 captures';
+    return;
+  }
+  document.getElementById('raw-empty').style.display = 'none';
+
+  // Deduplicate: keep latest capture per (urlBase + collectionDay)
+  const byKey = {};
+  all.forEach(cap => {
+    const u = (cap.url||'').split('?')[0];
+    const key = u + '|' + (cap.collectionDay||'');
+    if (!byKey[key] || (cap.ts||0) > (byKey[key].ts||0)) byKey[key] = cap;
+  });
+
+  let idx = 0;
+  rawDeduped = Object.values(byKey).map(cap => {
+    const i = idx++;
+    const rb = cap.reqBody || {};
+    // Build human-readable date range string
+    const stRaw = rb.start_time || rb.from_time || rb.start_date;
+    const etRaw = rb.end_time   || rb.to_time   || rb.end_date;
+    let dateRange = '—';
+    if (stRaw && etRaw) {
+      const fmt = ts => new Date(Number(ts)*1000).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'});
+      dateRange = fmt(stRaw) + ' → ' + fmt(etRaw);
+    }
+    rawJsonStore[i] = {
+      __url: cap.url,
+      __json: cap.json,
+      __reqBody: cap.reqBody || null,
+      __method: cap.reqBody ? 'POST' : 'GET',
+      __collectionDay: cap.collectionDay || '',
+    };
+    const urlPath = (cap.url||'').replace(/https?:\/\/[^\/]+/,'').split('?')[0];
+    const arrs = collectArrays(cap.json||{});
+    const biggest = arrs.sort((a,b)=>b.length-a.length)[0];
+    const itemCount = biggest ? biggest.length : 0;
+    const keys = biggest ? Object.keys(biggest[0]||{}).slice(0,6).join(', ') : '—';
+    return { ...cap, __idx:i, __urlPath:urlPath, __itemCount:itemCount, __keys:keys,
+             __method: cap.reqBody ? 'POST' : 'GET', __dateRange: dateRange };
+  }).sort((a,b) => b.__itemCount - a.__itemCount);
+
+  renderRawFilter();
+}
+
+/* ── RENDER ALL ── */
+const expData={};
+function renderAll(data){
+  if(!data) return;
+  adsDateRange = null; // reset before re-parsing
+  updateShopSel(data.shops||{});
+  updateTlShopSel(data.shops||{});
+  renderRaw(data);
+  // Render timeline nếu đang ở tab timeline
+  if (document.getElementById('pane-timeline')?.classList.contains('active')) {
+    renderTimeline();
+  }
+  TYPES.forEach(t=>{
+    const captures=filterByDate(data[t]||[]);
+    document.getElementById('b-'+t).textContent=captures.length;
+    const rows=mergeCaptures(captures, t);
+    allRows[t]=rows;
+    populateShopFilter(t, rows);
+    const filtered=getDisplayRows(t, rows);
+    expData[t]=filtered;
+    buildCards(t,filtered);
+    buildChart(t,filtered);
+    renderTable(t,filtered);
+    const si=document.getElementById('s-'+t);
+    if(si&&!si.dataset.bound){si.dataset.bound='1';si.addEventListener('input',()=>renderTable(t,applyTabFilter(t,allRows[t]||[])));}
+  });
+}
+
+/* ── EXPORT ── */
+function exportSheet(type){
+  const rows=expData[type]||[];
+  if(!rows.length) return alert('Không có dữ liệu!');
+  const ws=XLSX.utils.json_to_sheet(rows.map(r=>flatten(r)));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,type);
+  XLSX.writeFile(wb,`shopee_${type}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+function exportAll(){
+  const wb=XLSX.utils.book_new();
+  let any=false;
+  TYPES.forEach(t=>{const rows=expData[t]||[];if(rows.length){XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.map(r=>flatten(r))),t);any=true;}});
+  if(!any) return alert('Chưa có dữ liệu!');
+  XLSX.writeFile(wb,`shopee_all_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+/* ── ORDERS EXCEL IMPORT ── */
+let importedOrders = [];   // rows from Excel import
+
+function importOrderExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!raw.length) return alert('File không có dữ liệu!');
+
+      // Group by Mã đơn hàng (multiple rows per order = multiple products)
+      const orderMap = {};
+      for (const row of raw) {
+        const sn = String(row['Mã đơn hàng'] || '').trim();
+        if (!sn) continue;
+        // Parse date: "2026-06-01 03:38" → "2026-06-01"
+        let order_date = '';
+        const rawDate = row['Ngày đặt hàng'];
+        if (rawDate instanceof Date) {
+          order_date = rawDate.toISOString().slice(0, 10);
+        } else if (rawDate) {
+          order_date = String(rawDate).slice(0, 10);
+        }
+        const product = String(row['Tên sản phẩm'] || '').trim();
+        const qty     = Number(row['Số lượng'] || 0);
+        const revenue = Number(row['Tổng giá trị đơn hàng (VND)'] || 0);
+
+        if (!orderMap[sn]) {
+          orderMap[sn] = {
+            order_date,
+            order_sn:       sn,
+            status:         String(row['Trạng Thái Đơn Hàng'] || '—').trim(),
+            cancel_reason:  String(row['Lý do hủy'] || '').trim(),
+            product_names:  product ? [product] : [],
+            qty:            qty,
+            revenue,          // take once (same for all rows of same order)
+            payment_method: String(row['Phương thức thanh toán'] || '—').trim(),
+            shipping:       String(row['Đơn Vị Vận Chuyển'] || '—').trim(),
+            tracking:       String(row['Mã vận đơn'] || '').trim(),
+            buyer:          String(row['Người Mua'] || '—').trim(),
+            __shopId:       '',
+            __shopName:     'Excel Import',
+            __captureTs:    0,
+            __fromExcel:    true,
+          };
+        } else {
+          // Additional product row: append name, add qty
+          if (product && !orderMap[sn].product_names.includes(product))
+            orderMap[sn].product_names.push(product);
+          orderMap[sn].qty += qty;
+        }
+      }
+      // Finalize product_names as string
+      importedOrders = Object.values(orderMap).map(o => ({
+        ...o, product_names: o.product_names.join(' | ')
+      }));
+
+      // Merge with API-captured orders: API data wins for same order_sn
+      const apiSnSet = new Set((allRows['orders'] || []).map(r => r.order_sn));
+      const excelOnly = importedOrders.filter(r => !apiSnSet.has(r.order_sn));
+      allRows['orders'] = [...(allRows['orders'] || []), ...excelOnly];
+
+      // Update info label
+      const info = document.getElementById('ord-import-info');
+      if (info) info.textContent = `✅ Import: ${importedOrders.length} đơn (${excelOnly.length} mới từ Excel)`;
+      // Reset file input so same file can be re-imported
+      input.value = '';
+      // Re-render orders tab
+      populateShopFilter('orders', allRows['orders']);
+      onFilterChange('orders');
+    } catch(err) {
+      console.error(err);
+      alert('Lỗi đọc file: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ── TAB FILTERS ── */
+const tabFilters = {};
+const allRows    = {};
+TYPES.forEach(t => tabFilters[t] = {from:'', to:'', campaignType:'all', orderStatus:'all'});
+
+function setFilter(type, key, val) {
+  tabFilters[type][key] = val;
+  const elMap = { from:'fd-from-'+type, to:'fd-to-'+type, campaignType:'ft-'+type };
+  const el = document.getElementById(elMap[key]);
+  if(el) el.classList.toggle('f-active', !!val && val!=='all');
+  onFilterChange(type);
+}
+
+function clearFilter(type) {
+  tabFilters[type] = {from:'', to:'', campaignType:'all', orderStatus:'all'};
+  // Clear shop chip selection
+  selectedShops[type].clear();
+  updateMsLabel(type);
+  document.querySelectorAll('#ms-list-'+type+' input[type=checkbox]').forEach(cb => cb.checked=false);
+  // Clear date + type inputs
+  ['fd-from-'+type, 'fd-to-'+type].forEach(id => {
+    const el=document.getElementById(id); if(el){el.value='';el.classList.remove('f-active');}
+  });
+  const ft=document.getElementById('ft-'+type);
+  if(ft){ft.value='all';ft.classList.remove('f-active');}
+  // Clear group toggle
+  const tog=document.getElementById(type+'-group-toggle');
+  if(tog) tog.checked=false;
+  onFilterChange(type);
+}
+
+function applyTabFilter(type, rows) {
+  const f   = tabFilters[type];
+  const sel = selectedShops[type];
+  let r = [...rows];
+  // Multi-select shop filter
+  if (sel && sel.size > 0) r = r.filter(x => sel.has(x.__shopId));
+  // Campaign type filter (ads)
+  if(f.campaignType && f.campaignType !== 'all') r = r.filter(x => (x.__campaignType||'') === f.campaignType);
+  // Order status filter (orders)
+  if(f.orderStatus && f.orderStatus !== 'all') r = r.filter(x => (x.status||'') === f.orderStatus);
+  // Date filters
+  if(type==='orders'){
+    // Orders: compare against order_date string (YYYY-MM-DD)
+    if(f.from) r=r.filter(x=>!x.order_date||x.order_date>=f.from);
+    if(f.to)   r=r.filter(x=>!x.order_date||x.order_date<=f.to);
+  } else {
+    // Ads/others: compare against actual data date range timestamps
+    if(f.from){ const ft=new Date(f.from+'T00:00:00').getTime()/1000; r=r.filter(x=>!x.__dataToTs  ||x.__dataToTs  >=ft); }
+    if(f.to)  { const tt=new Date(f.to+'T23:59:59').getTime()/1000;  r=r.filter(x=>!x.__dataFromTs||x.__dataFromTs<=tt); }
+  }
+  return r;
+}
+
+function populateShopFilter(type, rows) {
+  const GENERIC = /kênh người bán|shopee seller|portal/i;
+  const shopMap = {};
+  rows.forEach(r => {
+    if (!r.__shopId || r.__shopId === 'unknown') return;
+    // Prefer: shopNameMap (saved/renamed) > real shopName > shopId
+    const raw = r.__shopName || '';
+    const name = shopNameMap[r.__shopId]
+              || (raw && !GENERIC.test(raw) ? raw : null)
+              || r.__shopId;
+    shopMap[r.__shopId] = name;
+    shopNameMap[r.__shopId] = name; // update global map
+  });
+  // Also apply names from allData.shops (server registry)
+  if (allData.shops) {
+    Object.values(allData.shops).forEach(s => {
+      if (s.shopId && s.name && !GENERIC.test(s.name)) {
+        shopMap[s.shopId] = shopMap[s.shopId] || s.name;
+        shopNameMap[s.shopId] = s.name;
+      }
+    });
+  }
+  const entries = Object.entries(shopMap)
+    .map(([id, name]) => ({ shopId: id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  buildShopChipList(type, entries);
+}
+
+// Apply filter then optional grouping
+function getDisplayRows(type, rows) {
+  const filtered = applyTabFilter(type, rows);
+  if (type === 'ads') {
+    const tog = document.getElementById('ads-group-toggle');
+    if (tog && tog.checked) return groupByTitle(filtered);
+  }
+  return filtered;
+}
+
+function onFilterChange(type) {
+  const displayed = getDisplayRows(type, allRows[type]||[]);
+  expData[type] = displayed;
+  buildCards(type, displayed);
+  buildChart(type, displayed);
+  renderTable(type, displayed);
+}
+
+/* ── LOAD FROM API ── */
+async function loadData(){
+  try{
+    const res=await fetch(`${API}/data?shopId=${currentShop}`,{signal:AbortSignal.timeout(12000)});
+    const data=await res.json();
+    document.getElementById('serverDot').className='server-dot';
+    document.getElementById('offlineBar').style.display='none';
+    document.getElementById('syncInfo').textContent='Cập nhật: '+new Date().toLocaleTimeString('vi-VN');
+    allData=data;
+    renderAll(data);
+  }catch(e){
+    document.getElementById('serverDot').className='server-dot off';
+    document.getElementById('offlineBar').style.display='block';
+  }
+}
+
+/* ── TABS ── */
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'timeline') renderTimeline();
+  });
+});
+
+/* ── SHOP SELECTOR ── */
+document.getElementById('shopSel').addEventListener('change',e=>{
+  currentShop=e.target.value; loadData();
+});
+
+/* ── SHOP NAME MODAL ── */
+function openShopNames() {
+  const shops = Object.values(allData.shops || {}).filter(s => s.shopId !== 'unknown');
+  if (!shops.length) { alert('Chưa có shop nào. Hãy truy cập Shopee với extension bật.'); return; }
+  shops.sort((a,b) => (a.shopId||'').localeCompare(b.shopId||''));
+  document.getElementById('snBody').innerHTML =
+    '<p style="font-size:12px;color:var(--mu);margin-bottom:12px;">Nhập tên thật (username Shopee) cho từng shop ID. Tên được lưu vĩnh viễn.</p>' +
+    shops.map(s => {
+      const cur = shopDisplayName(s);
+      const placeholder = cur === s.shopId ? 'vd: zendecor, tamanh007_1…' : cur;
+      const val = (cur !== s.shopId) ? cur : '';
+      return `<div class="sn-row">
+        <span class="sn-id">${s.shopId}</span>
+        <input class="sn-inp" data-id="${s.shopId}" value="${val}" placeholder="${placeholder}">
+      </div>`;
+    }).join('');
+  document.getElementById('snModal').classList.add('open');
+  // Focus first empty input
+  const first = document.querySelector('#snBody .sn-inp[value=""]') ||
+                document.querySelector('#snBody .sn-inp');
+  first?.focus();
+}
+
+function closeShopNames() {
+  document.getElementById('snModal').classList.remove('open');
+}
+
+async function saveAllShopNames() {
+  const inputs = document.querySelectorAll('#snBody .sn-inp');
+  const tasks = [];
+  inputs.forEach(inp => {
+    const id   = inp.dataset.id;
+    const name = inp.value.trim();
+    if (id && name) tasks.push(
+      fetch(`${API}/shops/${id}`, {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name })
+      }).then(() => { shopNameMap[id] = name; if(allData.shops?.[id]) allData.shops[id].name = name; })
+    );
+  });
+  await Promise.all(tasks);
+  closeShopNames();
+  // Refresh selectors
+  updateShopSel(allData.shops || {});
+  TYPES.forEach(t => populateShopFilter(t, allRows[t]||[]));
+}
+
+/* ── CLEAR DATA MODAL ── */
+let _clearOpt = null;
+
+function openClearModal() {
+  // Populate shop dropdown
+  const sel = document.getElementById('clShopSel');
+  sel.innerHTML = '<option value="">— Chọn shop cần xóa —</option>';
+  Object.values(allData.shops || {})
+    .sort((a,b) => (shopDisplayName(a)||'').localeCompare(shopDisplayName(b)||''))
+    .forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.shopId;
+      o.textContent = shopDisplayName(s) + ' (' + s.shopId + ')';
+      sel.appendChild(o);
+    });
+  // Reset selection
+  _clearOpt = null;
+  document.querySelectorAll('.cl-opt label').forEach(l => l.classList.remove('selected'));
+  document.querySelectorAll('.cl-opt input[type=radio]').forEach(r => r.checked = false);
+  document.getElementById('clShopSel').style.display = 'none';
+  document.getElementById('clModal').classList.add('open');
+}
+
+function closeClearModal() {
+  document.getElementById('clModal').classList.remove('open');
+}
+
+function selectClearOpt(opt) {
+  _clearOpt = opt;
+  document.querySelectorAll('.cl-opt label').forEach(l => l.classList.remove('selected'));
+  const radio = document.getElementById('clOpt' + opt.charAt(0).toUpperCase() + opt.slice(1));
+  if (radio) { radio.checked = true; radio.closest('label').classList.add('selected'); }
+  document.getElementById('clShopSel').style.display = (opt === 'shop') ? 'block' : 'none';
+}
+
+async function confirmClear() {
+  if (!_clearOpt) { alert('Vui lòng chọn loại xóa!'); return; }
+  let shopId = 'all';
+  if (_clearOpt === 'shop') {
+    shopId = document.getElementById('clShopSel').value;
+    if (!shopId) { alert('Vui lòng chọn shop cần xóa!'); return; }
+  }
+  const label = _clearOpt === 'shop'
+    ? `shop ${shopNameMap[shopId] || shopId}`
+    : _clearOpt === 'all' ? 'toàn bộ dữ liệu capture' : 'toàn bộ hệ thống';
+  if (!confirm(`Xác nhận xóa ${label}?`)) return;
+
+  try {
+    if (_clearOpt === 'reset') {
+      // Clear all data AND shops registry
+      await fetch(`${API}/clear?shopId=all`, { method: 'DELETE' });
+      // Also clear shop names
+      await fetch(`${API}/shops/reset-names`, { method: 'POST' });
+    } else {
+      await fetch(`${API}/clear?shopId=${shopId}`, { method: 'DELETE' });
+    }
+    closeClearModal();
+    // Reset client state
+    Object.keys(allRows).forEach(t => { allRows[t] = []; });
+    Object.keys(selectedShops).forEach(t => selectedShops[t].clear());
+    if (_clearOpt === 'reset') Object.keys(shopNameMap).forEach(k => delete shopNameMap[k]);
+    await loadData();
+    alert('✅ Đã xóa thành công! Hãy truy cập Shopee để thu thập dữ liệu mới.');
+  } catch(e) {
+    alert('❌ Lỗi: ' + e.message);
+  }
+}
+
+/* ── DATE FILTER ── */
+let dateFromTs = 0, dateToTs = Infinity;
+
+function applyDateFilter() {
+  const fromVal = document.getElementById('dateFrom').value;
+  const toVal   = document.getElementById('dateTo').value;
+  dateFromTs = fromVal ? new Date(fromVal).getTime() / 1000 : 0;
+  dateToTs   = toVal   ? (new Date(toVal).getTime() / 1000 + 86400) : Infinity; // +1 ngày để include ngày đó
+  renderAll(allData);
+}
+
+function clearDateFilter() {
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value   = '';
+  dateFromTs = 0; dateToTs = Infinity;
+  renderAll(allData);
+}
+
+function filterByDate(arr) {
+  if (dateFromTs === 0 && dateToTs === Infinity) return arr;
+  return arr.filter(c => {
+    const ts = Number(c.ts || 0);
+    return ts >= dateFromTs && ts <= dateToTs;
+  });
+}
+
+/* ── TRIGGER HARVEST ── */
+async function triggerHarvest() {
+  const btn = document.getElementById('triggerHarvestBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang gửi lệnh...';
+  try {
+    const res = await fetch('/api/harvest/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const j = await res.json();
+    if (j.ok) {
+      btn.textContent = '✅ Đã gửi! Chờ extension (~2 phút)';
+      btn.style.background = '#16a34a';
+    } else {
+      btn.textContent = '❌ Lỗi';
+      btn.style.background = '#dc2626';
+    }
+  } catch(e) {
+    btn.textContent = '❌ ' + e.message.slice(0, 30);
+    btn.style.background = '#dc2626';
+  }
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = '🤖 Thu thập tất cả';
+    btn.style.background = '#7c3aed';
+  }, 8000);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TIMELINE QC — biểu đồ & bảng dữ liệu theo ngày
+   ═══════════════════════════════════════════════════════════════ */
+
+let _tlRows = [];
+let _tlChart = null;
+let _tlSortCol = 'date';
+let _tlSortAsc = false;
+
+// Tìm field date trong object
+const DATE_FIELD_NAMES  = ['date','date_from','stat_date','date_time','day','datetime','start_date','stat_day','time','ts','report_date','date_key','timestamp'];
+const SPEND_FIELD_NAMES = ['cost','charge','spend','total_cost','budget_used'];
+const IMP_FIELD_NAMES   = ['impression','impression_count','view','views','view_count'];
+const CLICK_FIELD_NAMES = ['click','click_count','clicks'];
+const ORDER_FIELD_NAMES = ['order_cnt','order_count','order_num','conversion','order','orders','broad_order'];
+const REV_FIELD_NAMES   = ['gmv','order_gmv','revenue','order_revenue','sales','broad_gmv'];
+
+function tlFindKey(obj, candidates) {
+  return candidates.find(k => k in obj) || null;
+}
+
+// Shopee API lưu VND = VND × 100,000 cho trường tiền tệ
+function tlMoneyConvert(key, val) {
+  if (typeof val !== 'number') return val;
+  // Nếu field là monetary AND giá trị rất lớn (> 50 triệu), chia 100,000
+  const isMoney = /cost|charge|spend|gmv|revenue|sales|amount|fee|budget/i.test(key);
+  if (isMoney && val > 50000000) return Math.round(val / 100000);
+  return val;
+}
+
+// Parse giá trị ngày sang YYYY-MM-DD
+function tlParseDate(v) {
+  if (typeof v === 'number') {
+    if (v > 1e9) return new Date(v * 1000).toISOString().slice(0, 10);
+    if (v > 20000101 && v <= 21001231) {
+      const s = String(v);
+      return s.length === 8 ? `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}` : null;
+    }
+  }
+  if (typeof v === 'string') {
+    const m = v.match(/(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})/);
+    return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+  }
+  return null;
+}
+
+// Parser đặc biệt cho /api/pas/v1/report/get_time_graph/
+// Cấu trúc: data.report_by_time[].{key: "unixTs", metrics: {cost, impression, click, direct_gmv, direct_order}}
+function tlExtractTimeGraph(json) {
+  const arr = json?.data?.report_by_time;
+  if (!Array.isArray(arr) || arr.length < 2) return null;
+  const first = arr[0];
+  if (!first || typeof first !== 'object') return null;
+  // Nhận dạng: có field "key" là unix timestamp và có sub-object "metrics"
+  const ts0 = Number(first.key);
+  if (!ts0 || ts0 < 1e9 || typeof first.metrics !== 'object') return null;
+
+  const rows = arr.map(item => {
+    const ts = Number(item.key);
+    if (!ts || ts < 1e9) return null;
+    // Chuyển unix timestamp (GMT+7) → YYYY-MM-DD
+    const localTs = ts + 7 * 3600; // +7 giờ để ra giờ VN
+    const date = new Date(localTs * 1000).toISOString().slice(0, 10);
+    const m = item.metrics || {};
+    return {
+      date,
+      spend:       tlMoneyConvert('cost',       Number(m.cost        || 0)),
+      impressions: Number(m.impression          || 0),
+      clicks:      Number(m.click               || 0),
+      orders:      Number(m.direct_order || m.broad_order || 0),
+      revenue:     tlMoneyConvert('gmv', Number(m.direct_gmv || m.broad_gmv || 0)),
+    };
+  }).filter(r => r?.date);
+  return rows.length >= 2 ? rows : null;
+}
+
+// Tìm daily breakdown array trong JSON response của Shopee
+// Thử time_graph parser trước, rồi mới deep scan.
+function tlExtractDailyArray(json) {
+  // 1. Thử parser đặc biệt cho get_time_graph (data.report_by_time)
+  const tg = tlExtractTimeGraph(json);
+  if (tg) return tg;
+
+  const ALL_METRIC = [...SPEND_FIELD_NAMES, ...IMP_FIELD_NAMES, ...CLICK_FIELD_NAMES];
+
+  function tryParseArray(arr) {
+    if (!Array.isArray(arr) || arr.length < 2) return null;
+    const first = arr[0];
+    if (!first || typeof first !== 'object' || Array.isArray(first)) return null;
+
+    // Phải có date field trực tiếp trên object (không nested)
+    const dk = DATE_FIELD_NAMES.find(k => k in first && tlParseDate(first[k]));
+    if (!dk) return null;
+
+    // Metrics có thể nằm trực tiếp HOẶC trong sub-object "metrics"
+    const sample = first.metrics && typeof first.metrics === 'object' ? first.metrics : first;
+    const hasMetric = ALL_METRIC.some(k => k in sample);
+    if (!hasMetric) return null;
+
+    const rows = arr.map(row => {
+      const date = tlParseDate(row[dk]);
+      if (!date) return null;
+      const src = row.metrics && typeof row.metrics === 'object' ? row.metrics : row;
+      const sk = tlFindKey(src, SPEND_FIELD_NAMES);
+      const ik = tlFindKey(src, IMP_FIELD_NAMES);
+      const ck = tlFindKey(src, CLICK_FIELD_NAMES);
+      const ok = tlFindKey(src, ORDER_FIELD_NAMES);
+      const rk = tlFindKey(src, REV_FIELD_NAMES);
+      return {
+        date,
+        spend:       tlMoneyConvert(sk||'cost', Number(sk ? src[sk] : 0)),
+        impressions: Number(ik ? src[ik] : 0),
+        clicks:      Number(ck ? src[ck] : 0),
+        orders:      Number(ok ? src[ok] : 0),
+        revenue:     tlMoneyConvert(rk||'gmv', Number(rk ? src[rk] : 0)),
+      };
+    }).filter(r => r?.date);
+    return rows.length >= 2 ? rows : null;
+  }
+
+  // BFS qua toàn bộ JSON, ưu tiên các array gần root trước
+  function deepScan(obj, depth) {
+    if (!obj || typeof obj !== 'object' || depth > 8) return null;
+    if (Array.isArray(obj)) {
+      const r = tryParseArray(obj);
+      if (r) return r;
+      for (const item of obj) {
+        const r2 = deepScan(item, depth + 1);
+        if (r2) return r2;
+      }
+      return null;
+    }
+    for (const val of Object.values(obj)) {
+      if (val && typeof val === 'object') {
+        const r = deepScan(val, depth + 1);
+        if (r) return r;
+      }
+    }
+    return null;
+  }
+
+  return deepScan(json, 0);
+}
+
+// Tổng hợp metrics từ entry_list (parsePasEntryList style)
+function tlSumEntryList(entries) {
+  let s={spend:0,impressions:0,clicks:0,orders:0,revenue:0};
+  if (!Array.isArray(entries)) return s;
+  for (const e of entries) {
+    const r = e.report || {};
+    s.spend       += tlMoneyConvert('cost',  Number(r.cost || 0));
+    s.impressions += Number(r.impression || r.impression_count || 0);
+    s.clicks      += Number(r.click || r.click_count || 0);
+    s.orders      += Number(r.broad_order || r.order || 0);
+    s.revenue     += tlMoneyConvert('gmv', Number(r.broad_gmv || r.gmv || 0));
+  }
+  return s;
+}
+
+// Tổng hợp metrics từ campaign detail report (data[]{key,metrics})
+function tlSumDetailReport(dataArr) {
+  let s={spend:0,impressions:0,clicks:0,orders:0,revenue:0};
+  if (!Array.isArray(dataArr)) return s;
+  for (const item of dataArr) {
+    const m = item.metrics || {};
+    s.spend       += tlMoneyConvert('cost', Number(m.cost || 0));
+    s.impressions += Number(m.impression || m.impression_count || 0);
+    s.clicks      += Number(m.click || m.click_count || 0);
+    s.orders      += Number(m.broad_order || m.order || 0);
+    s.revenue     += tlMoneyConvert('gmv', Number(m.broad_gmv || m.gmv || 0));
+  }
+  return s;
+}
+
+// Build timeline rows từ allData.ads captures
+function buildTlRows(shopFilter) {
+  const caps = (allData.ads || []).filter(c =>
+    shopFilter === 'all' || c.shopId === shopFilter
+  );
+
+  const byDate = {}; // date → {spend, impressions, clicks, orders, revenue}
+  function addToDate(date, vals) {
+    if (!date || date.length < 10) return;
+    if (!byDate[date]) byDate[date] = { spend:0, impressions:0, clicks:0, orders:0, revenue:0 };
+    byDate[date].spend       += vals.spend       || 0;
+    byDate[date].impressions += vals.impressions || 0;
+    byDate[date].clicks      += vals.clicks      || 0;
+    byDate[date].orders      += vals.orders      || 0;
+    byDate[date].revenue     += vals.revenue     || 0;
+  }
+
+  // Pass 1: xử lý captures có daily breakdown array (get_time_graph, v.v.)
+  // Ghi nhận (shopId|collectionDay) đã có daily data để tránh double-count ở pass 2
+  const hasDailyData = new Set();
+  for (const cap of caps) {
+    if (!cap.json) continue;
+    const dailyArr = tlExtractDailyArray(cap.json);
+    if (dailyArr?.length) {
+      for (const d of dailyArr) addToDate(d.date, d);
+      hasDailyData.add((cap.shopId||'') + '|' + (cap.collectionDay||''));
+    }
+  }
+
+  // Pass 2: fallback aggregate cho shop+day chưa có daily data
+  for (const cap of caps) {
+    if (!cap.json) continue;
+    // Bỏ qua nếu shop+day này đã được cover bởi daily array ở pass 1
+    const key = (cap.shopId||'') + '|' + (cap.collectionDay||'');
+    if (hasDailyData.has(key)) continue;
+
+    const day = cap.collectionDay ||
+      new Date((cap.ts || Date.now())).toISOString().slice(0, 10);
+
+    // entry_list style
+    const entries = cap.json?.data?.entry_list;
+    if (entries?.length) {
+      addToDate(day, tlSumEntryList(entries));
+      continue;
+    }
+
+    // campaign detail report style
+    const dataArr = cap.json?.data;
+    if (Array.isArray(dataArr) && dataArr.length && dataArr[0]?.metrics) {
+      addToDate(day, tlSumDetailReport(dataArr));
+      continue;
+    }
+  }
+
+  return Object.entries(byDate)
+    .filter(([d]) => d && d.length === 10)
+    .map(([date, v]) => ({
+      date,
+      spend:       Math.round(v.spend),
+      impressions: Math.round(v.impressions),
+      clicks:      Math.round(v.clicks),
+      orders:      Math.round(v.orders),
+      revenue:     Math.round(v.revenue),
+      roas:        v.spend > 0 ? +(v.revenue / v.spend).toFixed(2) : 0
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Lọc theo date range picker
+function filterTlRows(rows) {
+  const from = document.getElementById('tl-from')?.value;
+  const to   = document.getElementById('tl-to')?.value;
+  if (!from && !to) return rows;
+  return rows.filter(r => (!from || r.date >= from) && (!to || r.date <= to));
+}
+
+// Render Chart.js timeline
+function updateTlChart() {
+  const filtered = filterTlRows(_tlRows);
+  const canvas = document.getElementById('tl-chart');
+  if (!canvas) return;
+  if (!filtered.length) { if (_tlChart) { _tlChart.destroy(); _tlChart = null; } return; }
+
+  const labels = filtered.map(r => {
+    const d = new Date(r.date + 'T00:00:00');
+    return d.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' });
+  });
+  const showSpend   = document.getElementById('tl-show-spend')?.checked;
+  const showRevenue = document.getElementById('tl-show-revenue')?.checked;
+  const showClicks  = document.getElementById('tl-show-clicks')?.checked;
+  const showOrders  = document.getElementById('tl-show-orders')?.checked;
+
+  const datasets = [];
+  if (showSpend)   datasets.push({ label:'Số tiền (Chi phí)', data:filtered.map(r=>r.spend),   borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', yAxisID:'y',  tension:.35, fill:true,  pointRadius:3, borderWidth:2 });
+  if (showRevenue) datasets.push({ label:'Doanh thu từ QC',   data:filtered.map(r=>r.revenue), borderColor:'#EE4D2D', backgroundColor:'rgba(238,77,45,.08)',  yAxisID:'y2', tension:.35, fill:true,  pointRadius:3, borderWidth:2 });
+  if (showClicks)  datasets.push({ label:'Click',             data:filtered.map(r=>r.clicks),  borderColor:'#22c55e', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
+  if (showOrders)  datasets.push({ label:'Đơn hàng QC',       data:filtered.map(r=>r.orders),  borderColor:'#f59e0b', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
+
+  if (_tlChart) _tlChart.destroy();
+  _tlChart = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { position:'top', labels:{ font:{size:11}, boxWidth:14 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const v = ctx.raw || 0;
+              const isMoney = /Chi phí|Doanh thu/.test(ctx.dataset.label);
+              return ` ${ctx.dataset.label}: ${v.toLocaleString('vi-VN')}${isMoney ? 'đ' : ''}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x:  { ticks:{ font:{size:10}, maxRotation:45 }, grid:{ display:false } },
+        y:  { position:'left',  ticks:{ font:{size:10}, callback:v=>v>=1e6?Math.round(v/1e6)+'M':v>=1e3?Math.round(v/1e3)+'K':v }, grid:{ color:'rgba(0,0,0,.04)' }, title:{ display:true, text:'Số tiền | Lượt xem', font:{size:10}, color:'#6b7280' } },
+        y2: { position:'right', ticks:{ font:{size:10}, callback:v=>v>=1e6?Math.round(v/1e6)+'M':v>=1e3?Math.round(v/1e3)+'K':v }, grid:{ display:false },            title:{ display:true, text:'Doanh thu QC',     font:{size:10}, color:'#6b7280' } }
+      }
+    }
+  });
+}
+
+// Render bảng dữ liệu ngày
+function renderTlTable() {
+  const filtered = filterTlRows(_tlRows).slice();
+  filtered.sort((a, b) => {
+    const va = a[_tlSortCol], vb = b[_tlSortCol];
+    if (typeof va === 'string') return _tlSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return _tlSortAsc ? va - vb : vb - va;
+  });
+
+  // KPI tổng
+  const total = filtered.reduce((acc, r) => ({
+    spend:       acc.spend       + r.spend,
+    impressions: acc.impressions + r.impressions,
+    clicks:      acc.clicks      + r.clicks,
+    orders:      acc.orders      + r.orders,
+    revenue:     acc.revenue     + r.revenue,
+  }), { spend:0, impressions:0, clicks:0, orders:0, revenue:0 });
+  const totalRoas = total.spend > 0 ? (total.revenue / total.spend).toFixed(2) : '—';
+
+  const KPI_DEFS = [
+    { label:'Tổng chi phí',   val: total.spend.toLocaleString('vi-VN')+'đ',       sub: filtered.length+' ngày',    color:'#3b82f6' },
+    { label:'Doanh thu QC',   val: total.revenue.toLocaleString('vi-VN')+'đ',     sub: 'từ quảng cáo',              color:'#EE4D2D' },
+    { label:'ROAS',           val: totalRoas,                                       sub: 'doanh thu / chi phí',      color: total.spend>0&&(total.revenue/total.spend)>=1 ? '#16a34a' : '#dc2626' },
+    { label:'Lượt xem',       val: total.impressions.toLocaleString('vi-VN'),      sub: 'impressions',               color:'#f59e0b' },
+    { label:'Click',          val: total.clicks.toLocaleString('vi-VN'),           sub: 'lượt click',                color:'#8b5cf6' },
+    { label:'Đơn hàng QC',    val: total.orders.toLocaleString('vi-VN'),           sub: 'đơn từ quảng cáo',          color:'#14b8a6' },
+  ];
+  document.getElementById('tl-cards').innerHTML = KPI_DEFS.map(c =>
+    `<div class="card"><div class="card-label">${c.label}</div><div class="card-val" style="color:${c.color};font-size:18px;">${c.val}</div><div class="card-sub">${c.sub}</div></div>`
+  ).join('');
+
+  document.getElementById('tl-cnt').textContent = `${filtered.length} ngày dữ liệu`;
+  const tbody = document.getElementById('tl-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--mu);">
+      <div style="font-size:32px;margin-bottom:8px;">📭</div>
+      <div style="font-weight:600;margin-bottom:4px;">Chưa có dữ liệu timeline</div>
+      <div style="font-size:11px;">Chạy
