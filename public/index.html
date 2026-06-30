@@ -2531,25 +2531,17 @@ function calcOrderMetrics(rows, statusFilter, cols) {
   return { slDon, gmv, nmv, spTotal, aov, abs, feePct };
 }
 
-function updateDriveOrderCards(uid) {
-  const data = driveOrderData[uid];
-  if (!data) return;
-  const sel = document.getElementById(uid + '_status');
-  const statusFilter = sel ? sel.value : 'all';
-  const m = calcOrderMetrics(data.rows, statusFilter, data.cols);
-  const el = document.getElementById(uid + '_cards');
-  if (!el) return;
+function renderOrderCards(m, el, statusLabel) {
   if (!m) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--mu);padding:8px 0">⚠️ Không tìm thấy cột dữ liệu đơn hàng (mã đơn, giá, phí...).</div>';
+    el.innerHTML = '<div style="font-size:12px;color:var(--mu);padding:8px 0">⚠️ Không tìm thấy cột dữ liệu (mã đơn, giá, phí...). File này có thể không phải file đơn hàng Shopee.</div>';
     return;
   }
   const fmt = n => Math.round(n).toLocaleString('vi-VN');
-  const statusLabel = (statusFilter === 'all') ? 'Tất cả trạng thái' : statusFilter;
   el.innerHTML = `
     <div class="card">
       <div class="card-label">📦 SL Đơn</div>
       <div class="card-val" style="color:var(--or)">${m.slDon.toLocaleString('vi-VN')}</div>
-      <div class="card-sub">${statusLabel}</div>
+      <div class="card-sub">${statusLabel || 'Tất cả trạng thái'}</div>
     </div>
     <div class="card">
       <div class="card-label">🛍 SL Sản phẩm</div>
@@ -2584,27 +2576,134 @@ function updateDriveOrderCards(uid) {
   `;
 }
 
-function buildOrderPane(item, uid) {
-  const cols = detectOrderCols(item.rows);
-  driveOrderData[uid] = { rows: item.rows, cols, key: item.fileId + '_' + item.sheetName };
-  const statuses = getUniqueStatuses(item.rows, cols.status);
-  const key = escHtml(item.fileId + '_' + item.sheetName);
-  return `
-    <div class="drive-pane-title" style="display:flex;align-items:center;justify-content:space-between;">
-      <span>📂 ${escHtml(item.fileName)} — ${escHtml(item.sheetName)}
-      <span style="color:var(--mu);font-weight:400;margin-left:6px;">(${item.rows.length} dòng)</span></span>
-      <button onclick="removeDriveImport('${key}')" style="background:#fee2e2;border:none;border-radius:5px;padding:3px 10px;font-size:11px;color:#dc2626;cursor:pointer;font-weight:600;flex-shrink:0;">✕ Xóa</button>
+function updateUnifiedOrderCards() {
+  const items = window._driveOrderItems || [];
+  if (!items.length) return;
+
+  const shopSel   = document.getElementById('order_shop_filter');
+  const statusSel = document.getElementById('order_status_filter');
+  const shopVal   = shopSel ? shopSel.value : 'all';
+  const statusVal = statusSel ? statusSel.value : 'all';
+
+  // Xác định items cần tính
+  const selected = shopVal === 'all' ? items : [items[parseInt(shopVal)]];
+
+  // Gộp rows từ các shop đã chọn
+  const allRows = [];
+  let commonCols = null;
+  selected.forEach(item => {
+    const cols = detectOrderCols(item.rows);
+    if (cols && cols.orderId) {
+      item.rows.forEach(r => allRows.push({ ...r, __cols: cols }));
+      if (!commonCols) commonCols = cols;
+    }
+  });
+
+  // Cập nhật status dropdown dựa theo shop đang chọn
+  if (statusSel) {
+    const statuses = new Set();
+    selected.forEach(item => {
+      const cols = detectOrderCols(item.rows);
+      getUniqueStatuses(item.rows, cols?.status).forEach(s => statuses.add(s));
+    });
+    const curVal = statusSel.value;
+    const totalOrders = new Set(allRows.map(r => String(r[commonCols?.orderId||'']||'').trim()).filter(Boolean)).size;
+    statusSel.innerHTML = `<option value="all">Tất cả trạng thái (${totalOrders} đơn)</option>` +
+      [...statuses].sort().map(s => `<option value="${escHtml(s)}"${s===curVal?' selected':''}>${escHtml(s)}</option>`).join('');
+    if (curVal && curVal !== 'all' && statuses.has(curVal)) statusSel.value = curVal;
+  }
+
+  // Tính metrics — cần normalize cols vì mỗi shop có thể khác
+  // Tạo rows giả với key chuẩn
+  const normRows = allRows.map(r => {
+    const c = r.__cols;
+    return {
+      __orderId: String(r[c.orderId]||'').trim(),
+      __price:   Number(String(r[c.price ]||'0').replace(/,/g,''))||0,
+      __qty:     Number(String(r[c.qty   ]||'1').replace(/,/g,''))||1,
+      __status:  String(r[c.status]||'').trim(),
+      __feeFix:  Number(String(r[c.feeFix]||'0').replace(/,/g,''))||0,
+      __feeSvc:  Number(String(r[c.feeSvc]||'0').replace(/,/g,''))||0,
+      __feeTxn:  Number(String(r[c.feeTxn]||'0').replace(/,/g,''))||0,
+    };
+  }).filter(r => r.__orderId);
+
+  const filteredRows = statusVal === 'all' ? normRows : normRows.filter(r => r.__status === statusVal);
+
+  // Tính metrics
+  const orderMap = {};
+  filteredRows.forEach(r => {
+    if (!orderMap[r.__orderId]) {
+      orderMap[r.__orderId] = { gmv:0, spQty:0, feeFix:r.__feeFix, feeSvc:r.__feeSvc, feeTxn:r.__feeTxn };
+    }
+    orderMap[r.__orderId].gmv   += r.__price * r.__qty;
+    orderMap[r.__orderId].spQty += r.__qty;
+  });
+  const orders = Object.values(orderMap);
+  const slDon = orders.length;
+  let gmv=0, fees=0, spTotal=0;
+  orders.forEach(o => { const f=o.feeFix+o.feeSvc+o.feeTxn; gmv+=o.gmv; fees+=f; spTotal+=o.spQty; });
+  const nmv    = gmv - fees;
+  const aov    = slDon > 0 ? gmv/slDon : 0;
+  const abs    = slDon > 0 ? spTotal/slDon : 0;
+  const feePct = gmv > 0 ? (fees/gmv)*100 : 0;
+  const m = slDon > 0 ? { slDon, gmv, nmv, spTotal, aov, abs, feePct } : null;
+
+  const el = document.getElementById('order_unified_cards');
+  if (el) renderOrderCards(m, el, statusVal === 'all' ? 'Tất cả trạng thái' : statusVal);
+}
+
+function renderOrdersUnified(orderItems) {
+  const pane = document.getElementById('pane-orders');
+  if (!pane) return;
+  pane.querySelectorAll('.drive-pane').forEach(el => el.remove());
+  if (!orderItems || !orderItems.length) return;
+
+  window._driveOrderItems = orderItems;
+
+  // Tên shop đẹp: bỏ prefix "Order.all.YYYYMMDD_YYYYMMDD "
+  const shopName = item => item.fileName.replace(/^Order[\.\s]all[\.\s]\d{8}_\d{8}\s*/i,'').replace(/\.xlsx$/i,'').trim() || item.fileName;
+
+  // Tính tổng dòng
+  const totalRows = orderItems.reduce((s,i)=>s+i.rows.length,0);
+
+  // Build remove buttons list
+  const removeList = orderItems.map(item => {
+    const key = escHtml(item.fileId + '_' + item.sheetName);
+    return `<span style="display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;border-radius:5px;padding:2px 8px;font-size:11px;">
+      🏪 ${escHtml(shopName(item))}
+      <button onclick="removeDriveImport('${key}')" title="Xóa ${escHtml(shopName(item))}"
+        style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;padding:0;line-height:1;">✕</button>
+    </span>`;
+  }).join('');
+
+  const dp = document.createElement('div');
+  dp.className = 'drive-pane';
+  dp.id = 'drive-orders-unified';
+  dp.innerHTML = `
+    <div class="drive-pane-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+      <span>📊 Đơn hàng từ Drive <span style="color:var(--mu);font-weight:400;">(${orderItems.length} shop · ${totalRows} dòng)</span></span>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap;">
-      <span class="f-label">📦 Lọc trạng thái:</span>
-      <select id="${uid}_status" class="f-sel" onchange="updateDriveOrderCards('${uid}')" style="max-width:260px;">
-        <option value="all">Tất cả trạng thái (${item.rows.filter((r,i,a)=>a.findIndex(x=>x[cols.orderId]===r[cols.orderId])===i).length} đơn)</option>
-        ${statuses.map(s=>`<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')}
-      </select>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 6px;">${removeList}</div>
+    <div style="display:flex;align-items:center;gap:16px;margin:8px 0 14px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="f-label">🏪 Shop:</span>
+        <select id="order_shop_filter" class="f-sel" onchange="updateUnifiedOrderCards()" style="max-width:260px;">
+          <option value="all">Tất cả shop (${orderItems.length})</option>
+          ${orderItems.map((item,i)=>`<option value="${i}">${escHtml(shopName(item))}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="f-label">📦 Trạng thái:</span>
+        <select id="order_status_filter" class="f-sel" onchange="updateUnifiedOrderCards()" style="max-width:260px;">
+          <option value="all">Tất cả trạng thái</option>
+        </select>
+      </div>
     </div>
-    <div id="${uid}_cards" class="cards" style="margin-bottom:14px;"></div>
-    ${buildDriveTable(item.rows)}
+    <div id="order_unified_cards" class="cards" style="margin-bottom:8px;"></div>
   `;
+  pane.insertBefore(dp, pane.firstChild);
+  updateUnifiedOrderCards();
 }
 
 // Load GIS khi DOM ready
@@ -2954,12 +3053,15 @@ function renderDriveData() {
     byType[d.type].push(d);
   });
 
-  ['orders','ads','performance','traffic','raw'].forEach(type => {
+  // Orders: render 1 view tổng hợp thay vì nhiều pane
+  renderOrdersUnified(byType['orders'] || []);
+
+  // Các type khác: giữ nguyên từng pane riêng
+  ['ads','performance','traffic','raw'].forEach(type => {
     const paneId = type === 'raw' ? 'pane-raw' : `pane-${type}`;
     const pane = document.getElementById(paneId);
     if (!pane) return;
 
-    // Xóa drive-pane cũ
     pane.querySelectorAll('.drive-pane').forEach(el => el.remove());
 
     const items = byType[type];
@@ -2968,20 +3070,11 @@ function renderDriveData() {
     items.forEach(item => {
       const dp = document.createElement('div');
       dp.className = 'drive-pane';
-
-      if (type === 'orders') {
-        // Tạo uid ổn định từ fileId + sheetName
-        const uid = 'drv_' + (item.fileId + '_' + item.sheetName).replace(/[^a-zA-Z0-9]/g,'').slice(0,24);
-        dp.innerHTML = buildOrderPane(item, uid);
-        pane.insertBefore(dp, pane.firstChild);
-        updateDriveOrderCards(uid); // render cards ngay sau khi DOM ready
-      } else {
-        dp.innerHTML = `
-          <div class="drive-pane-title">📂 ${escHtml(item.fileName)} — ${escHtml(item.sheetName)} (${item.rows.length} dòng)</div>
-          ${buildDriveTable(item.rows)}
-        `;
-        pane.insertBefore(dp, pane.firstChild);
-      }
+      dp.innerHTML = `
+        <div class="drive-pane-title">📂 ${escHtml(item.fileName)} — ${escHtml(item.sheetName)} (${item.rows.length} dòng)</div>
+        ${buildDriveTable(item.rows)}
+      `;
+      pane.insertBefore(dp, pane.firstChild);
     });
   });
 }
