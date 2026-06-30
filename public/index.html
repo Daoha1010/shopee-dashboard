@@ -2455,6 +2455,152 @@ const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 let gToken = null;
 let gTokenClient = null;
 let driveImported = {}; // fileId → { name, rows, type }
+const driveOrderData = {}; // uid → { rows, cols }
+
+/* ── Drive Order helpers ──────────────────────────────────────────── */
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function detectOrderCols(rows) {
+  if (!rows.length) return {};
+  const cols = Object.keys(rows[0]);
+  const lc = cols.map(c => c.toLowerCase().replace(/\s+/g,' ').trim());
+  const find = (...terms) => {
+    const idx = lc.findIndex(k => terms.some(t => k.includes(t)));
+    return idx >= 0 ? cols[idx] : null;
+  };
+  return {
+    orderId: find('mã đơn hàng','order sn','mã đơn','order id','ordersn'),
+    price:   find('giá ưu đãi','giá sau khi giảm','giá sau giảm','đơn giá','unit price'),
+    qty:     find('số lượng','quantity','sl'),
+    status:  find('tình trạng đơn','trạng thái đơn','order status','tình trạng','trạng thái'),
+    feeFix:  find('phí cố định','commission fee','phí hoa hồng'),
+    feeSvc:  find('phí dịch vụ','service fee'),
+    feeTxn:  find('phí xử lý giao dịch','transaction fee','payment fee'),
+  };
+}
+
+function getUniqueStatuses(rows, statusCol) {
+  if (!statusCol) return [];
+  const set = new Set();
+  rows.forEach(r => { const v = String(r[statusCol]||'').trim(); if(v) set.add(v); });
+  return [...set].sort();
+}
+
+function calcOrderMetrics(rows, statusFilter, cols) {
+  if (!cols || !cols.orderId) return null;
+  let filtered = rows;
+  if (statusFilter && statusFilter !== 'all') {
+    filtered = rows.filter(r => String(r[cols.status]||'').trim() === statusFilter);
+  }
+  // Group by order ID — fees taken once per order
+  const orderMap = {};
+  filtered.forEach(row => {
+    const oid = String(row[cols.orderId]||'').trim();
+    if (!oid) return;
+    if (!orderMap[oid]) {
+      orderMap[oid] = {
+        gmv: 0, spQty: 0,
+        feeFix: Number(String(row[cols.feeFix]||'0').replace(/,/g,''))||0,
+        feeSvc: Number(String(row[cols.feeSvc]||'0').replace(/,/g,''))||0,
+        feeTxn: Number(String(row[cols.feeTxn]||'0').replace(/,/g,''))||0,
+      };
+    }
+    const price = Number(String(row[cols.price]||'0').replace(/,/g,''))||0;
+    const qty   = Number(String(row[cols.qty  ]||'1').replace(/,/g,''))||1;
+    orderMap[oid].gmv   += price * qty;
+    orderMap[oid].spQty += qty;
+  });
+  const orderArr = Object.values(orderMap);
+  const slDon = orderArr.length;
+  let gmv=0, nmv=0, fees=0, spTotal=0;
+  orderArr.forEach(o => {
+    const f = o.feeFix + o.feeSvc + o.feeTxn;
+    gmv     += o.gmv;
+    nmv     += o.gmv - f;
+    fees    += f;
+    spTotal += o.spQty;
+  });
+  const aov    = slDon > 0 ? gmv / slDon : 0;
+  const abs    = slDon > 0 ? spTotal / slDon : 0;
+  const feePct = gmv > 0 ? (fees / gmv) * 100 : 0;
+  return { slDon, gmv, nmv, spTotal, aov, abs, feePct };
+}
+
+function updateDriveOrderCards(uid) {
+  const data = driveOrderData[uid];
+  if (!data) return;
+  const sel = document.getElementById(uid + '_status');
+  const statusFilter = sel ? sel.value : 'all';
+  const m = calcOrderMetrics(data.rows, statusFilter, data.cols);
+  const el = document.getElementById(uid + '_cards');
+  if (!el) return;
+  if (!m) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--mu);padding:8px 0">⚠️ Không tìm thấy cột dữ liệu đơn hàng (mã đơn, giá, phí...).</div>';
+    return;
+  }
+  const fmt = n => Math.round(n).toLocaleString('vi-VN');
+  const statusLabel = (statusFilter === 'all') ? 'Tất cả trạng thái' : statusFilter;
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-label">📦 SL Đơn</div>
+      <div class="card-val" style="color:var(--or)">${m.slDon.toLocaleString('vi-VN')}</div>
+      <div class="card-sub">${statusLabel}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">🛍 SL Sản phẩm</div>
+      <div class="card-val" style="color:var(--b)">${m.spTotal.toLocaleString('vi-VN')}</div>
+      <div class="card-sub">ABS ${m.abs.toFixed(2)} SP/đơn</div>
+    </div>
+    <div class="card">
+      <div class="card-label">💰 GMV (Doanh thu)</div>
+      <div class="card-val" style="color:var(--g);font-size:18px;">${fmt(m.gmv)}đ</div>
+      <div class="card-sub">Trước khi trừ phí</div>
+    </div>
+    <div class="card">
+      <div class="card-label">💵 NMV (Về ví)</div>
+      <div class="card-val" style="color:var(--p);font-size:18px;">${fmt(m.nmv)}đ</div>
+      <div class="card-sub">Sau phí cố định + DV + GD</div>
+    </div>
+    <div class="card">
+      <div class="card-label">📊 ABS (SP/đơn)</div>
+      <div class="card-val" style="color:var(--am)">${m.abs.toFixed(2)}</div>
+      <div class="card-sub">SP trung bình / đơn</div>
+    </div>
+    <div class="card">
+      <div class="card-label">🏷 AOV (GMV/đơn)</div>
+      <div class="card-val" style="color:#0891b2;font-size:18px;">${fmt(m.aov)}đ</div>
+      <div class="card-sub">Giá trị đơn hàng TB</div>
+    </div>
+    <div class="card">
+      <div class="card-label">🏦 % Phí sàn</div>
+      <div class="card-val" style="color:#dc2626">${m.feePct.toFixed(1)}%</div>
+      <div class="card-sub">Tổng phí / GMV</div>
+    </div>
+  `;
+}
+
+function buildOrderPane(item, uid) {
+  const cols = detectOrderCols(item.rows);
+  driveOrderData[uid] = { rows: item.rows, cols };
+  const statuses = getUniqueStatuses(item.rows, cols.status);
+  return `
+    <div class="drive-pane-title">
+      📂 ${escHtml(item.fileName)} — ${escHtml(item.sheetName)}
+      <span style="color:var(--mu);font-weight:400;margin-left:6px;">(${item.rows.length} dòng)</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap;">
+      <span class="f-label">📦 Lọc trạng thái:</span>
+      <select id="${uid}_status" class="f-sel" onchange="updateDriveOrderCards('${uid}')" style="max-width:260px;">
+        <option value="all">Tất cả trạng thái (${item.rows.filter((r,i,a)=>a.findIndex(x=>x[cols.orderId]===r[cols.orderId])===i).length} đơn)</option>
+        ${statuses.map(s=>`<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')}
+      </select>
+    </div>
+    <div id="${uid}_cards" class="cards" style="margin-bottom:14px;"></div>
+    ${buildDriveTable(item.rows)}
+  `;
+}
 
 // Load GIS khi DOM ready
 (function loadGIS() {
@@ -2626,11 +2772,20 @@ function renderDriveData() {
     items.forEach(item => {
       const dp = document.createElement('div');
       dp.className = 'drive-pane';
-      dp.innerHTML = `
-        <div class="drive-pane-title">📂 ${item.fileName} — ${item.sheetName} (${item.rows.length} dòng)</div>
-        ${buildDriveTable(item.rows)}
-      `;
-      pane.insertBefore(dp, pane.firstChild);
+
+      if (type === 'orders') {
+        // Tạo uid ổn định từ fileId + sheetName
+        const uid = 'drv_' + (item.fileId + '_' + item.sheetName).replace(/[^a-zA-Z0-9]/g,'').slice(0,24);
+        dp.innerHTML = buildOrderPane(item, uid);
+        pane.insertBefore(dp, pane.firstChild);
+        updateDriveOrderCards(uid); // render cards ngay sau khi DOM ready
+      } else {
+        dp.innerHTML = `
+          <div class="drive-pane-title">📂 ${escHtml(item.fileName)} — ${escHtml(item.sheetName)} (${item.rows.length} dòng)</div>
+          ${buildDriveTable(item.rows)}
+        `;
+        pane.insertBefore(dp, pane.firstChild);
+      }
     });
   });
 }
