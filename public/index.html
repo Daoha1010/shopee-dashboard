@@ -411,17 +411,22 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
     <!-- Date range bar -->
     <div class="panel" style="margin-bottom:14px;">
       <div style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span style="font-size:13px;font-weight:700;color:var(--tx);">📅 Chọn khoảng thời gian</span>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="tl-preset active" data-days="7">7 ngày</button>
-          <button class="tl-preset" data-days="30">30 ngày</button>
-          <button class="tl-preset" data-days="90">90 ngày</button>
-          <button class="tl-preset" data-days="0">Tất cả</button>
-        </div>
-        <span style="font-size:12px;color:var(--mu);">hoặc chọn ngày:</span>
-        <input type="date" id="tl-from" class="f-date" onchange="onTlDateChange()" style="width:130px">
-        <span style="font-size:12px;color:var(--mu);">→</span>
-        <input type="date" id="tl-to" class="f-date" onchange="onTlDateChange()" style="width:130px">
+        <span style="font-size:13px;font-weight:700;color:var(--tx);">📅 Thời gian</span>
+        <select id="tl-preset-sel" class="f-sel" style="min-width:150px;" onchange="onTlPresetSel(this.value)">
+          <option value="7">7 ngày gần đây</option>
+          <option value="30">30 ngày gần đây</option>
+          <option value="90">90 ngày gần đây</option>
+          <option value="this_month">Tháng này</option>
+          <option value="last_month">Tháng trước</option>
+          <option value="0">Tất cả</option>
+          <option value="custom">Tùy chọn ngày...</option>
+        </select>
+        <span id="tl-custom-dates" style="display:none;align-items:center;gap:6px;">
+          <span style="font-size:12px;color:var(--mu);">từ</span>
+          <input type="date" id="tl-from" class="f-date" onchange="onTlDateChange()" style="width:130px">
+          <span style="font-size:12px;color:var(--mu);">→</span>
+          <input type="date" id="tl-to" class="f-date" onchange="onTlDateChange()" style="width:130px">
+        </span>
         <span style="font-size:12px;color:var(--mu);">🏪 Shop:</span>
         <select id="tl-shop" class="f-sel" style="max-width:200px" onchange="renderTimeline()">
           <option value="all">Tất cả shop</option>
@@ -2200,24 +2205,49 @@ function sortTlTable(col) {
 }
 
 // Set date preset
-function setTlPreset(days) {
-  document.querySelectorAll('.tl-preset').forEach(b => b.classList.remove('active'));
-  const btn = document.querySelector(`.tl-preset[data-days="${days}"]`);
-  if (btn) btn.classList.add('active');
-  if (days === 0) {
-    document.getElementById('tl-from').value = '';
-    document.getElementById('tl-to').value   = '';
+function onTlPresetSel(val) {
+  const customDates = document.getElementById('tl-custom-dates');
+  const fromEl = document.getElementById('tl-from');
+  const toEl   = document.getElementById('tl-to');
+  const today  = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+  if (val === 'custom') {
+    customDates.style.display = 'flex';
+    return;
+  }
+  customDates.style.display = 'none';
+
+  if (val === '0') {
+    fromEl.value = ''; toEl.value = '';
+  } else if (val === 'this_month') {
+    fromEl.value = fmt(new Date(today.getFullYear(), today.getMonth(), 1));
+    toEl.value   = fmt(today);
+  } else if (val === 'last_month') {
+    const y = today.getMonth() === 0 ? today.getFullYear()-1 : today.getFullYear();
+    const m = today.getMonth() === 0 ? 11 : today.getMonth()-1;
+    fromEl.value = fmt(new Date(y, m, 1));
+    toEl.value   = fmt(new Date(y, m+1, 0));
   } else {
-    const to   = new Date().toISOString().slice(0, 10);
-    const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
-    document.getElementById('tl-from').value = from;
-    document.getElementById('tl-to').value   = to;
+    const days = parseInt(val);
+    toEl.value   = fmt(today);
+    fromEl.value = fmt(new Date(Date.now() - days*86400000));
   }
   renderTimeline();
 }
 
+function setTlPreset(days) {
+  // legacy compat — map to new select
+  const sel = document.getElementById('tl-preset-sel');
+  if (sel) { sel.value = String(days); onTlPresetSel(String(days)); }
+}
+
 function onTlDateChange() {
-  document.querySelectorAll('.tl-preset').forEach(b => b.classList.remove('active'));
+  const sel = document.getElementById('tl-preset-sel');
+  if (sel) sel.value = 'custom';
+  const customDates = document.getElementById('tl-custom-dates');
+  if (customDates) customDates.style.display = 'flex';
   renderTimeline();
 }
 
