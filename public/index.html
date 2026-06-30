@@ -167,6 +167,35 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
 .meta-day{font-size:10px;color:#94a3b8;background:#363654;border-radius:4px;padding:2px 8px;}
 .raw-empty{text-align:center;padding:40px;color:#6b7280;}
 
+/* ─── GOOGLE DRIVE MODAL ─── */
+.drive-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;}
+.drive-modal.open{display:flex;}
+.drive-box{background:#fff;border-radius:12px;width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.drive-hdr{padding:14px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:#f8fafc;}
+.drive-hdr h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.drive-body{padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px;}
+.drive-auth-btn{display:flex;align-items:center;gap:10px;padding:12px 18px;background:#fff;border:2px solid var(--bd);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;width:100%;justify-content:center;transition:border-color .15s;}
+.drive-auth-btn:hover{border-color:#4285f4;color:#4285f4;}
+.drive-folder-row{display:flex;gap:8px;}
+.drive-folder-inp{flex:1;padding:8px 12px;border:1px solid var(--bd);border-radius:7px;font-size:12px;outline:none;}
+.drive-folder-inp:focus{border-color:var(--or);}
+.drive-scan-btn{padding:8px 14px;background:var(--or);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.drive-hint{font-size:11px;color:var(--mu);}
+.drive-files{display:flex;flex-direction:column;gap:6px;}
+.drive-file{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;background:#fafafa;}
+.drive-file-name{flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.drive-file-date{font-size:10px;color:var(--mu);white-space:nowrap;}
+.drive-file-import{padding:5px 12px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;}
+.drive-file-import:hover{background:#15803d;}
+.drive-status{font-size:12px;color:var(--mu);text-align:center;padding:16px;}
+.drive-connected-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#16a34a;font-weight:600;}
+/* DRIVE IMPORT PANE */
+.drive-pane{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:16px;}
+.drive-pane-title{font-size:12px;font-weight:700;color:#166534;margin-bottom:8px;}
+.drive-imported-files{display:flex;flex-wrap:wrap;gap:6px;}
+.drive-tag{display:inline-flex;align-items:center;gap:5px;background:#dcfce7;border:1px solid #86efac;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:600;color:#166534;}
+.drive-tag .drive-tag-x{cursor:pointer;color:#16a34a;font-size:13px;line-height:1;}
+
 /* ─── MOBILE RESPONSIVE ─── */
 @media (max-width: 767px) {
   /* TOP BAR */
@@ -238,7 +267,38 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
   <button class="btn top-btn-secondary" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openShopNames()">⚙ Đặt tên shop</button>
   <button class="btn top-btn-secondary" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openClearModal()">🗑 Xóa dữ liệu</button>
   <button class="btn btn-exp" onclick="exportAll()">⬇ Excel tất cả</button>
+  <button class="btn" id="drivePillBtn" style="background:rgba(255,255,255,.25);color:#fff;" onclick="openDriveModal()">📂 Drive</button>
   <button class="btn" id="triggerHarvestBtn" style="background:#7c3aed;color:#fff;font-weight:700;" onclick="triggerHarvest()">🤖 Thu thập tất cả</button>
+</div>
+
+<!-- Google Drive Modal -->
+<div class="drive-modal" id="driveModal" onclick="if(event.target===this)closeDriveModal()">
+  <div class="drive-box">
+    <div class="drive-hdr">
+      <h3>📂 Google Drive Import</h3>
+      <button class="sn-close" onclick="closeDriveModal()">✕</button>
+    </div>
+    <div class="drive-body">
+      <div id="drive-auth-section">
+        <button class="drive-auth-btn" onclick="connectDrive()">
+          <img src="https://www.google.com/favicon.ico" width="16" height="16">
+          Đăng nhập Google để kết nối Drive
+        </button>
+      </div>
+      <div id="drive-connected-section" style="display:none">
+        <div class="drive-connected-row">✅ Đã kết nối Google Drive — <button style="background:none;border:none;font-size:11px;color:var(--mu);cursor:pointer;text-decoration:underline;" onclick="disconnectDrive()">Đăng xuất</button></div>
+        <div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">📁 Folder ID:</div>
+          <div class="drive-folder-row">
+            <input class="drive-folder-inp" id="driveFolderInp" placeholder="Paste Folder ID từ URL Drive...">
+            <button class="drive-scan-btn" onclick="scanDriveFolder()">🔍 Quét</button>
+          </div>
+          <div class="drive-hint" style="margin-top:5px;">Lấy Folder ID từ URL: drive.google.com/drive/folders/<b style="color:var(--or)">FOLDER_ID</b></div>
+        </div>
+        <div id="drive-files-list"><div class="drive-status">Nhập Folder ID và nhấn Quét để xem file.</div></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Shop Name Modal -->
@@ -2387,6 +2447,198 @@ if (document.readyState !== 'loading') {
   document.querySelectorAll('.tl-preset').forEach(btn => {
     btn.addEventListener('click', () => setTlPreset(Number(btn.dataset.days)));
   });
+}
+
+/* ── GOOGLE DRIVE INTEGRATION ── */
+const GDRIVE_CLIENT_ID = '968957527535-0hrelcev484acqs735qpmu92ibhsks60.apps.googleusercontent.com';
+const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+let gToken = null;
+let gTokenClient = null;
+let driveImported = {}; // fileId → { name, rows, type }
+
+// Load GIS khi DOM ready
+(function loadGIS() {
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = initGIS;
+  document.head.appendChild(s);
+})();
+
+function initGIS() {
+  gTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPE,
+    callback: (resp) => {
+      if (resp.access_token) {
+        gToken = resp.access_token;
+        localStorage.setItem('gdrive_token', gToken);
+        showDriveConnected();
+      }
+    }
+  });
+  // Kiểm tra token đã lưu
+  const saved = localStorage.getItem('gdrive_token');
+  if (saved) { gToken = saved; showDriveConnected(); }
+}
+
+function connectDrive() {
+  if (!gTokenClient) { alert('GIS chưa load xong, thử lại sau 1 giây.'); return; }
+  gTokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function disconnectDrive() {
+  if (gToken) google.accounts.oauth2.revoke(gToken, () => {});
+  gToken = null;
+  localStorage.removeItem('gdrive_token');
+  localStorage.removeItem('gdrive_folder_id');
+  document.getElementById('drive-auth-section').style.display = 'block';
+  document.getElementById('drive-connected-section').style.display = 'none';
+  document.getElementById('drivePillBtn').textContent = '📂 Drive';
+}
+
+function showDriveConnected() {
+  document.getElementById('drive-auth-section').style.display = 'none';
+  document.getElementById('drive-connected-section').style.display = 'block';
+  document.getElementById('drivePillBtn').textContent = '📂 Drive ✓';
+  const saved = localStorage.getItem('gdrive_folder_id');
+  if (saved) { document.getElementById('driveFolderInp').value = saved; }
+}
+
+function openDriveModal()  { document.getElementById('driveModal').classList.add('open'); }
+function closeDriveModal() { document.getElementById('driveModal').classList.remove('open'); }
+
+async function scanDriveFolder() {
+  const folderId = document.getElementById('driveFolderInp').value.trim();
+  if (!folderId) { alert('Vui lòng nhập Folder ID!'); return; }
+  localStorage.setItem('gdrive_folder_id', folderId);
+
+  const list = document.getElementById('drive-files-list');
+  list.innerHTML = '<div class="drive-status">🔍 Đang quét folder...</div>';
+
+  try {
+    const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
+    const fields = encodeURIComponent('files(id,name,modifiedTime,size,mimeType)');
+    const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=modifiedTime+desc`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${gToken}` } });
+    if (res.status === 401) { gToken = null; localStorage.removeItem('gdrive_token'); showDriveAuth(); return; }
+    const data = await res.json();
+    const files = (data.files || []).filter(f =>
+      f.name.match(/\.(xlsx|xls)$/i) ||
+      f.mimeType.includes('spreadsheet')
+    );
+    if (!files.length) { list.innerHTML = '<div class="drive-status">Không tìm thấy file Excel trong folder này.</div>'; return; }
+
+    list.innerHTML = '<div class="drive-files">' + files.map(f => {
+      const imported = Object.values(driveImported).find(d => d.fileId === f.id);
+      const tag = imported ? `<span style="font-size:10px;color:#16a34a;">✓ đã import</span>` : '';
+      const date = new Date(f.modifiedTime).toLocaleDateString('vi-VN');
+      return `<div class="drive-file">
+        <div style="flex:1;min-width:0">
+          <div class="drive-file-name">📊 ${f.name} ${tag}</div>
+          <div class="drive-file-date">Sửa: ${date} · ${f.size ? Math.round(f.size/1024)+'KB' : ''}</div>
+        </div>
+        <button class="drive-file-import" onclick="importDriveFile('${f.id}','${f.name.replace(/'/g,'')}',this)">⬇ Import</button>
+      </div>`;
+    }).join('') + '</div>';
+  } catch(e) {
+    list.innerHTML = `<div class="drive-status" style="color:#dc2626;">Lỗi: ${e.message}</div>`;
+  }
+}
+
+async function importDriveFile(fileId, fileName, btn) {
+  btn.textContent = '⏳...';
+  btn.disabled = true;
+  try {
+    // Nếu là Google Sheet thì export as xlsx
+    const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType`, {
+      headers: { Authorization: `Bearer ${gToken}` }
+    });
+    const meta = await metaRes.json();
+    let dlUrl;
+    if (meta.mimeType === 'application/vnd.google-apps.spreadsheet') {
+      dlUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`;
+    } else {
+      dlUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+    }
+    const res = await fetch(dlUrl, { headers: { Authorization: `Bearer ${gToken}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf = await res.arrayBuffer();
+    const wb  = XLSX.read(buf, { type: 'array', cellDates: true });
+    processDriveWorkbook(wb, fileName, fileId);
+    btn.textContent = '✓ Done';
+    btn.style.background = '#16a34a';
+  } catch(e) {
+    btn.textContent = '❌ Lỗi';
+    btn.disabled = false;
+    alert('Import lỗi: ' + e.message);
+  }
+}
+
+function processDriveWorkbook(wb, fileName, fileId) {
+  // Đọc từng sheet
+  wb.SheetNames.forEach(sheetName => {
+    const ws   = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    if (!rows.length) return;
+
+    // Detect loại dữ liệu dựa vào tên cột
+    const keys = Object.keys(rows[0]).map(k => k.toLowerCase());
+    let type = 'raw';
+    if (keys.some(k => k.includes('đơn hàng') || k.includes('order') || k.includes('mã đơn'))) type = 'orders';
+    else if (keys.some(k => k.includes('chiến dịch') || k.includes('campaign') || k.includes('quảng cáo'))) type = 'ads';
+    else if (keys.some(k => k.includes('sản phẩm') || k.includes('product') || k.includes('hiệu quả'))) type = 'performance';
+    else if (keys.some(k => k.includes('traffic') || k.includes('truy cập') || k.includes('nguồn'))) type = 'traffic';
+
+    const key = fileId + '_' + sheetName;
+    driveImported[key] = { fileId, fileName, sheetName, rows, type };
+  });
+
+  renderDriveData();
+  closeDriveModal();
+}
+
+function renderDriveData() {
+  // Nhóm theo type
+  const byType = {};
+  Object.values(driveImported).forEach(d => {
+    if (!byType[d.type]) byType[d.type] = [];
+    byType[d.type].push(d);
+  });
+
+  ['orders','ads','performance','traffic','raw'].forEach(type => {
+    const paneId = type === 'raw' ? 'pane-raw' : `pane-${type}`;
+    const pane = document.getElementById(paneId);
+    if (!pane) return;
+
+    // Xóa drive-pane cũ
+    pane.querySelectorAll('.drive-pane').forEach(el => el.remove());
+
+    const items = byType[type];
+    if (!items || !items.length) return;
+
+    items.forEach(item => {
+      const dp = document.createElement('div');
+      dp.className = 'drive-pane';
+      dp.innerHTML = `
+        <div class="drive-pane-title">📂 ${item.fileName} — ${item.sheetName} (${item.rows.length} dòng)</div>
+        ${buildDriveTable(item.rows)}
+      `;
+      pane.insertBefore(dp, pane.firstChild);
+    });
+  });
+}
+
+function buildDriveTable(rows) {
+  if (!rows.length) return '<p style="font-size:12px;color:var(--mu)">Không có dữ liệu.</p>';
+  const cols = Object.keys(rows[0]);
+  const preview = rows.slice(0, 200);
+  return `<div class="tw" style="max-height:400px">
+    <table>
+      <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+      <tbody>${preview.map(r=>`<tr>${cols.map(c=>`<td>${r[c]??''}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+  ${rows.length > 200 ? `<div style="font-size:11px;color:var(--mu);padding:6px 0">Hiển thị 200/${rows.length} dòng</div>` : ''}`;
 }
 
 /* ── INIT ── */
