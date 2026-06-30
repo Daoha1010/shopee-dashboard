@@ -1001,8 +1001,17 @@ document.querySelectorAll('.tab').forEach(btn=>{
   });
 });
 
-// Activate first tab on load
-document.querySelector('.tab').click();
+// Activate first tab on load — direct class manipulation, no event chain needed
+(function(){
+  const firstBtn = document.querySelector('.tab[data-tab]');
+  if (!firstBtn) return;
+  const paneId = 'pane-' + firstBtn.dataset.tab;
+  const firstPane = document.getElementById(paneId);
+  firstBtn.classList.add('active');
+  if (firstPane) firstPane.classList.add('active');
+})();
+loadData(); // startup
+
 
 /* ── SHOP NAME MODAL ── */
 function openShopNames() {
