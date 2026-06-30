@@ -1001,6 +1001,9 @@ document.querySelectorAll('.tab').forEach(btn=>{
   });
 });
 
+// Activate first tab on load
+document.querySelector('.tab').click();
+
 /* ── SHOP NAME MODAL ── */
 function openShopNames() {
   const shops = Object.values(allData.shops || {}).filter(s => s.shopId !== 'unknown');
