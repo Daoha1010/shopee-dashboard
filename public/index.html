@@ -427,6 +427,7 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
           <option value="all">Tất cả shop</option>
         </select>
         <button class="btn" style="background:var(--or);color:#fff;font-weight:700;" onclick="renderTimeline()">🔄 Cập nhật</button>
+        <button id="tl-compare-btn" class="btn" style="background:#fff;color:var(--tx);border:1px solid var(--bd);font-weight:600;white-space:nowrap;" onclick="toggleCompare()">📊 So sánh kỳ trước</button>
         <span id="tl-info" style="font-size:11px;color:var(--mu);margin-left:auto;"></span>
       </div>
     </div>
@@ -1147,6 +1148,7 @@ let _tlRows = [];
 let _tlChart = null;
 let _tlSortCol = 'date';
 let _tlSortAsc = false;
+let _compareMode = false;
 
 // Tìm field date trong object
 const DATE_FIELD_NAMES  = ['date','date_from','stat_date','date_time','day','datetime','start_date','stat_day','time','ts','report_date','date_key','timestamp'];
@@ -1390,6 +1392,51 @@ function filterTlRows(rows) {
 }
 
 // Render Chart.js timeline
+/* ── COMPARE MODE ── */
+function toggleCompare() {
+  _compareMode = !_compareMode;
+  const btn = document.getElementById('tl-compare-btn');
+  if (btn) {
+    btn.style.background  = _compareMode ? 'var(--or)' : '#fff';
+    btn.style.color       = _compareMode ? '#fff'      : 'var(--tx)';
+    btn.style.borderColor = _compareMode ? 'var(--or)' : 'var(--bd)';
+    btn.textContent       = _compareMode ? '📊 Đang so sánh ✓' : '📊 So sánh kỳ trước';
+  }
+  renderTimeline();
+}
+function getCompareDates() {
+  const from = document.getElementById('tl-from')?.value;
+  const to   = document.getElementById('tl-to')?.value;
+  if (!from || !to) return null;
+  const fromD = new Date(from + 'T00:00:00');
+  const toD   = new Date(to   + 'T00:00:00');
+  const diff  = Math.round((toD - fromD) / 86400000) + 1;
+  const prevToD   = new Date(fromD.getTime() - 86400000);
+  const prevFromD = new Date(prevToD.getTime() - (diff - 1) * 86400000);
+  const fmt = d => d.toISOString().slice(0, 10);
+  return { from: fmt(prevFromD), to: fmt(prevToD) };
+}
+function getCmpRows() {
+  const cmp = getCompareDates();
+  if (!cmp) return [];
+  return _tlRows.filter(r => r.date >= cmp.from && r.date <= cmp.to)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+function deltaHtml(cur, prev, lessIsGood) {
+  if (!prev || prev === 0) return '<span style="color:#9ca3af;font-size:10px;">vs —</span>';
+  const pct  = (cur - prev) / prev * 100;
+  const up   = cur >= prev;
+  const good = lessIsGood ? !up : up;
+  const clr  = good ? '#16a34a' : '#dc2626';
+  const sign = up ? '▲+' : '▼';
+  return `<span style="color:${clr};font-size:10px;font-weight:700;display:block;margin-top:2px;">${sign}${Math.abs(pct).toFixed(1)}%</span>`;
+}
+function cmpDateLabel() {
+  const cmp = getCompareDates();
+  if (!cmp) return 'kỳ trước';
+  return cmp.from.slice(5) + ' → ' + cmp.to.slice(5);
+}
+
 function updateTlChart() {
   const filtered = filterTlRows(_tlRows);
   const canvas = document.getElementById('tl-chart');
@@ -1406,10 +1453,20 @@ function updateTlChart() {
   const showOrders  = document.getElementById('tl-show-orders')?.checked;
 
   const datasets = [];
-  if (showSpend)   datasets.push({ label:'Số tiền (Chi phí)', data:filtered.map(r=>r.spend),   borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', yAxisID:'y',  tension:.35, fill:true,  pointRadius:3, borderWidth:2 });
-  if (showRevenue) datasets.push({ label:'Doanh thu từ QC',   data:filtered.map(r=>r.revenue), borderColor:'#EE4D2D', backgroundColor:'rgba(238,77,45,.08)',  yAxisID:'y2', tension:.35, fill:true,  pointRadius:3, borderWidth:2 });
-  if (showClicks)  datasets.push({ label:'Click',             data:filtered.map(r=>r.clicks),  borderColor:'#22c55e', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
-  if (showOrders)  datasets.push({ label:'Đơn hàng QC',       data:filtered.map(r=>r.orders),  borderColor:'#f59e0b', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
+  if (showSpend)   datasets.push({ label:'Chi phí',       data:filtered.map(r=>r.spend),   borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', yAxisID:'y',  tension:.35, fill:true,  pointRadius:3, borderWidth:2 });
+  if (showRevenue) datasets.push({ label:'Doanh thu QC',  data:filtered.map(r=>r.revenue), borderColor:'#EE4D2D', backgroundColor:'rgba(238,77,45,.08)',  yAxisID:'y2', tension:.35, fill:true,  pointRadius:3, borderWidth:2 });
+  if (showClicks)  datasets.push({ label:'Click',         data:filtered.map(r=>r.clicks),  borderColor:'#22c55e', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
+  if (showOrders)  datasets.push({ label:'Đơn QC',        data:filtered.map(r=>r.orders),  borderColor:'#f59e0b', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
+
+  // Compare mode: thêm đường kỳ trước dạng nét đứt
+  if (_compareMode) {
+    const cmpRows = getCmpRows();
+    const lbl = cmpDateLabel();
+    if (showSpend)   datasets.push({ label:`Chi phí (${lbl})`,      data:cmpRows.map(r=>r.spend),   borderColor:'#93c5fd', backgroundColor:'transparent', yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5, borderDash:[6,4] });
+    if (showRevenue) datasets.push({ label:`DT QC (${lbl})`,        data:cmpRows.map(r=>r.revenue), borderColor:'#fca5a5', backgroundColor:'transparent', yAxisID:'y2', tension:.35, fill:false, pointRadius:2, borderWidth:1.5, borderDash:[6,4] });
+    if (showClicks)  datasets.push({ label:`Click (${lbl})`,        data:cmpRows.map(r=>r.clicks),  borderColor:'#86efac', backgroundColor:'transparent', yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1,   borderDash:[6,4] });
+    if (showOrders)  datasets.push({ label:`Đơn QC (${lbl})`,       data:cmpRows.map(r=>r.orders),  borderColor:'#fcd34d', backgroundColor:'transparent', yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1,   borderDash:[6,4] });
+  }
 
   if (_tlChart) _tlChart.destroy();
   _tlChart = new Chart(canvas.getContext('2d'), {
@@ -1424,7 +1481,7 @@ function updateTlChart() {
           callbacks: {
             label: ctx => {
               const v = ctx.raw || 0;
-              const isMoney = /Chi phí|Doanh thu/.test(ctx.dataset.label);
+              const isMoney = /Chi phí|Doanh thu|DT QC/.test(ctx.dataset.label);
               return ` ${ctx.dataset.label}: ${v.toLocaleString('vi-VN')}${isMoney ? 'đ' : ''}`;
             }
           }
@@ -1432,8 +1489,8 @@ function updateTlChart() {
       },
       scales: {
         x:  { ticks:{ font:{size:10}, maxRotation:45 }, grid:{ display:false } },
-        y:  { position:'left',  ticks:{ font:{size:10}, callback:v=>v>=1e6?Math.round(v/1e6)+'M':v>=1e3?Math.round(v/1e3)+'K':v }, grid:{ color:'rgba(0,0,0,.04)' }, title:{ display:true, text:'Số tiền | Lượt xem', font:{size:10}, color:'#6b7280' } },
-        y2: { position:'right', ticks:{ font:{size:10}, callback:v=>v>=1e6?Math.round(v/1e6)+'M':v>=1e3?Math.round(v/1e3)+'K':v }, grid:{ display:false },            title:{ display:true, text:'Doanh thu QC',     font:{size:10}, color:'#6b7280' } }
+        y:  { position:'left',  ticks:{ font:{size:10}, callback:v=>v>=1e6?Math.round(v/1e6)+'M':v>=1e3?Math.round(v/1e3)+'K':v }, grid:{ color:'rgba(0,0,0,.04)' }, title:{ display:true, text:'Số tiền | Click', font:{size:10}, color:'#6b7280' } },
+        y2: { position:'right', ticks:{ font:{size:10}, callback:v=>v>=1e6?Math.round(v/1e6)+'M':v>=1e3?Math.round(v/1e3)+'K':v }, grid:{ display:false },            title:{ display:true, text:'Doanh thu QC', font:{size:10}, color:'#6b7280' } }
       }
     }
   });
@@ -1448,6 +1505,13 @@ function renderTlTable() {
     return _tlSortAsc ? va - vb : vb - va;
   });
 
+  // Compare rows (sorted by date asc to pair by position)
+  const cmpRows = _compareMode ? getCmpRows() : [];
+  const cmpTotal = cmpRows.reduce((acc, r) => ({
+    spend: acc.spend + r.spend, impressions: acc.impressions + r.impressions,
+    clicks: acc.clicks + r.clicks, orders: acc.orders + r.orders, revenue: acc.revenue + r.revenue,
+  }), { spend:0, impressions:0, clicks:0, orders:0, revenue:0 });
+
   // KPI tổng
   const total = filtered.reduce((acc, r) => ({
     spend:       acc.spend       + r.spend,
@@ -1456,40 +1520,55 @@ function renderTlTable() {
     orders:      acc.orders      + r.orders,
     revenue:     acc.revenue     + r.revenue,
   }), { spend:0, impressions:0, clicks:0, orders:0, revenue:0 });
-  const totalRoas = total.spend > 0 ? (total.revenue / total.spend).toFixed(2) : '—';
+  const totalRoas    = total.spend > 0 ? (total.revenue / total.spend).toFixed(2) : '—';
+  const cmpTotalRoas = cmpTotal.spend > 0 ? (cmpTotal.revenue / cmpTotal.spend) : 0;
+
+  const cmpLbl = _compareMode ? `<div style="font-size:10px;color:#9ca3af;margin-top:1px;">vs ${cmpDateLabel()}</div>` : '';
 
   const KPI_DEFS = [
-    { label:'Tổng chi phí',   val: total.spend.toLocaleString('vi-VN')+'đ',       sub: filtered.length+' ngày',    color:'#3b82f6' },
-    { label:'Doanh thu QC',   val: total.revenue.toLocaleString('vi-VN')+'đ',     sub: 'từ quảng cáo',              color:'#EE4D2D' },
-    { label:'ROAS',           val: totalRoas,                                       sub: 'doanh thu / chi phí',      color: total.spend>0&&(total.revenue/total.spend)>=1 ? '#16a34a' : '#dc2626' },
-    { label:'Lượt xem',       val: total.impressions.toLocaleString('vi-VN'),      sub: 'impressions',               color:'#f59e0b' },
-    { label:'Click',          val: total.clicks.toLocaleString('vi-VN'),           sub: 'lượt click',                color:'#8b5cf6' },
-    { label:'Đơn hàng QC',    val: total.orders.toLocaleString('vi-VN'),           sub: 'đơn từ quảng cáo',          color:'#14b8a6' },
+    { label:'Tổng chi phí',  cur:total.spend,       cmp:cmpTotal.spend,       val:total.spend.toLocaleString('vi-VN')+'đ',      sub:filtered.length+' ngày',  color:'#3b82f6', lessGood:false },
+    { label:'Doanh thu QC',  cur:total.revenue,     cmp:cmpTotal.revenue,     val:total.revenue.toLocaleString('vi-VN')+'đ',    sub:'từ quảng cáo',           color:'#EE4D2D', lessGood:false },
+    { label:'ROAS',          cur:total.spend>0?(total.revenue/total.spend):0, cmp:cmpTotalRoas, val:totalRoas, sub:'doanh thu / chi phí', color:total.spend>0&&(total.revenue/total.spend)>=1?'#16a34a':'#dc2626', lessGood:false },
+    { label:'Lượt xem',      cur:total.impressions, cmp:cmpTotal.impressions, val:total.impressions.toLocaleString('vi-VN'),     sub:'impressions',            color:'#f59e0b', lessGood:false },
+    { label:'Click',         cur:total.clicks,      cmp:cmpTotal.clicks,      val:total.clicks.toLocaleString('vi-VN'),          sub:'lượt click',             color:'#8b5cf6', lessGood:false },
+    { label:'Đơn hàng QC',   cur:total.orders,      cmp:cmpTotal.orders,      val:total.orders.toLocaleString('vi-VN'),          sub:'đơn từ quảng cáo',       color:'#14b8a6', lessGood:false },
   ];
-  document.getElementById('tl-cards').innerHTML = KPI_DEFS.map(c =>
-    `<div class="card"><div class="card-label">${c.label}</div><div class="card-val" style="color:${c.color};font-size:18px;">${c.val}</div><div class="card-sub">${c.sub}</div></div>`
-  ).join('');
+  document.getElementById('tl-cards').innerHTML = KPI_DEFS.map(c => {
+    const delta = _compareMode ? deltaHtml(c.cur, c.cmp, c.lessGood) : '';
+    const cmpVal = _compareMode && c.cmp ? `<div style="font-size:10px;color:#9ca3af;margin-top:1px;">kỳ trước: ${typeof c.cmp==='number'&&c.label!=='ROAS'?c.cmp.toLocaleString('vi-VN')+(c.label.includes('đ')||c.label.includes('phí')||c.label.includes('thu')?'đ':''):c.cmp.toFixed?c.cmp.toFixed(2):c.cmp}</div>` : '';
+    return `<div class="card"><div class="card-label">${c.label}</div><div class="card-val" style="color:${c.color};font-size:18px;">${c.val}</div>${delta}${cmpVal}<div class="card-sub">${c.sub}</div></div>`;
+  }).join('');
 
-  document.getElementById('tl-cnt').textContent = `${filtered.length} ngày dữ liệu`;
+  document.getElementById('tl-cnt').textContent = `${filtered.length} ngày dữ liệu${_compareMode ? ' | so sánh: '+cmpDateLabel() : ''}`;
   const tbody = document.getElementById('tl-tbody');
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--mu);">
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--mu);">
       <div style="font-size:32px;margin-bottom:8px;">📭</div>
       <div style="font-weight:600;margin-bottom:4px;">Chưa có dữ liệu timeline</div>
       <div style="font-size:11px;">Chạy harvest để thu thập dữ liệu quảng cáo theo ngày</div>
     </td></tr>`;
     return;
   }
+
+  // Khi compare mode: pair filtered rows với cmpRows sorted by date asc theo index
+  const cmpSorted = cmpRows.slice().sort((a,b) => a.date.localeCompare(b.date));
+  // Map filtered rows về index trong sorted-by-date để tìm đúng cmp row theo vị trí
+  const filteredSortedByDate = filtered.slice().sort((a,b) => a.date.localeCompare(b.date));
+  const dateToCmpIdx = {};
+  filteredSortedByDate.forEach((r, i) => { dateToCmpIdx[r.date] = cmpSorted[i] || null; });
+
   tbody.innerHTML = filtered.map((r, i) => {
     const roasColor = r.roas >= 1 ? '#16a34a' : r.roas > 0 ? '#f59e0b' : '#6b7280';
+    const c = _compareMode ? dateToCmpIdx[r.date] : null;
+    const cDate = c ? `<div style="font-size:9px;color:#9ca3af;">${c.date}</div>` : '';
     return `<tr>
-      <td style="font-weight:600;">${i+1}. ${r.date}</td>
-      <td style="color:#3b82f6;font-weight:600;">${r.spend.toLocaleString('vi-VN')}đ</td>
-      <td>${r.impressions.toLocaleString('vi-VN')}</td>
-      <td>${r.clicks.toLocaleString('vi-VN')}</td>
-      <td>${r.orders.toLocaleString('vi-VN')}</td>
-      <td style="color:#EE4D2D;font-weight:600;">${r.revenue.toLocaleString('vi-VN')}đ</td>
-      <td><span style="font-weight:700;color:${roasColor};">${r.roas}</span></td>
+      <td style="font-weight:600;">${i+1}. ${r.date}${c ? `<div style="font-size:9px;color:#9ca3af;">vs ${c.date}</div>` : ''}</td>
+      <td style="color:#3b82f6;font-weight:600;">${r.spend.toLocaleString('vi-VN')}đ${c ? deltaHtml(r.spend, c.spend, false) : ''}</td>
+      <td>${r.impressions.toLocaleString('vi-VN')}${c ? deltaHtml(r.impressions, c.impressions, false) : ''}</td>
+      <td>${r.clicks.toLocaleString('vi-VN')}${c ? deltaHtml(r.clicks, c.clicks, false) : ''}</td>
+      <td>${r.orders.toLocaleString('vi-VN')}${c ? deltaHtml(r.orders, c.orders, false) : ''}</td>
+      <td style="color:#EE4D2D;font-weight:600;">${r.revenue.toLocaleString('vi-VN')}đ${c ? deltaHtml(r.revenue, c.revenue, false) : ''}</td>
+      <td><span style="font-weight:700;color:${roasColor};">${r.roas}</span>${c ? deltaHtml(r.roas, c.roas, false) : ''}</td>
     </tr>`;
   }).join('');
 
