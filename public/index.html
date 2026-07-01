@@ -1346,11 +1346,18 @@ function buildTlRows(shopFilter) {
   // Pass 1: xử lý captures có daily breakdown array (get_time_graph, v.v.)
   // Ghi nhận (shopId|collectionDay) đã có daily data để tránh double-count ở pass 2
   const hasDailyData = new Set();
+  const addedDailyKey = new Set(); // dedup (shopId|date) trong Pass 1
   for (const cap of caps) {
     if (!cap.json) continue;
     const dailyArr = tlExtractDailyArray(cap.json);
     if (dailyArr?.length) {
-      for (const d of dailyArr) addToDate(d.date, d);
+      for (const d of dailyArr) {
+        const dk = (cap.shopId||'') + '|' + d.date;
+        if (!addedDailyKey.has(dk)) {
+          addToDate(d.date, d);
+          addedDailyKey.add(dk);
+        }
+      }
       hasDailyData.add((cap.shopId||'') + '|' + (cap.collectionDay||''));
     }
   }
@@ -2180,4 +2187,3 @@ setInterval(loadData, 5000);
 </script>
 </body>
 </html>
-                                                                                                                                                                                                                                  
