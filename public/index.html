@@ -513,7 +513,7 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
   </div>
 
   <!-- ═══ REPORT ORDER PANE ══════════════════════════════════════════════ -->
-  <div class="pane" id="pane-report" style="padding:0;height:calc(100vh - 110px);box-sizing:border-box;">
+  <div class="pane" id="pane-report" style="padding:0;height:calc(100vh - 110px);box-sizing:border-box;display:block;">
     <iframe src="/dashboard_6shop.html" style="width:100%;height:100%;border:none;display:block;"></iframe>
   </div>
 
@@ -994,22 +994,16 @@ async function loadData(){
 document.querySelectorAll('.tab').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(p=>{ p.classList.remove('active'); p.style.display='none'; });
     btn.classList.add('active');
-    document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
+    const pane = document.getElementById('pane-'+btn.dataset.tab);
+    if(pane){ pane.classList.add('active'); pane.style.display='block'; }
     if (btn.dataset.tab === 'timeline') renderTimeline();
   });
 });
 
-// Activate first tab on load — direct class manipulation, no event chain needed
-(function(){
-  const firstBtn = document.querySelector('.tab[data-tab]');
-  if (!firstBtn) return;
-  const paneId = 'pane-' + firstBtn.dataset.tab;
-  const firstPane = document.getElementById(paneId);
-  firstBtn.classList.add('active');
-  if (firstPane) firstPane.classList.add('active');
-})();
+// First tab active on load (inline style set on pane-report HTML, just sync the tab button)
+document.querySelector('.tab[data-tab="report"]').classList.add('active');
 loadData(); // startup
 
 
