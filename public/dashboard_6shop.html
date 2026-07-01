@@ -991,6 +991,11 @@
 
   if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init); }
   else { init(); }
+
+  // Expose functions needed by inline HTML event handlers
+  window.onTimePreset    = onTimePreset;
+  window.toggleCompare   = toggleCompare;
+  window.applyCustomRange = applyCustomRange;
 })();
 </script>
 </body>
