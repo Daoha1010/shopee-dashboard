@@ -1179,6 +1179,8 @@ async function triggerHarvest() {
    ═══════════════════════════════════════════════════════════════ */
 
 let _tlRows = [];
+let _tlHourlyRows = [];
+let _tlHourMode = false;
 let _tlChart = null;
 let _tlPieSpend = null;
 let _tlPieRevenue = null;
@@ -1240,10 +1242,12 @@ function tlExtractTimeGraph(json) {
     if (!ts || ts < 1e9) return null;
     // Chuyển unix timestamp (GMT+7) → YYYY-MM-DD
     const localTs = ts + 7 * 3600; // +7 giờ để ra giờ VN
-    const date = new Date(localTs * 1000).toISOString().slice(0, 10);
+    const _dt = new Date(localTs * 1000);
+    const date = _dt.toISOString().slice(0, 10);
+    const hour = String(_dt.getUTCHours()).padStart(2,'0') + ':00';
     const m = item.metrics || {};
     return {
-      date,
+      date, hour, datetime: date + ' ' + hour,
       spend:        tlMoneyConvert('cost', Number(m.cost || 0)),
       impressions:  Number(m.impression || 0),
       clicks:       Number(m.click || 0),
@@ -1382,11 +1386,10 @@ function buildTlRows(shopFilter) {
     shopFilter === 'all' || c.shopId === shopFilter
   );
 
-  const byDate = {};
-  function addToDate(date, vals) {
-    if (!date || date.length < 10) return;
-    if (!byDate[date]) byDate[date] = {spend:0,impressions:0,clicks:0,orders:0,revenue:0,reach:0,atc:0,checkout:0,pageViews:0,voucherSales:0,avgRank:0,_rankCnt:0};
-    const d = byDate[date];
+  const _emptyAcc = () => ({spend:0,impressions:0,clicks:0,orders:0,revenue:0,reach:0,atc:0,checkout:0,pageViews:0,voucherSales:0,avgRank:0,_rankCnt:0});
+  const _accumulate = (bucket, key, vals) => {
+    if (!bucket[key]) bucket[key] = _emptyAcc();
+    const d = bucket[key];
     d.spend        += vals.spend        || 0;
     d.impressions  += vals.impressions  || 0;
     d.clicks       += vals.clicks       || 0;
@@ -1398,12 +1401,16 @@ function buildTlRows(shopFilter) {
     d.pageViews    += vals.pageViews    || 0;
     d.voucherSales += vals.voucherSales || 0;
     if ((vals.avgRank || 0) > 0) { d.avgRank += vals.avgRank; d._rankCnt += (vals._rankCnt || 1); }
-  }
+  };
+  const byDate = {};
+  const byHour = {};
+  function addToDate(date, vals) { if (date?.length >= 10) _accumulate(byDate, date, vals); }
 
   // Pass 1: xử lý captures có daily breakdown array (get_time_graph, v.v.)
   // Ghi nhận (shopId|collectionDay) đã có daily data để tránh double-count ở pass 2
   const hasDailyData = new Set();
   const addedDailyKey = new Set(); // dedup (shopId|date) trong Pass 1
+  const addedHourKey  = new Set(); // dedup (shopId|datetime) cho hourly
   for (const cap of caps) {
     if (!cap.json) continue;
     const dailyArr = tlExtractDailyArray(cap.json);
@@ -1413,6 +1420,13 @@ function buildTlRows(shopFilter) {
         if (!addedDailyKey.has(dk)) {
           addToDate(d.date, d);
           addedDailyKey.add(dk);
+        }
+        if (d.datetime) {
+          const hk = (cap.shopId||'') + '|' + d.datetime;
+          if (!addedHourKey.has(hk)) {
+            _accumulate(byHour, d.datetime, d);
+            addedHourKey.add(hk);
+          }
         }
       }
       hasDailyData.add((cap.shopId||'') + '|' + (cap.collectionDay||''));
@@ -1444,30 +1458,38 @@ function buildTlRows(shopFilter) {
     }
   }
 
-  return Object.entries(byDate)
-    .filter(([d]) => d && d.length === 10)
-    .map(([date, v]) => ({
-      date,
-      spend:        Math.round(v.spend),
-      impressions:  Math.round(v.impressions),
-      clicks:       Math.round(v.clicks),
-      orders:       Math.round(v.orders),
-      revenue:      Math.round(v.revenue),
-      reach:        Math.round(v.reach),
-      atc:          Math.round(v.atc),
-      checkout:     Math.round(v.checkout),
-      pageViews:    Math.round(v.pageViews),
-      voucherSales: Math.round(v.voucherSales),
-      avgRank:      v._rankCnt > 0 ? +(v.avgRank / v._rankCnt).toFixed(1) : 0,
-      roas:         v.spend > 0 ? +(v.revenue / v.spend).toFixed(2) : 0,
-      ctr:          v.impressions > 0 ? +(v.clicks / v.impressions * 100).toFixed(2) : 0,
-      cpc:          v.clicks > 0 ? Math.round(v.spend / v.clicks) : 0,
-      cpm:          v.impressions > 0 ? +(v.spend / v.impressions * 1000).toFixed(0) : 0,
-      cr:           v.clicks > 0 ? +(v.orders / v.clicks * 100).toFixed(2) : 0,
-      atcRate:      v.clicks > 0 ? +(v.atc / v.clicks * 100).toFixed(2) : 0,
-      checkoutRate: v.clicks > 0 ? +(v.checkout / v.clicks * 100).toFixed(2) : 0,
-    }))
+  const _mapV = v => ({
+    spend:        Math.round(v.spend),
+    impressions:  Math.round(v.impressions),
+    clicks:       Math.round(v.clicks),
+    orders:       Math.round(v.orders),
+    revenue:      Math.round(v.revenue),
+    reach:        Math.round(v.reach),
+    atc:          Math.round(v.atc),
+    checkout:     Math.round(v.checkout),
+    pageViews:    Math.round(v.pageViews),
+    voucherSales: Math.round(v.voucherSales),
+    avgRank:      v._rankCnt > 0 ? +(v.avgRank / v._rankCnt).toFixed(1) : 0,
+    roas:         v.spend > 0 ? +(v.revenue / v.spend).toFixed(2) : 0,
+    ctr:          v.impressions > 0 ? +(v.clicks / v.impressions * 100).toFixed(2) : 0,
+    cpc:          v.clicks > 0 ? Math.round(v.spend / v.clicks) : 0,
+    cpm:          v.impressions > 0 ? +(v.spend / v.impressions * 1000).toFixed(0) : 0,
+    cr:           v.clicks > 0 ? +(v.orders / v.clicks * 100).toFixed(2) : 0,
+    atcRate:      v.clicks > 0 ? +(v.atc / v.clicks * 100).toFixed(2) : 0,
+    checkoutRate: v.clicks > 0 ? +(v.checkout / v.clicks * 100).toFixed(2) : 0,
+  });
+
+  const daily = Object.entries(byDate)
+    .filter(([d]) => d?.length === 10)
+    .map(([date, v]) => ({ date, ..._mapV(v) }))
     .sort((a, b) => a.date.localeCompare(b.date));
+
+  const hourly = Object.entries(byHour)
+    .filter(([dt]) => dt?.length >= 16)
+    .map(([datetime, v]) => ({ datetime, date: datetime.slice(0,10), hour: datetime.slice(11,16), ..._mapV(v) }))
+    .sort((a, b) => a.datetime.localeCompare(b.datetime));
+
+  return { daily, hourly };
 }
 
 // Lọc theo date range picker
@@ -1491,6 +1513,17 @@ function toggleCompare() {
     btn.textContent       = _compareMode ? '📊 Đang so sánh ✓' : '📊 So sánh kỳ trước';
   }
   renderTimeline();
+}
+
+function filterTlHourlyRows() {
+  const from = document.getElementById('tl-from')?.value;
+  const to   = document.getElementById('tl-to')?.value;
+  return _tlHourlyRows.filter(r => {
+    const d = r.date;
+    if (from && d < from) return false;
+    if (to   && d > to)   return false;
+    return true;
+  });
 }
 function getCompareDates() {
   const from = document.getElementById('tl-from')?.value;
@@ -1526,15 +1559,21 @@ function cmpDateLabel() {
 }
 
 function updateTlChart() {
-  const filtered = filterTlRows(_tlRows);
   const canvas = document.getElementById('tl-chart');
   if (!canvas) return;
+
+  const filtered = _tlHourMode ? filterTlHourlyRows() : filterTlRows(_tlRows);
   if (!filtered.length) { if (_tlChart) { _tlChart.destroy(); _tlChart = null; } return; }
 
-  const labels = filtered.map(r => {
-    const d = new Date(r.date + 'T00:00:00');
-    return d.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' });
-  });
+  const labels = _tlHourMode
+    ? filtered.map(r => {
+        const d = r.date.slice(5).replace('-','/'); // MM/DD → "07/01"
+        return d + ' ' + r.hour;
+      })
+    : filtered.map(r => {
+        const d = new Date(r.date + 'T00:00:00');
+        return d.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' });
+      });
   const showSpend   = document.getElementById('tl-show-spend')?.checked;
   const showRevenue = document.getElementById('tl-show-revenue')?.checked;
   const showClicks  = document.getElementById('tl-show-clicks')?.checked;
@@ -1546,8 +1585,8 @@ function updateTlChart() {
   if (showClicks)  datasets.push({ label:'Click',         data:filtered.map(r=>r.clicks),  borderColor:'#22c55e', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
   if (showOrders)  datasets.push({ label:'Đơn QC',        data:filtered.map(r=>r.orders),  borderColor:'#f59e0b', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
 
-  // Compare mode: thêm đường kỳ trước dạng nét đứt
-  if (_compareMode) {
+  // Compare mode: thêm đường kỳ trước dạng nét đứt (chỉ khi day mode)
+  if (_compareMode && !_tlHourMode) {
     const cmpRows = getCmpRows();
     const lbl = cmpDateLabel();
     if (showSpend)   datasets.push({ label:`Chi phí (${lbl})`,      data:cmpRows.map(r=>r.spend),   borderColor:'#93c5fd', backgroundColor:'transparent', yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5, borderDash:[6,4] });
@@ -1584,17 +1623,19 @@ function updateTlChart() {
   });
 }
 
-// Render bảng dữ liệu ngày
+// Render bảng dữ liệu ngày / giờ
 function renderTlTable() {
-  const filtered = filterTlRows(_tlRows).slice();
+  const rawFiltered = _tlHourMode ? filterTlHourlyRows() : filterTlRows(_tlRows);
+  const filtered = rawFiltered.slice();
   filtered.sort((a, b) => {
-    const va = a[_tlSortCol], vb = b[_tlSortCol];
+    const sortKey = _tlHourMode && _tlSortCol === 'date' ? 'datetime' : _tlSortCol;
+    const va = a[sortKey] ?? a[_tlSortCol], vb = b[sortKey] ?? b[_tlSortCol];
     if (typeof va === 'string') return _tlSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
     return _tlSortAsc ? va - vb : vb - va;
   });
 
-  // Compare rows (sorted by date asc to pair by position)
-  const cmpRows = _compareMode ? getCmpRows() : [];
+  // Compare rows (sorted by date asc to pair by position) — day mode only
+  const cmpRows = (_compareMode && !_tlHourMode) ? getCmpRows() : [];
   const _sumRows = (rows) => rows.reduce((acc, r) => ({
     spend: acc.spend+r.spend, impressions: acc.impressions+r.impressions,
     clicks: acc.clicks+r.clicks, orders: acc.orders+r.orders, revenue: acc.revenue+r.revenue,
@@ -1617,7 +1658,7 @@ function renderTlTable() {
   const cmpCpc    = cmpTotal.clicks > 0 ? Math.round(cmpTotal.spend/cmpTotal.clicks) : 0;
   const cmpCr     = cmpTotal.clicks > 0 ? cmpTotal.orders/cmpTotal.clicks*100 : 0;
   const KPI_DEFS = [
-    { label:'Tổng chi phí',  cur:total.spend,       cmp:cmpTotal.spend,       val:total.spend.toLocaleString('vi-VN')+'đ',   sub:filtered.length+' ngày', color:'#3b82f6', lessGood:false },
+    { label:'Tổng chi phí',  cur:total.spend,       cmp:cmpTotal.spend,       val:total.spend.toLocaleString('vi-VN')+'đ',   sub:filtered.length+(_tlHourMode?' giờ':' ngày'), color:'#3b82f6', lessGood:false },
     { label:'Doanh thu QC',  cur:total.revenue,     cmp:cmpTotal.revenue,     val:total.revenue.toLocaleString('vi-VN')+'đ', sub:'từ quảng cáo',          color:'#EE4D2D', lessGood:false },
     { label:'ROAS',          cur:total.spend>0?(total.revenue/total.spend):0, cmp:cmpTotalRoas, val:totalRoas, sub:'doanh thu / chi phí', color:total.spend>0&&(total.revenue/total.spend)>=1?'#16a34a':'#dc2626', lessGood:false },
     { label:'Lượt hiển thị', cur:total.impressions, cmp:cmpTotal.impressions, val:total.impressions.toLocaleString('vi-VN'), sub:'impressions',            color:'#f59e0b', lessGood:false },
@@ -1636,7 +1677,9 @@ function renderTlTable() {
     return `<div class="card"><div class="card-label">${c.label}</div><div class="card-val" style="color:${c.color};font-size:18px;">${c.val}</div>${delta}${cmpVal}<div class="card-sub">${c.sub}</div></div>`;
   }).join('');
 
-  document.getElementById('tl-cnt').textContent = `${filtered.length} ngày dữ liệu${_compareMode ? ' | so sánh: '+cmpDateLabel() : ''}`;
+  document.getElementById('tl-cnt').textContent = _tlHourMode
+    ? `${filtered.length} giờ dữ liệu`
+    : `${filtered.length} ngày dữ liệu${_compareMode ? ' | so sánh: '+cmpDateLabel() : ''}`;
   const tbody = document.getElementById('tl-tbody');
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--mu);">
@@ -1660,7 +1703,7 @@ function renderTlTable() {
     const cDate = c ? `<div style="font-size:9px;color:#9ca3af;">${c.date}</div>` : '';
     const n = v => v.toLocaleString('vi-VN');
     return `<tr>
-      <td style="font-weight:600;">${i+1}. ${r.date}${c ? `<div style="font-size:9px;color:#9ca3af;">vs ${c.date}</div>` : ''}</td>
+      <td style="font-weight:600;">${i+1}. ${_tlHourMode ? `<span style="color:#6b7280;font-size:11px;">${r.date.slice(5).replace('-','/')}</span> ${r.hour}` : r.date}${c ? `<div style="font-size:9px;color:#9ca3af;">vs ${c.date}</div>` : ''}</td>
       <td style="color:#3b82f6;font-weight:600;">${n(r.spend)}đ${c ? deltaHtml(r.spend,c.spend,false) : ''}</td>
       <td>${n(r.impressions)}${c ? deltaHtml(r.impressions,c.impressions,false) : ''}</td>
       <td>${n(r.clicks)}${c ? deltaHtml(r.clicks,c.clicks,false) : ''}</td>
@@ -1681,7 +1724,7 @@ function renderTlTable() {
   }).join('');
 
   // Sort header indicator
-  const COL_HEADERS = { date:'Ngày', spend:'Chi phí', impressions:'Hiển thị', clicks:'Click', ctr:'CTR', cpc:'CPC', orders:'Đơn QC', revenue:'Doanh thu QC', roas:'ROAS', cr:'CR', reach:'Reach', atc:'Giỏ hàng', atcRate:'ATC%', checkout:'Checkout', pageViews:'Trang SP', voucherSales:'Voucher', avgRank:'Rank TB' };
+  const COL_HEADERS = { date:_tlHourMode?'Giờ':'Ngày', spend:'Chi phí', impressions:'Hiển thị', clicks:'Click', ctr:'CTR', cpc:'CPC', orders:'Đơn QC', revenue:'Doanh thu QC', roas:'ROAS', cr:'CR', reach:'Reach', atc:'Giỏ hàng', atcRate:'ATC%', checkout:'Checkout', pageViews:'Trang SP', voucherSales:'Voucher', avgRank:'Rank TB' };
   Object.entries(COL_HEADERS).forEach(([col, label]) => {
     const el = document.getElementById('tlh-' + col);
     if (!el) return;
@@ -1746,7 +1789,7 @@ function onTlDateChange() {
 function buildTlShopTotals() {
   const shops = allData.shops || {};
   return Object.keys(shops).map(shopId => {
-    const rows = filterTlRows(buildTlRows(shopId));
+    const rows = filterTlRows(buildTlRows(shopId).daily);
     const spend   = rows.reduce((s, r) => s + r.spend,   0);
     const revenue = rows.reduce((s, r) => s + r.revenue, 0);
     const name = shopDisplayName(shops[shopId]);
@@ -1804,10 +1847,20 @@ function renderTlPieCharts() {
 // Render toàn bộ timeline tab
 function renderTimeline() {
   const shopFilter = document.getElementById('tl-shop')?.value || 'all';
-  _tlRows = buildTlRows(shopFilter);
+  const _built = buildTlRows(shopFilter);
+  _tlRows = _built.daily;
+  _tlHourlyRows = _built.hourly;
+
+  // Tự động chế độ giờ khi chọn đúng 1 ngày (giống Shopee)
+  const from = document.getElementById('tl-from')?.value;
+  const to   = document.getElementById('tl-to')?.value;
+  _tlHourMode = !!(from && to && from === to);
+
   const filtered = filterTlRows(_tlRows);
   const el = document.getElementById('tl-info');
-  if (el) el.textContent = `${filtered.length} ngày có dữ liệu`;
+  if (el) el.textContent = _tlHourMode
+    ? `${filterTlHourlyRows().length} giờ có dữ liệu`
+    : `${filtered.length} ngày có dữ liệu`;
   updateTlChart();
   renderTlPieCharts();
   renderTlTable();
