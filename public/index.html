@@ -484,13 +484,22 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
           <thead>
             <tr>
               <th onclick="sortTlTable('date')" id="tlh-date">Ngày ▼</th>
-              <th onclick="sortTlTable('spend')" id="tlh-spend">Số tiền</th>
-              <th onclick="sortTlTable('impressions')" id="tlh-impressions">Lượt xem</th>
+              <th onclick="sortTlTable('spend')" id="tlh-spend">Chi phí</th>
+              <th onclick="sortTlTable('impressions')" id="tlh-impressions">Hiển thị</th>
               <th onclick="sortTlTable('clicks')" id="tlh-clicks">Click</th>
-              <th onclick="sortTlTable('orders')" id="tlh-orders">Đơn hàng QC</th>
-              <th onclick="sortTlTable('revenue')" id="tlh-revenue">Doanh thu từ QC</th>
+              <th onclick="sortTlTable('ctr')" id="tlh-ctr">CTR</th>
+              <th onclick="sortTlTable('cpc')" id="tlh-cpc">CPC</th>
+              <th onclick="sortTlTable('orders')" id="tlh-orders">Đơn QC</th>
+              <th onclick="sortTlTable('revenue')" id="tlh-revenue">Doanh thu QC</th>
               <th onclick="sortTlTable('roas')" id="tlh-roas">ROAS</th>
-              <th>Shop</th>
+              <th onclick="sortTlTable('cr')" id="tlh-cr">CR</th>
+              <th onclick="sortTlTable('reach')" id="tlh-reach">Reach</th>
+              <th onclick="sortTlTable('atc')" id="tlh-atc">Giỏ hàng</th>
+              <th onclick="sortTlTable('atcRate')" id="tlh-atcRate">ATC%</th>
+              <th onclick="sortTlTable('checkout')" id="tlh-checkout">Checkout</th>
+              <th onclick="sortTlTable('pageViews')" id="tlh-pageViews">Trang SP</th>
+              <th onclick="sortTlTable('voucherSales')" id="tlh-voucherSales">Voucher</th>
+              <th onclick="sortTlTable('avgRank')" id="tlh-avgRank">Rank TB</th>
             </tr>
           </thead>
           <tbody id="tl-tbody"></tbody>
@@ -1235,11 +1244,17 @@ function tlExtractTimeGraph(json) {
     const m = item.metrics || {};
     return {
       date,
-      spend:       tlMoneyConvert('cost',       Number(m.cost        || 0)),
-      impressions: Number(m.impression          || 0),
-      clicks:      Number(m.click               || 0),
-      orders:      Number(m.direct_order || m.broad_order || 0),
-      revenue:     tlMoneyConvert('gmv', Number(m.direct_gmv || m.broad_gmv || 0)),
+      spend:        tlMoneyConvert('cost', Number(m.cost || 0)),
+      impressions:  Number(m.impression || 0),
+      clicks:       Number(m.click || 0),
+      orders:       Number(m.direct_order || m.broad_order || 0),
+      revenue:      tlMoneyConvert('gmv', Number(m.direct_gmv || m.broad_gmv || 0)),
+      reach:        Number(m.reach || 0),
+      atc:          Number(m.atc || 0),
+      checkout:     Number(m.checkout || 0),
+      pageViews:    Number(m.page_views || 0),
+      voucherSales: tlMoneyConvert('gmv', Number(m.voucher_sales || 0)),
+      avgRank:      Number(m.avg_rank || 0),
     };
   }).filter(r => r?.date);
   return rows.length >= 2 ? rows : null;
@@ -1279,11 +1294,17 @@ function tlExtractDailyArray(json) {
       const rk = tlFindKey(src, REV_FIELD_NAMES);
       return {
         date,
-        spend:       tlMoneyConvert(sk||'cost', Number(sk ? src[sk] : 0)),
-        impressions: Number(ik ? src[ik] : 0),
-        clicks:      Number(ck ? src[ck] : 0),
-        orders:      Number(ok ? src[ok] : 0),
-        revenue:     tlMoneyConvert(rk||'gmv', Number(rk ? src[rk] : 0)),
+        spend:        tlMoneyConvert(sk||'cost', Number(sk ? src[sk] : 0)),
+        impressions:  Number(ik ? src[ik] : 0),
+        clicks:       Number(ck ? src[ck] : 0),
+        orders:       Number(ok ? src[ok] : 0),
+        revenue:      tlMoneyConvert(rk||'gmv', Number(rk ? src[rk] : 0)),
+        reach:        Number(src.reach || 0),
+        atc:          Number(src.atc || 0),
+        checkout:     Number(src.checkout || 0),
+        pageViews:    Number(src.page_views || 0),
+        voucherSales: tlMoneyConvert('gmv', Number(src.voucher_sales || 0)),
+        avgRank:      Number(src.avg_rank || 0),
       };
     }).filter(r => r?.date);
     return rows.length >= 2 ? rows : null;
@@ -1315,30 +1336,42 @@ function tlExtractDailyArray(json) {
 
 // Tổng hợp metrics từ entry_list (parsePasEntryList style)
 function tlSumEntryList(entries) {
-  let s={spend:0,impressions:0,clicks:0,orders:0,revenue:0};
+  let s={spend:0,impressions:0,clicks:0,orders:0,revenue:0,reach:0,atc:0,checkout:0,pageViews:0,voucherSales:0,avgRank:0,_rankCnt:0};
   if (!Array.isArray(entries)) return s;
   for (const e of entries) {
     const r = e.report || {};
-    s.spend       += tlMoneyConvert('cost',  Number(r.cost || 0));
-    s.impressions += Number(r.impression || r.impression_count || 0);
-    s.clicks      += Number(r.click || r.click_count || 0);
-    s.orders      += Number(r.broad_order || r.order || 0);
-    s.revenue     += tlMoneyConvert('gmv', Number(r.broad_gmv || r.gmv || 0));
+    s.spend        += tlMoneyConvert('cost', Number(r.cost || 0));
+    s.impressions  += Number(r.impression || r.impression_count || 0);
+    s.clicks       += Number(r.click || r.click_count || 0);
+    s.orders       += Number(r.broad_order || r.order || 0);
+    s.revenue      += tlMoneyConvert('gmv', Number(r.broad_gmv || r.gmv || 0));
+    s.reach        += Number(r.reach || 0);
+    s.atc          += Number(r.atc || 0);
+    s.checkout     += Number(r.checkout || 0);
+    s.pageViews    += Number(r.page_views || 0);
+    s.voucherSales += tlMoneyConvert('gmv', Number(r.voucher_sales || 0));
+    if (r.avg_rank > 0) { s.avgRank += Number(r.avg_rank); s._rankCnt++; }
   }
   return s;
 }
 
 // Tổng hợp metrics từ campaign detail report (data[]{key,metrics})
 function tlSumDetailReport(dataArr) {
-  let s={spend:0,impressions:0,clicks:0,orders:0,revenue:0};
+  let s={spend:0,impressions:0,clicks:0,orders:0,revenue:0,reach:0,atc:0,checkout:0,pageViews:0,voucherSales:0,avgRank:0,_rankCnt:0};
   if (!Array.isArray(dataArr)) return s;
   for (const item of dataArr) {
     const m = item.metrics || {};
-    s.spend       += tlMoneyConvert('cost', Number(m.cost || 0));
-    s.impressions += Number(m.impression || m.impression_count || 0);
-    s.clicks      += Number(m.click || m.click_count || 0);
-    s.orders      += Number(m.broad_order || m.order || 0);
-    s.revenue     += tlMoneyConvert('gmv', Number(m.broad_gmv || m.gmv || 0));
+    s.spend        += tlMoneyConvert('cost', Number(m.cost || 0));
+    s.impressions  += Number(m.impression || m.impression_count || 0);
+    s.clicks       += Number(m.click || m.click_count || 0);
+    s.orders       += Number(m.broad_order || m.order || 0);
+    s.revenue      += tlMoneyConvert('gmv', Number(m.broad_gmv || m.gmv || 0));
+    s.reach        += Number(m.reach || 0);
+    s.atc          += Number(m.atc || 0);
+    s.checkout     += Number(m.checkout || 0);
+    s.pageViews    += Number(m.page_views || 0);
+    s.voucherSales += tlMoneyConvert('gmv', Number(m.voucher_sales || 0));
+    if (m.avg_rank > 0) { s.avgRank += Number(m.avg_rank); s._rankCnt++; }
   }
   return s;
 }
@@ -1349,15 +1382,22 @@ function buildTlRows(shopFilter) {
     shopFilter === 'all' || c.shopId === shopFilter
   );
 
-  const byDate = {}; // date → {spend, impressions, clicks, orders, revenue}
+  const byDate = {};
   function addToDate(date, vals) {
     if (!date || date.length < 10) return;
-    if (!byDate[date]) byDate[date] = { spend:0, impressions:0, clicks:0, orders:0, revenue:0 };
-    byDate[date].spend       += vals.spend       || 0;
-    byDate[date].impressions += vals.impressions || 0;
-    byDate[date].clicks      += vals.clicks      || 0;
-    byDate[date].orders      += vals.orders      || 0;
-    byDate[date].revenue     += vals.revenue     || 0;
+    if (!byDate[date]) byDate[date] = {spend:0,impressions:0,clicks:0,orders:0,revenue:0,reach:0,atc:0,checkout:0,pageViews:0,voucherSales:0,avgRank:0,_rankCnt:0};
+    const d = byDate[date];
+    d.spend        += vals.spend        || 0;
+    d.impressions  += vals.impressions  || 0;
+    d.clicks       += vals.clicks       || 0;
+    d.orders       += vals.orders       || 0;
+    d.revenue      += vals.revenue      || 0;
+    d.reach        += vals.reach        || 0;
+    d.atc          += vals.atc          || 0;
+    d.checkout     += vals.checkout     || 0;
+    d.pageViews    += vals.pageViews    || 0;
+    d.voucherSales += vals.voucherSales || 0;
+    if ((vals.avgRank || 0) > 0) { d.avgRank += vals.avgRank; d._rankCnt += (vals._rankCnt || 1); }
   }
 
   // Pass 1: xử lý captures có daily breakdown array (get_time_graph, v.v.)
@@ -1408,12 +1448,24 @@ function buildTlRows(shopFilter) {
     .filter(([d]) => d && d.length === 10)
     .map(([date, v]) => ({
       date,
-      spend:       Math.round(v.spend),
-      impressions: Math.round(v.impressions),
-      clicks:      Math.round(v.clicks),
-      orders:      Math.round(v.orders),
-      revenue:     Math.round(v.revenue),
-      roas:        v.spend > 0 ? +(v.revenue / v.spend).toFixed(2) : 0
+      spend:        Math.round(v.spend),
+      impressions:  Math.round(v.impressions),
+      clicks:       Math.round(v.clicks),
+      orders:       Math.round(v.orders),
+      revenue:      Math.round(v.revenue),
+      reach:        Math.round(v.reach),
+      atc:          Math.round(v.atc),
+      checkout:     Math.round(v.checkout),
+      pageViews:    Math.round(v.pageViews),
+      voucherSales: Math.round(v.voucherSales),
+      avgRank:      v._rankCnt > 0 ? +(v.avgRank / v._rankCnt).toFixed(1) : 0,
+      roas:         v.spend > 0 ? +(v.revenue / v.spend).toFixed(2) : 0,
+      ctr:          v.impressions > 0 ? +(v.clicks / v.impressions * 100).toFixed(2) : 0,
+      cpc:          v.clicks > 0 ? Math.round(v.spend / v.clicks) : 0,
+      cpm:          v.impressions > 0 ? +(v.spend / v.impressions * 1000).toFixed(0) : 0,
+      cr:           v.clicks > 0 ? +(v.orders / v.clicks * 100).toFixed(2) : 0,
+      atcRate:      v.clicks > 0 ? +(v.atc / v.clicks * 100).toFixed(2) : 0,
+      checkoutRate: v.clicks > 0 ? +(v.checkout / v.clicks * 100).toFixed(2) : 0,
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
@@ -1543,31 +1595,40 @@ function renderTlTable() {
 
   // Compare rows (sorted by date asc to pair by position)
   const cmpRows = _compareMode ? getCmpRows() : [];
-  const cmpTotal = cmpRows.reduce((acc, r) => ({
-    spend: acc.spend + r.spend, impressions: acc.impressions + r.impressions,
-    clicks: acc.clicks + r.clicks, orders: acc.orders + r.orders, revenue: acc.revenue + r.revenue,
-  }), { spend:0, impressions:0, clicks:0, orders:0, revenue:0 });
+  const _sumRows = (rows) => rows.reduce((acc, r) => ({
+    spend: acc.spend+r.spend, impressions: acc.impressions+r.impressions,
+    clicks: acc.clicks+r.clicks, orders: acc.orders+r.orders, revenue: acc.revenue+r.revenue,
+    reach: acc.reach+r.reach, atc: acc.atc+r.atc, checkout: acc.checkout+r.checkout,
+    pageViews: acc.pageViews+r.pageViews, voucherSales: acc.voucherSales+r.voucherSales,
+  }), {spend:0,impressions:0,clicks:0,orders:0,revenue:0,reach:0,atc:0,checkout:0,pageViews:0,voucherSales:0});
+  const cmpTotal = _sumRows(cmpRows);
 
   // KPI tổng
-  const total = filtered.reduce((acc, r) => ({
-    spend:       acc.spend       + r.spend,
-    impressions: acc.impressions + r.impressions,
-    clicks:      acc.clicks      + r.clicks,
-    orders:      acc.orders      + r.orders,
-    revenue:     acc.revenue     + r.revenue,
-  }), { spend:0, impressions:0, clicks:0, orders:0, revenue:0 });
+  const total = _sumRows(filtered);
   const totalRoas    = total.spend > 0 ? (total.revenue / total.spend).toFixed(2) : '—';
   const cmpTotalRoas = cmpTotal.spend > 0 ? (cmpTotal.revenue / cmpTotal.spend) : 0;
 
   const cmpLbl = _compareMode ? `<div style="font-size:10px;color:#9ca3af;margin-top:1px;">vs ${cmpDateLabel()}</div>` : '';
 
+  const totalCtr  = total.impressions > 0 ? (total.clicks/total.impressions*100).toFixed(2) : '—';
+  const totalCpc  = total.clicks > 0 ? Math.round(total.spend/total.clicks) : 0;
+  const totalCr   = total.clicks > 0 ? (total.orders/total.clicks*100).toFixed(2) : '—';
+  const cmpCtr    = cmpTotal.impressions > 0 ? cmpTotal.clicks/cmpTotal.impressions*100 : 0;
+  const cmpCpc    = cmpTotal.clicks > 0 ? Math.round(cmpTotal.spend/cmpTotal.clicks) : 0;
+  const cmpCr     = cmpTotal.clicks > 0 ? cmpTotal.orders/cmpTotal.clicks*100 : 0;
   const KPI_DEFS = [
-    { label:'Tổng chi phí',  cur:total.spend,       cmp:cmpTotal.spend,       val:total.spend.toLocaleString('vi-VN')+'đ',      sub:filtered.length+' ngày',  color:'#3b82f6', lessGood:false },
-    { label:'Doanh thu QC',  cur:total.revenue,     cmp:cmpTotal.revenue,     val:total.revenue.toLocaleString('vi-VN')+'đ',    sub:'từ quảng cáo',           color:'#EE4D2D', lessGood:false },
+    { label:'Tổng chi phí',  cur:total.spend,       cmp:cmpTotal.spend,       val:total.spend.toLocaleString('vi-VN')+'đ',   sub:filtered.length+' ngày', color:'#3b82f6', lessGood:false },
+    { label:'Doanh thu QC',  cur:total.revenue,     cmp:cmpTotal.revenue,     val:total.revenue.toLocaleString('vi-VN')+'đ', sub:'từ quảng cáo',          color:'#EE4D2D', lessGood:false },
     { label:'ROAS',          cur:total.spend>0?(total.revenue/total.spend):0, cmp:cmpTotalRoas, val:totalRoas, sub:'doanh thu / chi phí', color:total.spend>0&&(total.revenue/total.spend)>=1?'#16a34a':'#dc2626', lessGood:false },
-    { label:'Lượt xem',      cur:total.impressions, cmp:cmpTotal.impressions, val:total.impressions.toLocaleString('vi-VN'),     sub:'impressions',            color:'#f59e0b', lessGood:false },
-    { label:'Click',         cur:total.clicks,      cmp:cmpTotal.clicks,      val:total.clicks.toLocaleString('vi-VN'),          sub:'lượt click',             color:'#8b5cf6', lessGood:false },
-    { label:'Đơn hàng QC',   cur:total.orders,      cmp:cmpTotal.orders,      val:total.orders.toLocaleString('vi-VN'),          sub:'đơn từ quảng cáo',       color:'#14b8a6', lessGood:false },
+    { label:'Lượt hiển thị', cur:total.impressions, cmp:cmpTotal.impressions, val:total.impressions.toLocaleString('vi-VN'), sub:'impressions',            color:'#f59e0b', lessGood:false },
+    { label:'Click',         cur:total.clicks,      cmp:cmpTotal.clicks,      val:total.clicks.toLocaleString('vi-VN'),      sub:'lượt click',             color:'#8b5cf6', lessGood:false },
+    { label:'Đơn hàng QC',  cur:total.orders,      cmp:cmpTotal.orders,      val:total.orders.toLocaleString('vi-VN'),      sub:'đơn từ quảng cáo',       color:'#14b8a6', lessGood:false },
+    { label:'CTR',           cur:total.impressions>0?total.clicks/total.impressions*100:0, cmp:cmpCtr, val:totalCtr+'%', sub:'click/hiển thị', color:'#0ea5e9', lessGood:false },
+    { label:'CPC',           cur:totalCpc,          cmp:cmpCpc,               val:totalCpc.toLocaleString('vi-VN')+'đ',     sub:'chi phí/click',           color:'#6366f1', lessGood:true  },
+    { label:'CR',            cur:total.clicks>0?total.orders/total.clicks*100:0, cmp:cmpCr, val:totalCr+'%', sub:'đơn/click',       color:'#10b981', lessGood:false },
+    { label:'Reach',         cur:total.reach,       cmp:cmpTotal.reach,       val:total.reach.toLocaleString('vi-VN'),       sub:'người tiếp cận',          color:'#f97316', lessGood:false },
+    { label:'Thêm giỏ hàng', cur:total.atc,         cmp:cmpTotal.atc,         val:total.atc.toLocaleString('vi-VN'),         sub:'add to cart',             color:'#ec4899', lessGood:false },
+    { label:'Checkout',      cur:total.checkout,    cmp:cmpTotal.checkout,    val:total.checkout.toLocaleString('vi-VN'),    sub:'lần checkout',             color:'#84cc16', lessGood:false },
   ];
   document.getElementById('tl-cards').innerHTML = KPI_DEFS.map(c => {
     const delta = _compareMode ? deltaHtml(c.cur, c.cmp, c.lessGood) : '';
@@ -1597,19 +1658,30 @@ function renderTlTable() {
     const roasColor = r.roas >= 1 ? '#16a34a' : r.roas > 0 ? '#f59e0b' : '#6b7280';
     const c = _compareMode ? dateToCmpIdx[r.date] : null;
     const cDate = c ? `<div style="font-size:9px;color:#9ca3af;">${c.date}</div>` : '';
+    const n = v => v.toLocaleString('vi-VN');
     return `<tr>
       <td style="font-weight:600;">${i+1}. ${r.date}${c ? `<div style="font-size:9px;color:#9ca3af;">vs ${c.date}</div>` : ''}</td>
-      <td style="color:#3b82f6;font-weight:600;">${r.spend.toLocaleString('vi-VN')}đ${c ? deltaHtml(r.spend, c.spend, false) : ''}</td>
-      <td>${r.impressions.toLocaleString('vi-VN')}${c ? deltaHtml(r.impressions, c.impressions, false) : ''}</td>
-      <td>${r.clicks.toLocaleString('vi-VN')}${c ? deltaHtml(r.clicks, c.clicks, false) : ''}</td>
-      <td>${r.orders.toLocaleString('vi-VN')}${c ? deltaHtml(r.orders, c.orders, false) : ''}</td>
-      <td style="color:#EE4D2D;font-weight:600;">${r.revenue.toLocaleString('vi-VN')}đ${c ? deltaHtml(r.revenue, c.revenue, false) : ''}</td>
-      <td><span style="font-weight:700;color:${roasColor};">${r.roas}</span>${c ? deltaHtml(r.roas, c.roas, false) : ''}</td>
+      <td style="color:#3b82f6;font-weight:600;">${n(r.spend)}đ${c ? deltaHtml(r.spend,c.spend,false) : ''}</td>
+      <td>${n(r.impressions)}${c ? deltaHtml(r.impressions,c.impressions,false) : ''}</td>
+      <td>${n(r.clicks)}${c ? deltaHtml(r.clicks,c.clicks,false) : ''}</td>
+      <td style="color:#0ea5e9;">${r.ctr}%${c ? deltaHtml(r.ctr,c?.ctr||0,false) : ''}</td>
+      <td>${n(r.cpc)}đ${c ? deltaHtml(r.cpc,c?.cpc||0,true) : ''}</td>
+      <td>${n(r.orders)}${c ? deltaHtml(r.orders,c.orders,false) : ''}</td>
+      <td style="color:#EE4D2D;font-weight:600;">${n(r.revenue)}đ${c ? deltaHtml(r.revenue,c.revenue,false) : ''}</td>
+      <td><span style="font-weight:700;color:${roasColor};">${r.roas}</span>${c ? deltaHtml(r.roas,c?.roas||0,false) : ''}</td>
+      <td style="color:#10b981;">${r.cr}%${c ? deltaHtml(r.cr,c?.cr||0,false) : ''}</td>
+      <td>${n(r.reach)}${c ? deltaHtml(r.reach,c?.reach||0,false) : ''}</td>
+      <td>${n(r.atc)}${c ? deltaHtml(r.atc,c?.atc||0,false) : ''}</td>
+      <td>${r.atcRate}%${c ? deltaHtml(r.atcRate,c?.atcRate||0,false) : ''}</td>
+      <td>${n(r.checkout)}${c ? deltaHtml(r.checkout,c?.checkout||0,false) : ''}</td>
+      <td>${n(r.pageViews)}${c ? deltaHtml(r.pageViews,c?.pageViews||0,false) : ''}</td>
+      <td>${n(r.voucherSales)}đ${c ? deltaHtml(r.voucherSales,c?.voucherSales||0,false) : ''}</td>
+      <td>${r.avgRank > 0 ? r.avgRank : '—'}${c && c.avgRank > 0 ? deltaHtml(r.avgRank,c.avgRank,true) : ''}</td>
     </tr>`;
   }).join('');
 
   // Sort header indicator
-  const COL_HEADERS = { date:'Ngày', spend:'Số tiền', impressions:'Lượt xem', clicks:'Click', orders:'Đơn hàng QC', revenue:'Doanh thu từ QC', roas:'ROAS' };
+  const COL_HEADERS = { date:'Ngày', spend:'Chi phí', impressions:'Hiển thị', clicks:'Click', ctr:'CTR', cpc:'CPC', orders:'Đơn QC', revenue:'Doanh thu QC', roas:'ROAS', cr:'CR', reach:'Reach', atc:'Giỏ hàng', atcRate:'ATC%', checkout:'Checkout', pageViews:'Trang SP', voucherSales:'Voucher', avgRank:'Rank TB' };
   Object.entries(COL_HEADERS).forEach(([col, label]) => {
     const el = document.getElementById('tlh-' + col);
     if (!el) return;
@@ -1747,13 +1819,23 @@ function exportTimeline() {
   if (!filtered.length) { alert('Không có dữ liệu để xuất.'); return; }
   if (typeof XLSX === 'undefined') { alert('Thư viện XLSX chưa tải xong, thử lại.'); return; }
   const ws = XLSX.utils.json_to_sheet(filtered.map(r => ({
-    'Ngày':                  r.date,
-    'Số tiền (VND)':         r.spend,
-    'Lượt xem':              r.impressions,
-    'Click':                 r.clicks,
-    'Đơn hàng QC':           r.orders,
-    'Doanh thu từ QC (VND)': r.revenue,
-    'ROAS':                  r.roas,
+    'Ngày':              r.date,
+    'Chi phí (VND)':     r.spend,
+    'Lượt hiển thị':     r.impressions,
+    'Click':             r.clicks,
+    'CTR (%)':           r.ctr,
+    'CPC (VND)':         r.cpc,
+    'Đơn QC':            r.orders,
+    'Doanh thu QC (VND)':r.revenue,
+    'ROAS':              r.roas,
+    'CR (%)':            r.cr,
+    'Reach':             r.reach,
+    'Thêm giỏ hàng':     r.atc,
+    'ATC Rate (%)':      r.atcRate,
+    'Checkout':          r.checkout,
+    'Lượt xem trang SP': r.pageViews,
+    'Doanh số Voucher':  r.voucherSales,
+    'Rank TB':           r.avgRank,
   })));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Timeline QC');
