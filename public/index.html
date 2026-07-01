@@ -1382,9 +1382,9 @@ function tlSumDetailReport(dataArr) {
 
 // Build timeline rows từ allData.ads captures
 function buildTlRows(shopFilter) {
-  const caps = (allData.ads || []).filter(c =>
-    shopFilter === 'all' || c.shopId === shopFilter
-  );
+  const caps = (allData.ads || [])
+    .filter(c => shopFilter === 'all' || c.shopId === shopFilter)
+    .sort((a, b) => (b.collectionDay || '').localeCompare(a.collectionDay || '')); // newest first → latest data wins
 
   const _emptyAcc = () => ({spend:0,impressions:0,clicks:0,orders:0,revenue:0,reach:0,atc:0,checkout:0,pageViews:0,voucherSales:0,avgRank:0,_rankCnt:0});
   const _accumulate = (bucket, key, vals) => {
