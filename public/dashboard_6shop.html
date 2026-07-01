@@ -24,38 +24,35 @@
 </script>
 <style>
   :root{
-    --bg:#0E1620;
-    --bg-2:#0B121A;
-    --surface:#161F2B;
-    --surface-2:#1C2733;
-    --border:rgba(140,158,184,0.16);
-    --border-soft:rgba(140,158,184,0.09);
-    --text:#EDEFF3;
-    --muted:#8A96A8;
-    --faint:#5D6A7C;
-    --amber:#E8A33D;
-    --amber-dim:rgba(232,163,61,0.16);
-    --teal:#34BFA3;
-    --teal-dim:rgba(52,191,163,0.16);
-    --coral:#E15B4F;
-    --coral-dim:rgba(225,91,79,0.16);
-    --violet:#9482D6;
-    --violet-dim:rgba(148,130,214,0.16);
-    --slate:#7186A8;
-    --slate-dim:rgba(113,134,168,0.16);
-    --grid-line:rgba(138,150,168,0.10);
+    --bg:#f3f4f6;
+    --bg-2:#e9ecef;
+    --surface:#ffffff;
+    --surface-2:#f9fafb;
+    --border:#e5e7eb;
+    --border-soft:#f0f1f3;
+    --text:#111827;
+    --muted:#6b7280;
+    --faint:#9ca3af;
+    --amber:#d97706;
+    --amber-dim:rgba(217,119,6,0.10);
+    --teal:#0d9488;
+    --teal-dim:rgba(13,148,136,0.10);
+    --coral:#dc2626;
+    --coral-dim:rgba(220,38,38,0.08);
+    --violet:#7c3aed;
+    --violet-dim:rgba(124,58,237,0.10);
+    --slate:#4b5563;
+    --slate-dim:rgba(75,85,99,0.10);
+    --grid-line:rgba(0,0,0,0.07);
     --font-display:'Space Grotesk',sans-serif;
-    --font-body:'Inter',sans-serif;
+    --font-body:'Inter','Segoe UI',Arial,sans-serif;
     --font-mono:'IBM Plex Mono',monospace;
-    --radius:14px;
+    --radius:10px;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background:
-      radial-gradient(1100px 520px at 14% -8%, rgba(232,163,61,0.10), transparent 60%),
-      radial-gradient(900px 480px at 100% 0%, rgba(52,191,163,0.08), transparent 55%),
-      var(--bg);
+    background:var(--bg);
     color:var(--text);
     font-family:var(--font-body);
     -webkit-font-smoothing:antialiased;
@@ -153,7 +150,7 @@
   .shop-table td{padding:11px 10px;border-bottom:1px solid var(--border-soft);color:var(--text);white-space:nowrap;}
   .shop-table th.num,.shop-table td.num{text-align:right;}
   .shop-table td.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
-  .shop-table tbody tr:hover{background:rgba(255,255,255,0.02);}
+  .shop-table tbody tr:hover{background:rgba(0,0,0,0.025);}
   .shop-table tr.is-selected td{background:rgba(232,163,61,0.07);}
   .shop-table tr.is-selected td:first-child{box-shadow:inset 3px 0 0 var(--amber);}
   .row-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:8px;background:var(--faint);}
@@ -255,7 +252,7 @@
   .time-sel-wrap{display:flex;flex-direction:column;gap:9px;}
   .time-sel{
     appearance:none;-webkit-appearance:none;
-    background:var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238A96A8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+    background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;
     border:1px solid var(--border);color:var(--text);
     font-size:13px;font-weight:500;padding:8px 36px 8px 13px;
     border-radius:999px;cursor:pointer;outline:none;
@@ -264,7 +261,7 @@
   }
   .time-sel:hover{border-color:rgba(232,163,61,0.4);}
   .time-sel:focus{border-color:var(--amber);}
-  .time-sel option{background:var(--surface);color:var(--text);}
+  .time-sel option{background:#fff;color:var(--text);}
   .custom-dates{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;}
   .custom-dates input[type=date]{
     background:var(--surface-2);border:1px solid var(--border);color:var(--text);
@@ -309,25 +306,8 @@
     <div class="filter-group time-sel-wrap">
       <span class="filter-label">📅 Thời gian</span>
       <select class="time-sel" id="timePreset" onchange="onTimePreset(this.value)">
-        <option value="latest">Tháng gần nhất</option>
-        <option value="prev">Tháng trước</option>
-        <option value="all" selected>Tất cả</option>
-        <option value="custom">Tùy chọn ngày...</option>
+        <!-- populated by init() from DATA.months -->
       </select>
-      <div class="custom-dates" id="customDates" style="display:none;">
-        <span>từ tháng</span>
-        <select class="time-sel" id="customFrom" style="min-width:140px;border-radius:8px;padding:6px 32px 6px 10px;">
-          <option value="2026-05">Tháng 5/2026</option>
-          <option value="2026-06">Tháng 6/2026</option>
-        </select>
-        <span>đến</span>
-        <select class="time-sel" id="customTo" style="min-width:140px;border-radius:8px;padding:6px 32px 6px 10px;">
-          <option value="2026-05">Tháng 5/2026</option>
-          <option value="2026-06" selected>Tháng 6/2026</option>
-        </select>
-        <button class="apply-btn" onclick="applyCustomRange()">Áp dụng</button>
-      </div>
-      <div class="chips" id="monthChips" style="display:none;"></div>
     </div>
     <div class="filter-group" style="justify-content:flex-end;margin-left:auto;">
       <span class="filter-label">So sánh</span>
@@ -428,9 +408,9 @@
   const charts = {};
 
   const COLORS = {
-    amber:'#E8A33D', teal:'#34BFA3', coral:'#E15B4F', violet:'#9482D6', slate:'#7186A8',
-    text:'#EDEFF3', muted:'#8A96A8', grid:'rgba(138,150,168,0.12)',
-    surface:'#161F2B', tooltipBg:'#1C2733',
+    amber:'#d97706', teal:'#0d9488', coral:'#dc2626', violet:'#7c3aed', slate:'#4b5563',
+    text:'#111827', muted:'#6b7280', grid:'rgba(0,0,0,0.07)',
+    surface:'#ffffff', tooltipBg:'#ffffff',
   };
   const FONT_BODY = "'Inter',sans-serif";
   const FONT_MONO = "'IBM Plex Mono',monospace";
@@ -541,37 +521,7 @@
   /* ── COMPARE MODE ────────────────────────────────────────────────── */
 
   function onTimePreset(val){
-    const customDates = document.getElementById('customDates');
-    if(val === 'latest'){
-      customDates.style.display = 'none';
-      // most recent month = last in DATA.months
-      const latest = DATA.months[DATA.months.length-1].id;
-      state.month = latest;
-    } else if(val === 'prev'){
-      customDates.style.display = 'none';
-      // previous month = second-to-last, or first if only 1
-      const prev = DATA.months.length > 1 ? DATA.months[DATA.months.length-2].id : DATA.months[0].id;
-      state.month = prev;
-    } else if(val === 'all'){
-      customDates.style.display = 'none';
-      state.month = 'all';
-    } else if(val === 'custom'){
-      customDates.style.display = 'flex';
-      return; // wait for user to apply
-    }
-    syncChips();
-    render();
-  }
-
-  function applyCustomRange(){
-    const from = document.getElementById('customFrom').value;
-    const to   = document.getElementById('customTo').value;
-    // If same month selected, filter by that month; if different, show all (both months)
-    if(from === to){
-      state.month = from;
-    } else {
-      state.month = 'all'; // both months in range
-    }
+    state.month = val; // 'all' hoặc month id như '2026-05'
     syncChips();
     render();
   }
@@ -985,6 +935,10 @@
     const monthSpan = DATA.months.map(m=>m.label).join(', ');
     document.getElementById('srcLine').textContent =
       'Nguồn: '+DATA.records.length+' file Order_all xuất từ Shopee Seller Center · '+DATA.shops.length+' shop · '+monthSpan+'.';
+    // Populate month filter dropdown from DATA.months
+    const sel = document.getElementById('timePreset');
+    sel.innerHTML = '<option value="all">Tất cả</option>' +
+      DATA.months.map(m => `<option value="${m.id}">${m.label}</option>`).join('');
     initChips();
     render();
   }
@@ -993,9 +947,8 @@
   else { init(); }
 
   // Expose functions needed by inline HTML event handlers
-  window.onTimePreset    = onTimePreset;
-  window.toggleCompare   = toggleCompare;
-  window.applyCustomRange = applyCustomRange;
+  window.onTimePreset  = onTimePreset;
+  window.toggleCompare = toggleCompare;
 })();
 </script>
 </body>
