@@ -116,11 +116,13 @@ app.post('/api/capture', requireKey, (req, res) => {
   })();
 
   const urlBase = (url||'').split('?')[0];
-  // Dedup: cùng shop + URL base + collectionDay = cùng 1 harvest run → upsert
+  // Dedup: cùng shop + URL base + collectionDay + dateKey → upsert
+  // dateKey phân biệt historical (30 ngày) vs today (hôm nay) khi cùng collectionDay
   const existIdx = captures.findIndex(c =>
     c.shopId === sid &&
     (c.url||'').split('?')[0] === urlBase &&
-    c.collectionDay === collectionDay
+    c.collectionDay === collectionDay &&
+    c.dateKey === dateKey
   );
 
   const newCapture = { shopId: sid, shopName: bestName, url, method: method||'GET', json, ts, reqBody: reqBody||null, dateKey, collectionDay };
