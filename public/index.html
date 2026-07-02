@@ -404,109 +404,192 @@ tbody td{padding:8px 12px;border-bottom:1px solid var(--bd);max-width:220px;over
 
   <!-- ═══ TIMELINE QC PANE ════════════════════════════════════════════ -->
   <div class="pane" id="pane-timeline">
-    <!-- Date range bar -->
-    <div class="panel" style="margin-bottom:14px;">
-      <div style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span style="font-size:13px;font-weight:700;color:var(--tx);">📅 Thời gian</span>
-        <select id="tl-preset-sel" class="f-sel" style="min-width:150px;" onchange="onTlPresetSel(this.value)">
-          <option value="7">7 ngày gần đây</option>
-          <option value="30">30 ngày gần đây</option>
-          <option value="90">90 ngày gần đây</option>
-          <option value="this_month">Tháng này</option>
-          <option value="last_month">Tháng trước</option>
-          <option value="0">Tất cả</option>
-          <option value="custom">Tùy chọn ngày...</option>
-        </select>
-        <span id="tl-custom-dates" style="display:none;align-items:center;gap:6px;">
-          <span style="font-size:12px;color:var(--mu);">từ</span>
-          <input type="date" id="tl-from" class="f-date" onchange="onTlDateChange()" style="width:130px">
-          <span style="font-size:12px;color:var(--mu);">→</span>
-          <input type="date" id="tl-to" class="f-date" onchange="onTlDateChange()" style="width:130px">
-        </span>
-        <span style="font-size:12px;color:var(--mu);">🏪 Shop:</span>
-        <select id="tl-shop" class="f-sel" style="max-width:200px" onchange="renderTimeline()">
-          <option value="all">Tất cả shop</option>
-        </select>
-        <button class="btn" style="background:var(--or);color:#fff;font-weight:700;" onclick="renderTimeline()">🔄 Cập nhật</button>
-        <button id="tl-compare-btn" class="btn" style="background:#fff;color:var(--tx);border:1px solid var(--bd);font-weight:600;white-space:nowrap;" onclick="toggleCompare()">📊 So sánh kỳ trước</button>
-        <span id="tl-info" style="font-size:11px;color:var(--mu);margin-left:auto;"></span>
-      </div>
+
+    <!-- Sub-tab switcher -->
+    <div style="display:flex;margin-bottom:16px;background:#fff;border-radius:10px;border:1px solid var(--bd);overflow:hidden;width:fit-content;">
+      <button id="tl-subtab-daily" onclick="setTlView('daily')"
+        style="padding:9px 22px;font-size:13px;font-weight:700;border:none;border-right:1px solid var(--bd);cursor:pointer;background:var(--or);color:#fff;">
+        📅 Theo ngày
+      </button>
+      <button id="tl-subtab-hourly" onclick="setTlView('hourly')"
+        style="padding:9px 22px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:#fff;color:var(--mu);">
+        ⏰ Theo giờ
+      </button>
     </div>
 
-    <!-- KPI cards -->
-    <div class="cards" id="tl-cards" style="margin-bottom:14px;"></div>
-
-    <!-- Chart -->
-    <div class="panel" style="margin-bottom:14px;">
-      <div class="ph">
-        <span class="ph-title">📈 Chi phí & Doanh thu theo ngày</span>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
-            <input type="checkbox" id="tl-show-spend" checked onchange="updateTlChart()"> <span style="color:#3b82f6;">■</span> Chi phí
-          </label>
-          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
-            <input type="checkbox" id="tl-show-revenue" checked onchange="updateTlChart()"> <span style="color:#EE4D2D;">■</span> Doanh thu QC
-          </label>
-          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
-            <input type="checkbox" id="tl-show-clicks" onchange="updateTlChart()"> <span style="color:#22c55e;">■</span> Click
-          </label>
-          <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
-            <input type="checkbox" id="tl-show-orders" onchange="updateTlChart()"> <span style="color:#f59e0b;">■</span> Đơn QC
-          </label>
+    <!-- ══ DAILY VIEW ═══════════════════════════════════════════════════ -->
+    <div id="tl-daily-view">
+      <!-- Date range bar -->
+      <div class="panel" style="margin-bottom:14px;">
+        <div style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:700;color:var(--tx);">📅 Thời gian</span>
+          <select id="tl-preset-sel" class="f-sel" style="min-width:150px;" onchange="onTlPresetSel(this.value)">
+            <option value="7">7 ngày gần đây</option>
+            <option value="30">30 ngày gần đây</option>
+            <option value="90">90 ngày gần đây</option>
+            <option value="this_month">Tháng này</option>
+            <option value="last_month">Tháng trước</option>
+            <option value="0">Tất cả</option>
+            <option value="custom">Tùy chọn ngày...</option>
+          </select>
+          <span id="tl-custom-dates" style="display:none;align-items:center;gap:6px;">
+            <span style="font-size:12px;color:var(--mu);">từ</span>
+            <input type="date" id="tl-from" class="f-date" onchange="onTlDateChange()" style="width:130px">
+            <span style="font-size:12px;color:var(--mu);">→</span>
+            <input type="date" id="tl-to" class="f-date" onchange="onTlDateChange()" style="width:130px">
+          </span>
+          <span style="font-size:12px;color:var(--mu);">🏪 Shop:</span>
+          <select id="tl-shop" class="f-sel" style="max-width:200px" onchange="renderTimeline()">
+            <option value="all">Tất cả shop</option>
+          </select>
+          <button class="btn" style="background:var(--or);color:#fff;font-weight:700;" onclick="renderTimeline()">🔄 Cập nhật</button>
+          <button id="tl-compare-btn" class="btn" style="background:#fff;color:var(--tx);border:1px solid var(--bd);font-weight:600;white-space:nowrap;" onclick="toggleCompare()">📊 So sánh kỳ trước</button>
+          <span id="tl-info" style="font-size:11px;color:var(--mu);margin-left:auto;"></span>
         </div>
       </div>
-      <div class="chart-wrap" style="height:300px;"><canvas id="tl-chart"></canvas></div>
-    </div>
-
-    <!-- Shop pie charts -->
-    <div id="tl-pie-wrap" style="display:none;margin-bottom:14px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-        <div class="panel">
-          <div class="ph"><span class="ph-title">🏪 Tỷ trọng Chi phí theo Shop</span></div>
-          <div style="height:260px;position:relative;padding:0 16px 16px;"><canvas id="tl-pie-spend"></canvas></div>
+      <!-- KPI cards -->
+      <div class="cards" id="tl-cards" style="margin-bottom:14px;"></div>
+      <!-- Chart -->
+      <div class="panel" style="margin-bottom:14px;">
+        <div class="ph">
+          <span class="ph-title">📈 Chi phí & Doanh thu theo ngày</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="checkbox" id="tl-show-spend" checked onchange="updateTlChart()"> <span style="color:#3b82f6;">■</span> Chi phí
+            </label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="checkbox" id="tl-show-revenue" checked onchange="updateTlChart()"> <span style="color:#EE4D2D;">■</span> Doanh thu QC
+            </label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="checkbox" id="tl-show-clicks" onchange="updateTlChart()"> <span style="color:#22c55e;">■</span> Click
+            </label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="checkbox" id="tl-show-orders" onchange="updateTlChart()"> <span style="color:#f59e0b;">■</span> Đơn QC
+            </label>
+          </div>
         </div>
-        <div class="panel">
-          <div class="ph"><span class="ph-title">🏪 Tỷ trọng Doanh thu QC theo Shop</span></div>
-          <div style="height:260px;position:relative;padding:0 16px 16px;"><canvas id="tl-pie-revenue"></canvas></div>
+        <div class="chart-wrap" style="height:300px;"><canvas id="tl-chart"></canvas></div>
+      </div>
+      <!-- Shop pie charts -->
+      <div id="tl-pie-wrap" style="display:none;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="panel">
+            <div class="ph"><span class="ph-title">🏪 Tỷ trọng Chi phí theo Shop</span></div>
+            <div style="height:260px;position:relative;padding:0 16px 16px;"><canvas id="tl-pie-spend"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><span class="ph-title">🏪 Tỷ trọng Doanh thu QC theo Shop</span></div>
+            <div style="height:260px;position:relative;padding:0 16px 16px;"><canvas id="tl-pie-revenue"></canvas></div>
+          </div>
         </div>
       </div>
-    </div>
+      <!-- Daily table -->
+      <div class="panel">
+        <div class="ph" style="flex-wrap:wrap;gap:8px;">
+          <span class="ph-title">📋 Dữ liệu theo ngày</span>
+          <span id="tl-cnt" style="font-size:11px;color:var(--mu);"></span>
+          <button class="btn btn-exp" style="margin-left:auto;" onclick="exportTimeline()">⬇ Excel</button>
+        </div>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th onclick="sortTlTable('date')" id="tlh-date">Ngày ▼</th>
+                <th onclick="sortTlTable('spend')" id="tlh-spend">Chi phí</th>
+                <th onclick="sortTlTable('impressions')" id="tlh-impressions">Hiển thị</th>
+                <th onclick="sortTlTable('clicks')" id="tlh-clicks">Click</th>
+                <th onclick="sortTlTable('ctr')" id="tlh-ctr">CTR</th>
+                <th onclick="sortTlTable('cpc')" id="tlh-cpc">CPC</th>
+                <th onclick="sortTlTable('orders')" id="tlh-orders">Đơn QC</th>
+                <th onclick="sortTlTable('revenue')" id="tlh-revenue">Doanh thu QC</th>
+                <th onclick="sortTlTable('roas')" id="tlh-roas">ROAS</th>
+                <th onclick="sortTlTable('cr')" id="tlh-cr">CR</th>
+                <th onclick="sortTlTable('reach')" id="tlh-reach">Reach</th>
+                <th onclick="sortTlTable('atc')" id="tlh-atc">Giỏ hàng</th>
+                <th onclick="sortTlTable('atcRate')" id="tlh-atcRate">ATC%</th>
+                <th onclick="sortTlTable('checkout')" id="tlh-checkout">Checkout</th>
+                <th onclick="sortTlTable('pageViews')" id="tlh-pageViews">Trang SP</th>
+                <th onclick="sortTlTable('voucherSales')" id="tlh-voucherSales">Voucher</th>
+                <th onclick="sortTlTable('avgRank')" id="tlh-avgRank">Rank TB</th>
+              </tr>
+            </thead>
+            <tbody id="tl-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- end tl-daily-view -->
 
-    <!-- Daily table -->
-    <div class="panel">
-      <div class="ph" style="flex-wrap:wrap;gap:8px;">
-        <span class="ph-title">📋 Dữ liệu theo ngày</span>
-        <span id="tl-cnt" style="font-size:11px;color:var(--mu);"></span>
-        <button class="btn btn-exp" style="margin-left:auto;" onclick="exportTimeline()">⬇ Excel</button>
+    <!-- ══ HOURLY VIEW ════════════════════════════════════════════════ -->
+    <div id="tl-hourly-view" style="display:none">
+      <!-- Date + shop picker -->
+      <div class="panel" style="margin-bottom:14px;">
+        <div style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:700;color:var(--tx);">⏰ Xem theo giờ</span>
+          <span style="font-size:12px;color:var(--mu);">Ngày:</span>
+          <input type="date" id="tl-hour-date" class="f-date" onchange="renderTlHourlyView()" style="width:140px">
+          <span style="font-size:12px;color:var(--mu);">🏪 Shop:</span>
+          <select id="tl-hour-shop" class="f-sel" style="max-width:200px" onchange="renderTimeline()">
+            <option value="all">Tất cả shop</option>
+          </select>
+          <button class="btn" style="background:var(--or);color:#fff;font-weight:700;" onclick="renderTimeline()">🔄 Cập nhật</button>
+          <span id="tl-hour-info" style="font-size:11px;color:var(--mu);margin-left:auto;"></span>
+        </div>
       </div>
-      <div class="tw">
-        <table>
-          <thead>
-            <tr>
-              <th onclick="sortTlTable('date')" id="tlh-date">Ngày ▼</th>
-              <th onclick="sortTlTable('spend')" id="tlh-spend">Chi phí</th>
-              <th onclick="sortTlTable('impressions')" id="tlh-impressions">Hiển thị</th>
-              <th onclick="sortTlTable('clicks')" id="tlh-clicks">Click</th>
-              <th onclick="sortTlTable('ctr')" id="tlh-ctr">CTR</th>
-              <th onclick="sortTlTable('cpc')" id="tlh-cpc">CPC</th>
-              <th onclick="sortTlTable('orders')" id="tlh-orders">Đơn QC</th>
-              <th onclick="sortTlTable('revenue')" id="tlh-revenue">Doanh thu QC</th>
-              <th onclick="sortTlTable('roas')" id="tlh-roas">ROAS</th>
-              <th onclick="sortTlTable('cr')" id="tlh-cr">CR</th>
-              <th onclick="sortTlTable('reach')" id="tlh-reach">Reach</th>
-              <th onclick="sortTlTable('atc')" id="tlh-atc">Giỏ hàng</th>
-              <th onclick="sortTlTable('atcRate')" id="tlh-atcRate">ATC%</th>
-              <th onclick="sortTlTable('checkout')" id="tlh-checkout">Checkout</th>
-              <th onclick="sortTlTable('pageViews')" id="tlh-pageViews">Trang SP</th>
-              <th onclick="sortTlTable('voucherSales')" id="tlh-voucherSales">Voucher</th>
-              <th onclick="sortTlTable('avgRank')" id="tlh-avgRank">Rank TB</th>
-            </tr>
-          </thead>
-          <tbody id="tl-tbody"></tbody>
-        </table>
+      <!-- KPI cards -->
+      <div class="cards" id="tl-hour-cards" style="margin-bottom:14px;"></div>
+      <!-- Chart -->
+      <div class="panel" style="margin-bottom:14px;">
+        <div class="ph">
+          <span class="ph-title">📈 Chi phí & Doanh thu theo giờ</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="checkbox" id="tl-hour-show-spend" checked onchange="updateTlHourChart()"> <span style="color:#3b82f6;">■</span> Chi phí
+            </label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="checkbox" id="tl-hour-show-revenue" checked onchange="updateTlHourChart()"> <span style="color:#EE4D2D;">■</span> Doanh thu QC
+            </label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="checkbox" id="tl-hour-show-clicks" onchange="updateTlHourChart()"> <span style="color:#22c55e;">■</span> Click
+            </label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="checkbox" id="tl-hour-show-orders" onchange="updateTlHourChart()"> <span style="color:#f59e0b;">■</span> Đơn QC
+            </label>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:300px;"><canvas id="tl-hour-chart"></canvas></div>
       </div>
-    </div>
-  </div>
+      <!-- Hourly table -->
+      <div class="panel">
+        <div class="ph" style="flex-wrap:wrap;gap:8px;">
+          <span class="ph-title">📋 Dữ liệu theo giờ</span>
+          <span id="tl-hour-cnt" style="font-size:11px;color:var(--mu);"></span>
+          <button class="btn btn-exp" style="margin-left:auto;" onclick="exportTlHourly()">⬇ Excel</button>
+        </div>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th>Giờ ▼</th>
+                <th>Chi phí</th>
+                <th>Hiển thị</th>
+                <th>Click</th>
+                <th>CTR</th>
+                <th>CPC</th>
+                <th>Đơn QC</th>
+                <th>Doanh thu QC</th>
+                <th>ROAS</th>
+                <th>CR</th>
+                <th>Giỏ hàng</th>
+                <th>Checkout</th>
+              </tr>
+            </thead>
+            <tbody id="tl-hour-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- end tl-hourly-view -->
+
+  </div><!-- end pane-timeline -->
 
   <!-- JSON Modal -->
   <div class="json-modal" id="jsonModal" onclick="if(event.target===this)closeModal()">
@@ -1180,8 +1263,10 @@ async function triggerHarvest() {
 
 let _tlRows = [];
 let _tlHourlyRows = [];
-let _tlHourMode = false;
+let _tlHourMode = false;   // kept for compat; no longer drives routing
+let _tlSubView = 'daily';  // 'daily' | 'hourly'
 let _tlChart = null;
+let _tlHourChart = null;
 let _tlPieSpend = null;
 let _tlPieRevenue = null;
 let _tlSortCol = 'date';
@@ -1416,23 +1501,41 @@ function buildTlRows(shopFilter) {
   // Pass 1: xử lý captures có daily breakdown array (get_time_graph, v.v.)
   // Ghi nhận (shopId|collectionDay) đã có daily data để tránh double-count ở pass 2
   const hasDailyData = new Set();
-  // Dedup key: shopId|capUrlBase|date — phân biệt CPC / Auto / GMV Max VÀ ngăn harvest cũ double-count
-  // Strategy: pre-aggregate tất cả giờ → tổng ngày PER CAPTURE trước, rồi mới dedup theo capUrlBase
-  // → daily total = sum(tất cả giờ trong ngày), không phải chỉ giờ đầu tiên
-  const addedCapDateKey = new Set();
-  const addedHourKey    = new Set(); // dedup (shopId|datetime|capUrlBase)
+  const addedCapDateKey = new Set(); // dedup: shopId|capUrlBase|date
+  const addedHourKey    = new Set(); // dedup: shopId|datetime|capUrlBase
+
   for (const cap of caps) {
     if (!cap.json) continue;
-    const capUrlBase = (cap.url||'').split('?')[0]; // phân biệt CPC / Auto / GMV Max
+    const capUrlBase = (cap.url||'').split('?')[0];
     const dailyArr = tlExtractDailyArray(cap.json);
-    if (dailyArr?.length) {
-      // Bước 1: gộp tất cả entries (hourly hoặc daily) → daily totals riêng cho capture này
-      const capDayAcc = {};
-      for (const d of dailyArr) {
-        if (!d.date) continue;
-        _accumulate(capDayAcc, d.date, d); // sum tất cả giờ vào cùng ngày
+    if (!dailyArr?.length) continue;
 
-        // Hourly data: dedup theo shopId|datetime|capUrlBase
+    // ── Phân loại luồng ─────────────────────────────────────────────────
+    // Hourly capture (hôm nay): tất cả entries cùng 1 ngày → nhiều giờ
+    // Daily capture (historical): entries khác ngày → mỗi entry = 1 ngày
+    const firstDate = dailyArr[0]?.date;
+    const isHourly  = dailyArr.length > 1 && dailyArr.every(d => d.date === firstDate);
+
+    if (isHourly) {
+      // ── LUỒNG HOURLY (today) ─────────────────────────────────────────
+      // Mỗi entry = 1 giờ. Sum tất cả giờ → tổng ngày cho daily table.
+      // Đồng thời feed từng giờ vào hourly chart.
+      const dayAcc = _emptyAcc();
+      for (const d of dailyArr) {
+        // Daily total: cộng dồn giờ vào ngày
+        dayAcc.spend        += d.spend        || 0;
+        dayAcc.impressions  += d.impressions  || 0;
+        dayAcc.clicks       += d.clicks       || 0;
+        dayAcc.orders       += d.orders       || 0;
+        dayAcc.revenue      += d.revenue      || 0;
+        dayAcc.reach        += d.reach        || 0;
+        dayAcc.atc          += d.atc          || 0;
+        dayAcc.checkout     += d.checkout     || 0;
+        dayAcc.pageViews    += d.pageViews    || 0;
+        dayAcc.voucherSales += d.voucherSales || 0;
+        if ((d.avgRank||0) > 0) { dayAcc.avgRank += d.avgRank; dayAcc._rankCnt += (d._rankCnt||1); }
+
+        // Hourly chart
         if (d.datetime) {
           const hk = (cap.shopId||'') + '|' + d.datetime + '|' + capUrlBase;
           if (!addedHourKey.has(hk)) {
@@ -1441,20 +1544,27 @@ function buildTlRows(shopFilter) {
           }
         }
       }
+      // Thêm tổng ngày vào daily table (dedup: 1 lần mỗi capUrlBase/ngày)
+      const dk = (cap.shopId||'') + '|' + capUrlBase + '|' + firstDate;
+      if (!addedCapDateKey.has(dk)) {
+        addToDate(firstDate, dayAcc);
+        addedCapDateKey.add(dk);
+      }
 
-      // Bước 2: thêm daily totals vào byDate, dedup theo shopId|capUrlBase|date
-      // → các loại chiến dịch khác nhau (CPC / Auto) đều được cộng vào
-      // → harvest cũ cho cùng ngày + URL bị bỏ qua (caps sorted newest first)
-      for (const [date, totals] of Object.entries(capDayAcc)) {
-        const dk = (cap.shopId||'') + '|' + capUrlBase + '|' + date;
+    } else {
+      // ── LUỒNG DAILY (historical, multi-day) ─────────────────────────
+      // Mỗi entry = 1 ngày. Thêm thẳng, không cần aggregate.
+      for (const d of dailyArr) {
+        if (!d.date) continue;
+        const dk = (cap.shopId||'') + '|' + capUrlBase + '|' + d.date;
         if (!addedCapDateKey.has(dk)) {
-          addToDate(date, totals);
+          addToDate(d.date, d);
           addedCapDateKey.add(dk);
         }
       }
-
-      hasDailyData.add((cap.shopId||'') + '|' + (cap.collectionDay||''));
     }
+
+    hasDailyData.add((cap.shopId||'') + '|' + (cap.collectionDay||''));
   }
 
   // Pass 2: fallback aggregate cho shop+day chưa có daily data
@@ -1586,18 +1696,13 @@ function updateTlChart() {
   const canvas = document.getElementById('tl-chart');
   if (!canvas) return;
 
-  const filtered = _tlHourMode ? filterTlHourlyRows() : filterTlRows(_tlRows);
+  const filtered = filterTlRows(_tlRows);
   if (!filtered.length) { if (_tlChart) { _tlChart.destroy(); _tlChart = null; } return; }
 
-  const labels = _tlHourMode
-    ? filtered.map(r => {
-        const d = r.date.slice(5).replace('-','/'); // MM/DD → "07/01"
-        return d + ' ' + r.hour;
-      })
-    : filtered.map(r => {
-        const d = new Date(r.date + 'T00:00:00');
-        return d.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' });
-      });
+  const labels = filtered.map(r => {
+    const d = new Date(r.date + 'T00:00:00');
+    return d.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' });
+  });
   const showSpend   = document.getElementById('tl-show-spend')?.checked;
   const showRevenue = document.getElementById('tl-show-revenue')?.checked;
   const showClicks  = document.getElementById('tl-show-clicks')?.checked;
@@ -1609,8 +1714,8 @@ function updateTlChart() {
   if (showClicks)  datasets.push({ label:'Click',         data:filtered.map(r=>r.clicks),  borderColor:'#22c55e', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
   if (showOrders)  datasets.push({ label:'Đơn QC',        data:filtered.map(r=>r.orders),  borderColor:'#f59e0b', backgroundColor:'transparent',          yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5 });
 
-  // Compare mode: thêm đường kỳ trước dạng nét đứt (chỉ khi day mode)
-  if (_compareMode && !_tlHourMode) {
+  // Compare mode: thêm đường kỳ trước dạng nét đứt
+  if (_compareMode) {
     const cmpRows = getCmpRows();
     const lbl = cmpDateLabel();
     if (showSpend)   datasets.push({ label:`Chi phí (${lbl})`,      data:cmpRows.map(r=>r.spend),   borderColor:'#93c5fd', backgroundColor:'transparent', yAxisID:'y',  tension:.35, fill:false, pointRadius:2, borderWidth:1.5, borderDash:[6,4] });
@@ -1649,17 +1754,16 @@ function updateTlChart() {
 
 // Render bảng dữ liệu ngày / giờ
 function renderTlTable() {
-  const rawFiltered = _tlHourMode ? filterTlHourlyRows() : filterTlRows(_tlRows);
+  const rawFiltered = filterTlRows(_tlRows);
   const filtered = rawFiltered.slice();
   filtered.sort((a, b) => {
-    const sortKey = _tlHourMode && _tlSortCol === 'date' ? 'datetime' : _tlSortCol;
-    const va = a[sortKey] ?? a[_tlSortCol], vb = b[sortKey] ?? b[_tlSortCol];
+    const va = a[_tlSortCol], vb = b[_tlSortCol];
     if (typeof va === 'string') return _tlSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
     return _tlSortAsc ? va - vb : vb - va;
   });
 
-  // Compare rows (sorted by date asc to pair by position) — day mode only
-  const cmpRows = (_compareMode && !_tlHourMode) ? getCmpRows() : [];
+  // Compare rows (sorted by date asc to pair by position)
+  const cmpRows = _compareMode ? getCmpRows() : [];
   const _sumRows = (rows) => rows.reduce((acc, r) => ({
     spend: acc.spend+r.spend, impressions: acc.impressions+r.impressions,
     clicks: acc.clicks+r.clicks, orders: acc.orders+r.orders, revenue: acc.revenue+r.revenue,
@@ -1682,7 +1786,7 @@ function renderTlTable() {
   const cmpCpc    = cmpTotal.clicks > 0 ? Math.round(cmpTotal.spend/cmpTotal.clicks) : 0;
   const cmpCr     = cmpTotal.clicks > 0 ? cmpTotal.orders/cmpTotal.clicks*100 : 0;
   const KPI_DEFS = [
-    { label:'Tổng chi phí',  cur:total.spend,       cmp:cmpTotal.spend,       val:total.spend.toLocaleString('vi-VN')+'đ',   sub:filtered.length+(_tlHourMode?' giờ':' ngày'), color:'#3b82f6', lessGood:false },
+    { label:'Tổng chi phí',  cur:total.spend,       cmp:cmpTotal.spend,       val:total.spend.toLocaleString('vi-VN')+'đ',   sub:filtered.length+' ngày', color:'#3b82f6', lessGood:false },
     { label:'Doanh thu QC',  cur:total.revenue,     cmp:cmpTotal.revenue,     val:total.revenue.toLocaleString('vi-VN')+'đ', sub:'từ quảng cáo',          color:'#EE4D2D', lessGood:false },
     { label:'ROAS',          cur:total.spend>0?(total.revenue/total.spend):0, cmp:cmpTotalRoas, val:totalRoas, sub:'doanh thu / chi phí', color:total.spend>0&&(total.revenue/total.spend)>=1?'#16a34a':'#dc2626', lessGood:false },
     { label:'Lượt hiển thị', cur:total.impressions, cmp:cmpTotal.impressions, val:total.impressions.toLocaleString('vi-VN'), sub:'impressions',            color:'#f59e0b', lessGood:false },
@@ -1701,9 +1805,7 @@ function renderTlTable() {
     return `<div class="card"><div class="card-label">${c.label}</div><div class="card-val" style="color:${c.color};font-size:18px;">${c.val}</div>${delta}${cmpVal}<div class="card-sub">${c.sub}</div></div>`;
   }).join('');
 
-  document.getElementById('tl-cnt').textContent = _tlHourMode
-    ? `${filtered.length} giờ dữ liệu`
-    : `${filtered.length} ngày dữ liệu${_compareMode ? ' | so sánh: '+cmpDateLabel() : ''}`;
+  document.getElementById('tl-cnt').textContent = `${filtered.length} ngày dữ liệu${_compareMode ? ' | so sánh: '+cmpDateLabel() : ''}`;
   const tbody = document.getElementById('tl-tbody');
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--mu);">
@@ -1727,7 +1829,7 @@ function renderTlTable() {
     const cDate = c ? `<div style="font-size:9px;color:#9ca3af;">${c.date}</div>` : '';
     const n = v => v.toLocaleString('vi-VN');
     return `<tr>
-      <td style="font-weight:600;">${i+1}. ${_tlHourMode ? `<span style="color:#6b7280;font-size:11px;">${r.date.slice(5).replace('-','/')}</span> ${r.hour}` : r.date}${c ? `<div style="font-size:9px;color:#9ca3af;">vs ${c.date}</div>` : ''}</td>
+      <td style="font-weight:600;">${i+1}. ${r.date}${c ? `<div style="font-size:9px;color:#9ca3af;">vs ${c.date}</div>` : ''}</td>
       <td style="color:#3b82f6;font-weight:600;">${n(r.spend)}đ${c ? deltaHtml(r.spend,c.spend,false) : ''}</td>
       <td>${n(r.impressions)}${c ? deltaHtml(r.impressions,c.impressions,false) : ''}</td>
       <td>${n(r.clicks)}${c ? deltaHtml(r.clicks,c.clicks,false) : ''}</td>
@@ -1748,7 +1850,7 @@ function renderTlTable() {
   }).join('');
 
   // Sort header indicator
-  const COL_HEADERS = { date:_tlHourMode?'Giờ':'Ngày', spend:'Chi phí', impressions:'Hiển thị', clicks:'Click', ctr:'CTR', cpc:'CPC', orders:'Đơn QC', revenue:'Doanh thu QC', roas:'ROAS', cr:'CR', reach:'Reach', atc:'Giỏ hàng', atcRate:'ATC%', checkout:'Checkout', pageViews:'Trang SP', voucherSales:'Voucher', avgRank:'Rank TB' };
+  const COL_HEADERS = { date:'Ngày', spend:'Chi phí', impressions:'Hiển thị', clicks:'Click', ctr:'CTR', cpc:'CPC', orders:'Đơn QC', revenue:'Doanh thu QC', roas:'ROAS', cr:'CR', reach:'Reach', atc:'Giỏ hàng', atcRate:'ATC%', checkout:'Checkout', pageViews:'Trang SP', voucherSales:'Voucher', avgRank:'Rank TB' };
   Object.entries(COL_HEADERS).forEach(([col, label]) => {
     const el = document.getElementById('tlh-' + col);
     if (!el) return;
@@ -1868,26 +1970,208 @@ function renderTlPieCharts() {
   _tlPieRevenue = makeDoughnut('tl-pie-revenue', totals.map(s => s.revenue), _tlPieRevenue);
 }
 
-// Render toàn bộ timeline tab
-function renderTimeline() {
-  const shopFilter = document.getElementById('tl-shop')?.value || 'all';
-  const _built = buildTlRows(shopFilter);
-  _tlRows = _built.daily;
-  _tlHourlyRows = _built.hourly;
+// Switch giữa hai sub-view
+function setTlView(view) {
+  _tlSubView = view;
+  const daily  = document.getElementById('tl-daily-view');
+  const hourly = document.getElementById('tl-hourly-view');
+  const btnD   = document.getElementById('tl-subtab-daily');
+  const btnH   = document.getElementById('tl-subtab-hourly');
+  if (view === 'hourly') {
+    if (daily)  daily.style.display  = 'none';
+    if (hourly) hourly.style.display = 'block';
+    if (btnD) { btnD.style.background = '#fff'; btnD.style.color = 'var(--mu)'; }
+    if (btnH) { btnH.style.background = 'var(--or)'; btnH.style.color = '#fff'; }
+    // Mặc định chọn hôm nay nếu chưa có
+    const dateEl = document.getElementById('tl-hour-date');
+    if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+    // Xây dữ liệu theo shop hourly đã chọn
+    const shopFilter = document.getElementById('tl-hour-shop')?.value || 'all';
+    const _built = buildTlRows(shopFilter);
+    _tlRows = _built.daily;
+    _tlHourlyRows = _built.hourly;
+    renderTlHourlyView();
+  } else {
+    if (daily)  daily.style.display  = 'block';
+    if (hourly) hourly.style.display = 'none';
+    if (btnD) { btnD.style.background = 'var(--or)'; btnD.style.color = '#fff'; }
+    if (btnH) { btnH.style.background = '#fff'; btnH.style.color = 'var(--mu)'; }
+    // Xây dữ liệu theo shop daily đã chọn
+    const shopFilter = document.getElementById('tl-shop')?.value || 'all';
+    const _built = buildTlRows(shopFilter);
+    _tlRows = _built.daily;
+    _tlHourlyRows = _built.hourly;
+    renderTlDailyView();
+  }
+}
 
-  // Tự động chế độ giờ khi chọn đúng 1 ngày (giống Shopee)
-  const from = document.getElementById('tl-from')?.value;
-  const to   = document.getElementById('tl-to')?.value;
-  _tlHourMode = !!(from && to && from === to);
-
+// Render daily sub-view (chart + table + cards)
+function renderTlDailyView() {
   const filtered = filterTlRows(_tlRows);
   const el = document.getElementById('tl-info');
-  if (el) el.textContent = _tlHourMode
-    ? `${filterTlHourlyRows().length} giờ có dữ liệu`
-    : `${filtered.length} ngày có dữ liệu`;
+  if (el) el.textContent = `${filtered.length} ngày có dữ liệu`;
   updateTlChart();
   renderTlPieCharts();
   renderTlTable();
+}
+
+// Render toàn bộ timeline tab (cập nhật data + render sub-view đang active)
+function renderTimeline() {
+  if (_tlSubView === 'hourly') {
+    const shopFilter = document.getElementById('tl-hour-shop')?.value || 'all';
+    const _built = buildTlRows(shopFilter);
+    _tlRows = _built.daily;
+    _tlHourlyRows = _built.hourly;
+    renderTlHourlyView();
+  } else {
+    const shopFilter = document.getElementById('tl-shop')?.value || 'all';
+    const _built = buildTlRows(shopFilter);
+    _tlRows = _built.daily;
+    _tlHourlyRows = _built.hourly;
+    renderTlDailyView();
+  }
+}
+
+// ── HOURLY VIEW functions ────────────────────────────────────────────
+
+// Lọc hourly rows theo ngày đã chọn trong tl-hour-date
+function filterTlHourlyViewRows() {
+  const date = document.getElementById('tl-hour-date')?.value;
+  if (!date) return _tlHourlyRows;
+  return _tlHourlyRows.filter(r => r.date === date);
+}
+
+// Render KPI cards cho hourly view
+function renderTlHourlyCards(rows) {
+  const el = document.getElementById('tl-hour-cards');
+  if (!el) return;
+  if (!rows.length) { el.innerHTML = ''; return; }
+  const total = rows.reduce((acc, r) => ({
+    spend: acc.spend + r.spend, impressions: acc.impressions + r.impressions,
+    clicks: acc.clicks + r.clicks, orders: acc.orders + r.orders,
+    revenue: acc.revenue + r.revenue, reach: acc.reach + r.reach,
+    atc: acc.atc + r.atc, checkout: acc.checkout + r.checkout,
+  }), {spend:0,impressions:0,clicks:0,orders:0,revenue:0,reach:0,atc:0,checkout:0});
+  const n    = v => v.toLocaleString('vi-VN');
+  const roas = total.spend > 0 ? (total.revenue / total.spend).toFixed(2) : '—';
+  const ctr  = total.impressions > 0 ? (total.clicks / total.impressions * 100).toFixed(2) : '—';
+  const cpc  = total.clicks > 0 ? Math.round(total.spend / total.clicks) : 0;
+  const cr   = total.clicks > 0 ? (total.orders / total.clicks * 100).toFixed(2) : '—';
+  const KPI  = [
+    { label:'Tổng chi phí',  val:n(total.spend)+'đ',    sub:rows.length+' giờ',  color:'#3b82f6' },
+    { label:'Doanh thu QC',  val:n(total.revenue)+'đ',  sub:'từ quảng cáo',       color:'#EE4D2D' },
+    { label:'ROAS',          val:roas,                   sub:'doanh thu/chi phí',  color:total.spend>0&&(total.revenue/total.spend)>=1?'#16a34a':'#dc2626' },
+    { label:'Lượt hiển thị', val:n(total.impressions),  sub:'impressions',         color:'#f59e0b' },
+    { label:'Click',         val:n(total.clicks),        sub:'lượt click',          color:'#8b5cf6' },
+    { label:'Đơn hàng QC',  val:n(total.orders),        sub:'đơn từ QC',           color:'#14b8a6' },
+    { label:'CTR',           val:ctr+'%',                sub:'click/hiển thị',      color:'#0ea5e9' },
+    { label:'CPC',           val:n(cpc)+'đ',            sub:'chi phí/click',        color:'#6366f1' },
+    { label:'CR',            val:cr+'%',                 sub:'đơn/click',            color:'#10b981' },
+    { label:'Reach',         val:n(total.reach),         sub:'người tiếp cận',       color:'#f97316' },
+    { label:'Giỏ hàng',     val:n(total.atc),           sub:'add to cart',           color:'#ec4899' },
+    { label:'Checkout',      val:n(total.checkout),      sub:'lần checkout',          color:'#84cc16' },
+  ];
+  el.innerHTML = KPI.map(c =>
+    `<div class="card"><div class="card-label">${c.label}</div><div class="card-val" style="color:${c.color};font-size:18px;">${c.val}</div><div class="card-sub">${c.sub}</div></div>`
+  ).join('');
+}
+
+// Vẽ bar chart theo giờ
+function updateTlHourChart(rows) {
+  const canvas = document.getElementById('tl-hour-chart');
+  if (!canvas) return;
+  if (!rows) rows = filterTlHourlyViewRows();
+  if (!rows.length) { if (_tlHourChart) { _tlHourChart.destroy(); _tlHourChart = null; } return; }
+  const labels       = rows.map(r => r.hour);
+  const showSpend    = document.getElementById('tl-hour-show-spend')?.checked;
+  const showRevenue  = document.getElementById('tl-hour-show-revenue')?.checked;
+  const showClicks   = document.getElementById('tl-hour-show-clicks')?.checked;
+  const showOrders   = document.getElementById('tl-hour-show-orders')?.checked;
+  const datasets = [];
+  if (showSpend)   datasets.push({ label:'Chi phí',      data:rows.map(r=>r.spend),   backgroundColor:'rgba(59,130,246,.75)',  borderColor:'#3b82f6', yAxisID:'y',  borderWidth:1 });
+  if (showRevenue) datasets.push({ label:'Doanh thu QC', data:rows.map(r=>r.revenue), backgroundColor:'rgba(238,77,45,.75)',   borderColor:'#EE4D2D', yAxisID:'y2', borderWidth:1 });
+  if (showClicks)  datasets.push({ label:'Click',        data:rows.map(r=>r.clicks),  backgroundColor:'rgba(34,197,94,.75)',  borderColor:'#22c55e', yAxisID:'y',  borderWidth:1 });
+  if (showOrders)  datasets.push({ label:'Đơn QC',       data:rows.map(r=>r.orders),  backgroundColor:'rgba(245,158,11,.75)', borderColor:'#f59e0b', yAxisID:'y',  borderWidth:1 });
+  if (_tlHourChart) _tlHourChart.destroy();
+  _tlHourChart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { position:'top', labels:{ font:{size:11}, boxWidth:14 } },
+        tooltip: { callbacks: { label: ctx => { const v = ctx.raw||0; const m = /Chi phí|Doanh thu/.test(ctx.dataset.label); return ` ${ctx.dataset.label}: ${v.toLocaleString('vi-VN')}${m?'đ':''}`; } } }
+      },
+      scales: {
+        x:  { ticks:{ font:{size:10} }, grid:{ display:false } },
+        y:  { position:'left',  ticks:{ font:{size:10}, callback:v=>v>=1e6?Math.round(v/1e6)+'M':v>=1e3?Math.round(v/1e3)+'K':v }, grid:{ color:'rgba(0,0,0,.04)' }, title:{ display:true, text:'Chi phí | Click', font:{size:10}, color:'#6b7280' } },
+        y2: { position:'right', ticks:{ font:{size:10}, callback:v=>v>=1e6?Math.round(v/1e6)+'M':v>=1e3?Math.round(v/1e3)+'K':v }, grid:{ display:false }, title:{ display:true, text:'Doanh thu QC', font:{size:10}, color:'#6b7280' } }
+      }
+    }
+  });
+}
+
+// Render bảng theo giờ
+function renderTlHourlyTable(rows) {
+  if (!rows) rows = filterTlHourlyViewRows();
+  const cntEl = document.getElementById('tl-hour-cnt');
+  const tbody = document.getElementById('tl-hour-tbody');
+  if (!tbody) return;
+  if (cntEl) cntEl.textContent = `${rows.length} giờ dữ liệu`;
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--mu);">
+      <div style="font-size:32px;margin-bottom:8px;">📭</div>
+      <div style="font-weight:600;margin-bottom:4px;">Chưa có dữ liệu theo giờ</div>
+      <div style="font-size:11px;">Chọn ngày có harvest hoặc nhấn 🔄 Cập nhật</div>
+    </td></tr>`;
+    return;
+  }
+  const n = v => v.toLocaleString('vi-VN');
+  const rc = roas => roas >= 1 ? '#16a34a' : roas > 0 ? '#f59e0b' : '#6b7280';
+  tbody.innerHTML = rows.map(r => `<tr>
+    <td style="font-weight:600;">${r.hour}</td>
+    <td style="color:#3b82f6;font-weight:600;">${n(r.spend)}đ</td>
+    <td>${n(r.impressions)}</td>
+    <td>${n(r.clicks)}</td>
+    <td style="color:#0ea5e9;">${r.ctr}%</td>
+    <td>${n(r.cpc)}đ</td>
+    <td>${n(r.orders)}</td>
+    <td style="color:#EE4D2D;font-weight:600;">${n(r.revenue)}đ</td>
+    <td><span style="font-weight:700;color:${rc(r.roas)};">${r.roas}</span></td>
+    <td style="color:#10b981;">${r.cr}%</td>
+    <td>${n(r.atc)}</td>
+    <td>${n(r.checkout)}</td>
+  </tr>`).join('');
+}
+
+// Render toàn bộ hourly sub-view
+function renderTlHourlyView() {
+  const rows   = filterTlHourlyViewRows();
+  const dateV  = document.getElementById('tl-hour-date')?.value;
+  const infoEl = document.getElementById('tl-hour-info');
+  if (infoEl) infoEl.textContent = `${rows.length} giờ có dữ liệu${dateV ? ' — ' + dateV.slice(8)+'/'+dateV.slice(5,7)+'/'+dateV.slice(0,4) : ''}`;
+  renderTlHourlyCards(rows);
+  updateTlHourChart(rows);
+  renderTlHourlyTable(rows);
+}
+
+// Export Excel cho hourly view
+function exportTlHourly() {
+  const rows = filterTlHourlyViewRows();
+  if (!rows.length) { alert('Không có dữ liệu để xuất.'); return; }
+  if (typeof XLSX === 'undefined') { alert('Thư viện XLSX chưa tải xong, thử lại.'); return; }
+  const dateV = document.getElementById('tl-hour-date')?.value || '';
+  const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
+    'Giờ': r.hour, 'Ngày': r.date,
+    'Chi phí (VND)': r.spend, 'Lượt hiển thị': r.impressions, 'Click': r.clicks,
+    'CTR (%)': r.ctr, 'CPC (VND)': r.cpc, 'Đơn QC': r.orders,
+    'Doanh thu QC (VND)': r.revenue, 'ROAS': r.roas, 'CR (%)': r.cr,
+    'Giỏ hàng': r.atc, 'Checkout': r.checkout,
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Theo Giờ');
+  XLSX.writeFile(wb, `shopee_hourly_${dateV || new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 // Export Excel
@@ -1919,18 +2203,22 @@ function exportTimeline() {
   XLSX.writeFile(wb, `shopee_timeline_qc_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-// Cập nhật shop select trong timeline tab
+// Cập nhật shop select trong timeline tab (cả daily và hourly)
 function updateTlShopSel(shops) {
-  const sel = document.getElementById('tl-shop');
-  if (!sel) return;
-  const cur = sel.value;
-  sel.innerHTML = `<option value="all">Tất cả shop (${Object.keys(shops).length})</option>`;
-  Object.values(shops).sort((a,b) => b.lastSeen - a.lastSeen).forEach(s => {
-    const o = document.createElement('option');
-    o.value = s.shopId;
-    o.textContent = shopDisplayName ? shopDisplayName(s) : (s.name || s.shopId);
-    if (s.shopId === cur) o.selected = true;
-    sel.appendChild(o);
+  const shopList = Object.values(shops).sort((a,b) => b.lastSeen - a.lastSeen);
+  const allLabel = `Tất cả shop (${Object.keys(shops).length})`;
+  ['tl-shop', 'tl-hour-shop'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = `<option value="all">${allLabel}</option>`;
+    shopList.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.shopId;
+      o.textContent = shopDisplayName ? shopDisplayName(s) : (s.name || s.shopId);
+      if (s.shopId === cur) o.selected = true;
+      sel.appendChild(o);
+    });
   });
 }
 
