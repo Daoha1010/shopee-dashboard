@@ -1416,26 +1416,43 @@ function buildTlRows(shopFilter) {
   // Pass 1: xử lý captures có daily breakdown array (get_time_graph, v.v.)
   // Ghi nhận (shopId|collectionDay) đã có daily data để tránh double-count ở pass 2
   const hasDailyData = new Set();
-  const addedDailyKey = new Set(); // dedup (shopId|date) trong Pass 1
-  const addedHourKey  = new Set(); // dedup (shopId|datetime) cho hourly
+  // Dedup key: shopId|capUrlBase|date — phân biệt CPC / Auto / GMV Max VÀ ngăn harvest cũ double-count
+  // Strategy: pre-aggregate tất cả giờ → tổng ngày PER CAPTURE trước, rồi mới dedup theo capUrlBase
+  // → daily total = sum(tất cả giờ trong ngày), không phải chỉ giờ đầu tiên
+  const addedCapDateKey = new Set();
+  const addedHourKey    = new Set(); // dedup (shopId|datetime|capUrlBase)
   for (const cap of caps) {
     if (!cap.json) continue;
+    const capUrlBase = (cap.url||'').split('?')[0]; // phân biệt CPC / Auto / GMV Max
     const dailyArr = tlExtractDailyArray(cap.json);
     if (dailyArr?.length) {
+      // Bước 1: gộp tất cả entries (hourly hoặc daily) → daily totals riêng cho capture này
+      const capDayAcc = {};
       for (const d of dailyArr) {
-        const dk = (cap.shopId||'') + '|' + d.date;
-        if (!addedDailyKey.has(dk)) {
-          addToDate(d.date, d);
-          addedDailyKey.add(dk);
-        }
+        if (!d.date) continue;
+        _accumulate(capDayAcc, d.date, d); // sum tất cả giờ vào cùng ngày
+
+        // Hourly data: dedup theo shopId|datetime|capUrlBase
         if (d.datetime) {
-          const hk = (cap.shopId||'') + '|' + d.datetime;
+          const hk = (cap.shopId||'') + '|' + d.datetime + '|' + capUrlBase;
           if (!addedHourKey.has(hk)) {
             _accumulate(byHour, d.datetime, d);
             addedHourKey.add(hk);
           }
         }
       }
+
+      // Bước 2: thêm daily totals vào byDate, dedup theo shopId|capUrlBase|date
+      // → các loại chiến dịch khác nhau (CPC / Auto) đều được cộng vào
+      // → harvest cũ cho cùng ngày + URL bị bỏ qua (caps sorted newest first)
+      for (const [date, totals] of Object.entries(capDayAcc)) {
+        const dk = (cap.shopId||'') + '|' + capUrlBase + '|' + date;
+        if (!addedCapDateKey.has(dk)) {
+          addToDate(date, totals);
+          addedCapDateKey.add(dk);
+        }
+      }
+
       hasDailyData.add((cap.shopId||'') + '|' + (cap.collectionDay||''));
     }
   }
